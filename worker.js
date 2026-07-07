@@ -29,7 +29,7 @@ const SCHEMA_JSON = `
       "esporte": "string (ex: Futebol, Basquete, Tênis, Vôlei)",
       "liga": "string ou null (nome do campeonato/liga)",
       "evento": "string (nome do confronto, ex: Time A x Time B)",
-      "mercado": "string (usar EXATAMENTE um dos nomes da lista de mercados cadastrados — ver regra MAPEAMENTO DE MERCADOS)",
+      "mercado": "string — um nome da lista de mercados cadastrados (ver MAPEAMENTO DE MERCADOS). Se o evento combinar VÁRIAS condições cujos mercados são todos reconhecidos na lista, use os nomes reconhecidos separados por ', ' (ex.: \"Gols, Escanteios\") em vez de 'Criador de Apostas' — ver regra CRIADOR DE APOSTAS abaixo.",
       "selecao": "string (a seleção escolhida, ex: nome do time, Mais de 2.5, etc.)",
       "odd": "number (a odd daquele evento)",
       "confianca": "number entre 0 e 1, sua confiança nessa leitura específica",
@@ -54,14 +54,21 @@ Regra especial — DATA DE REGISTRO DO BILHETE (não confundir com a data do jog
 - Exemplos de como a data de registro aparece em cada casa:
   • Betano (imagem): a data de registro fica na MESMA LINHA que o ID, no rodapé do bilhete, no formato "DD/MM/AAAA - HH:MM". Exemplo real: "ID: 20533211949   01/07/2026 - 09:58" — o identificador é "20533211949" e a data de registro é "2026-07-01T09:58". Não há texto "Criado em" na Betano — a data simplesmente aparece ao lado do ID.
   • Betano (texto colado): a data de registro fica logo abaixo do ID, no formato "DD/MM/AAAA - HH:MM". Ex: ID: 6416780725 → 26/10/2024 - 11:29.
-  • Superbet (imagem): aparece no rodapé após "Criado em", no formato "DD de MÊS de AAAA — HH:MM". Ex: "Criado em 30 de jun. de 2026 — 10:48".
-  • Superbet (texto colado): aparece logo abaixo do código identificador, no formato "D DE MÊS DE AAAA — HH:MM". Ex: 890I-QD3MXC → 1 DE JUL. DE 2026 — 09:56.
+  • Superbet (imagem, site/desktop): aparece no rodapé após "Criado em", no formato "DD de MÊS de AAAA — HH:MM". Ex: "Criado em 30 de jun. de 2026 — 10:48".
+  • Superbet (imagem, app mobile — tela "Cupom de Aposta"): o identificador e a data ficam lado a lado num cartão de resumo, SEM o texto "Criado em". Formato: "XXXX-XXXXXXX" à esquerda e "DD MMM. AAAA — HH:MM" à direita, na mesma linha. Exemplo real: "892N-1QNSK9" e "07 jul. 2026 — 10:38" — identificador "892N-1QNSK9", dataHora "2026-07-07T10:38". Esse cartão de resumo costuma ficar no fim da tela (role para baixo); se o print mostrar só os eventos e não esse cartão, deixe identificador e dataHora como null.
+  • Superbet (texto colado): a data de registro fica logo abaixo do código identificador, no formato "D DE MÊS DE AAAA — HH:MM". Ex: 890I-QD3MXC → 1 DE JUL. DE 2026 — 09:56.
 - Se não encontrar a data de registro com clareza, deixe "dataHora" como null — não use a data do jogo.
 
 Regra especial — IDENTIFICADOR DO BILHETE:
 - Betano: vem com rótulo explícito "ID:" seguido de número longo. Ex: ID: 6416780725.
-- Superbet: código sem rótulo no padrão XXXX-XXXXXX (4+ chars, hífen, 4+ chars). Ex: 890I-QD3MXC.
+- Superbet: código sem rótulo no padrão XXXX-XXXXXX (4+ chars, hífen, 4+ chars). Ex: 890I-QD3MXC, 892N-1QNSK9.
+- No app mobile da Superbet, ignore textos técnicos de rodapé que pareçam UUID (ex: "1B4BAD59-FF6F-4611-A95B-3CEE4DF34F76") ou strings de versão de app/sistema (ex: "BrazilSport/2607011314 CFNetwork/3860.600.12 Darwin/25.5.0") — isso é informação de depuração do aplicativo, não é o identificador do bilhete.
 - Outras casas: use o bom senso para identificar códigos que claramente servem como referência do bilhete.
+
+Regra especial — STATUS (não confundir opção de Cashout com status Cash Out):
+- Use o rótulo explícito "STATUS" (ou equivalente) quando ele existir no bilhete — é a fonte de verdade. Ex.: "STATUS: ATIVO" → status "Aberto".
+- A presença de um botão "CASHOUT" disponível/verde NÃO significa que a aposta foi encerrada por cashout — é apenas uma opção oferecida enquanto a aposta está em aberto. Só use o status "Cash Out" se houver indicação explícita de que o cashout foi efetivamente realizado (ex.: texto "Cashout realizado", "Encerrada por cash out", ou status explícito diferente de "Ativo"/"Aberto").
+- Da mesma forma, valores como "Valor do Cashout" e "Lucro" exibidos junto ao botão são apenas uma simulação do que seria pago SE o usuário optasse por sacar agora — não indicam o resultado real da aposta.
 
 Regra especial — LIGA:
 - Se a liga estiver escrita explicitamente no bilhete (como na Superbet), copie-a exatamente e use confiancaLiga alta (0.85-1.0).
@@ -78,7 +85,7 @@ FUTEBOL:
 "Chance Dupla" → quando o bilhete diz: Dupla Hipótese, Double Chance
 "Chance Dupla & Total de Gols" → quando o bilhete diz: Chance Dupla e Gols, Double Chance e Total de Gols
 "Chutes no gol" → quando o bilhete diz: Chutes, Finalizações ao Gol, Remates no Gol
-"Chutes no gol do jogador" → quando o bilhete diz: Chutes no Alvo do Jogador, Finalizações ao Gol do Jogador
+"Chutes no gol do jogador" → quando o bilhete diz: Chutes no Alvo do Jogador, Finalizações ao Gol do Jogador, Jogador - Chutes no Gol
 "Classificar" → quando o bilhete diz: Se Classificar, Avançar, Classificação
 "Criador de Apostas" → quando o bilhete diz: CRIAR APOSTA, Bet Builder, Aposta Personalizada, Combinada (criador de apostas de um único confronto)
 "Defesas" → quando o bilhete diz: Total de Defesas, Defesas do Goleiro
@@ -146,10 +153,25 @@ E-FOOTBALL:
 REGRA IMPORTANTE: Se o mercado do bilhete não tiver correspondência clara nesta lista, use o nome do mercado como aparece no bilhete — mas nesse caso use confianca baixa (abaixo de 0.5) para esse evento, indicando que é um mercado não mapeado.
 
 Regra especial — CRIADOR DE APOSTAS / MÚLTIPLAS CONDIÇÕES NO MESMO CONFRONTO:
-- Quando várias condições pertencem ao MESMO confronto (mesmos times, mesma data/hora de jogo), consolide em UM ÚNICO evento:
-  • mercado: use "Criador de Apostas" (está na lista de mercados cadastrados).
-  • selecao: todas as condições unidas com " + " na ordem do bilhete.
-  • odd: a odd combinada do conjunto (não a soma das individuais).
+- Quando várias condições pertencem ao MESMO confronto (mesmos times, mesma data/hora de jogo), consolide em UM ÚNICO evento (um único item no array "eventos"), mas o campo "mercado" depende de cada condição já ter ou não um mercado reconhecido na lista de MAPEAMENTO DE MERCADOS:
+  1. PRIMEIRO tente mapear o mercado de CADA condição individualmente pela tabela de MAPEAMENTO DE MERCADOS (ex.: "Total de Gols" → "Gols", "Total de Escanteios" → "Escanteios").
+  2. Se TODAS as condições do confronto tiverem mercado reconhecido: "mercado" = os nomes reconhecidos, na ordem do bilhete, separados por ", " (ex.: "Gols, Escanteios"). NÃO use "Criador de Apostas" nesse caso — o Banca Pro já permite marcar múltiplos mercados no mesmo evento, então prefira sempre os nomes reais dos mercados quando eles existem na lista.
+  3. Se PELO MENOS UMA condição não tiver mercado reconhecido na lista (nem variação aproximada clara), aí sim use "mercado" = "Criador de Apostas" para o confronto inteiro (mesmo que outras condições daquele confronto sejam reconhecidas) — mais simples e seguro do que misturar nomes reais com um item não mapeado.
+  - Em ambos os casos: "selecao" = todas as condições unidas com " + " na ordem do bilhete; "odd" = a odd combinada do conjunto (não a soma das individuais).
+
+Regra especial — SUPERBET NO APP MÓVEL (tela "Cupom de Aposta"):
+- Um cabeçalho vermelho "CUPOM DE APOS..." no topo indica esse formato específico (print do aplicativo, não do site).
+- Ignore COMPLETAMENTE qualquer cartão "Compartilhar sua aposta" / "Compartilhar no Supersocial" — é um convite de compartilhamento social, não faz parte dos dados da aposta.
+- Cada evento aparece como: ícone + texto antes do "•" + "•" + nome da liga depois do "•" (ex.: "Internacional • Copa do Mundo 2026", ou "Inglaterra • Premier League"). Esse texto antes do "•" pode ser:
+  • A palavra "Internacional" — nesse caso é só uma categoria genérica (torneio internacional/de seleções) e NÃO entra no campo "liga". Use apenas o texto depois do "•" (ex.: liga = "Copa do Mundo 2026").
+  • O nome de um país (ex.: "Inglaterra", "Brasil", "Espanha") — nesse caso é o país ao qual aquele campeonato pertence, e deve ser INCORPORADO ao campo "liga" no formato "País - Liga" (ex.: "Inglaterra • Premier League" → liga = "Inglaterra - Premier League"; "Brasil • Brasileirão Série A" → liga = "Brasil - Brasileirão Série A").
+  Em ambos os casos, use confiancaLiga alta (0.85-1.0), já que o texto está explícito no bilhete.
+- O botão "+ Adicionar" no canto superior direito do cartão é elemento de interface — não é dado.
+- Os nomes dos times aparecem empilhados em duas linhas, sem "x" nem "-" entre eles. Junte-os no campo "evento" como "Time A x Time B".
+- Dentro do cartão "CRIAR APOSTA", cada condição aparece em duas linhas: a seleção em negrito (linha 1) e o mercado em cinza (linha 2) logo abaixo. Os círculos (○) ao lado de cada condição são apenas elementos visuais de interface — TODAS as condições listadas dentro do cartão fazem parte da aposta, independentemente do círculo estar preenchido ou vazio na imagem.
+- Apostas de jogador aparecem no formato "Sobrenome, Nome - Mais de X" (ex.: "Messi, Lionel - Mais de 0.5"). Inverta para "Nome Sobrenome" ao compor a seleção final (ex.: "Lionel Messi - Mais de 0.5"), mantendo o mercado da linha de baixo (ex.: "Jogador - Chutes no Gol").
+- Pequenos ícones ao lado de alguma condição (ex.: escudo colorido) são apenas indicadores visuais da casa (ex.: aposta protegida) — ignore-os, não fazem parte do texto da seleção.
+- O cartão de resumo (identificador + data + odds totais + valor apostado) normalmente fica mais abaixo na tela, depois de todos os eventos — veja a regra de DATA DE REGISTRO e IDENTIFICADOR acima para o formato específico desse cartão.
 
 Regras gerais:
 - Se não conseguir identificar um campo com segurança, use null e dê confiança baixa — não invente valores.
@@ -232,7 +254,7 @@ ODDS TOTAIS1.84APOSTA2,00R$
 """
 → casa: Superbet, identificador: "890I-QD3MXC", dataHora: "2026-07-01T09:56", stake: 2.0, status: "Aberto"
 → 2 eventos (cada confronto é um evento separado):
-  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra x RD do Congo", mercado "Criador de Apostas", selecao "Classificar + Escanteios Mais de 4.5 Inglaterra", odd 1.35
+  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra x RD do Congo", mercado "Classificar, Escanteios" (ambos reconhecidos na lista, por isso NÃO usa "Criador de Apostas" aqui), selecao "Classificar + Escanteios Mais de 4.5 Inglaterra", odd 1.35
   Evento 2: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "EUA x Bósnia e Herzegovina", mercado "Intervalo", selecao "1", odd 1.37
 → Nota: "1º Tempo - Finalizações 1X2" na Superbet corresponde ao mercado "Intervalo" na lista cadastrada.
 
