@@ -885,6 +885,9 @@
                 </button>
             </div>
 
+            <!-- Itens novos detectados pela IA (ainda não existem nas listas) -->
+            <div id="sugestoesItensNovosBanca" aria-live="polite" style="margin:0 0 16px;"></div>
+
             <!-- Modal: colar texto do bilhete -->
             <div id="modalTextoBilhete" role="dialog" aria-modal="true" aria-labelledby="modalTextoTitulo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:2000; align-items:center; justify-content:center; padding:16px;">
                 <div style="background:var(--card); border-radius:var(--radius); padding:24px; max-width:480px; width:100%; box-shadow:var(--shadow-lg);">
@@ -2426,56 +2429,189 @@ function limparAvisosExtracao() {
     document.querySelectorAll('.aviso-extracao').forEach(el => el.remove());
 }
 
-// Mostra janela de confirmação listando itens novos detectados.
-// O usuário marca/desmarca cada item e decide quais entram nas listas.
-// Só após confirmar (ou cancelar) o formulário é preenchido.
-function mostrarJanelaItensNovos(itensNovos, callback) {
+// Guarda os dados da última extração (bilhete lido pela IA), para que os
+// itens novos ainda pendentes possam ser localizados e aplicados aos campos
+// corretos do formulário no momento em que forem aprovados individualmente.
+let extracaoAtualDados = null;
+
+// Nomes amigáveis para exibição dos campos de item novo
+const NOMES_CAMPO_ITEM_NOVO = { casa: 'Casa', esporte: 'Esporte', liga: 'Liga', mercado: 'Mercado' };
+
+// Renderiza, logo acima do formulário, os itens que a IA sugeriu mas que
+// ainda não existem nas listas do Banca Pro — como pequenos chips clicáveis.
+// Tocar em um chip abre uma caixa para conferir/ajustar o valor antes de
+// adicioná-lo permanentemente (em vez de uma janela bloqueante no fim da página).
+function renderizarSugestoesNovosItens(itensNovos) {
+    const container = document.getElementById('sugestoesItensNovosBanca');
+    if (!container) return;
+    if (!itensNovos || itensNovos.length === 0) { container.innerHTML = ''; return; }
+
+    container.innerHTML =
+        '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">' +
+        '🆕 A IA sugeriu os valores abaixo, mas eles ainda não existem nas suas listas. Toque em um deles para adicionar:' +
+        '</div>' +
+        '<div id="chipsItensNovosBanca" style="display:flex;flex-wrap:wrap;gap:8px;"></div>';
+
+    const chipsWrap = container.querySelector('#chipsItensNovosBanca');
+    itensNovos.forEach((item, i) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip-sugestao-nova';
+        chip.dataset.itemIndex = i;
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-size:13px;cursor:pointer;';
+        chip.innerHTML = `<strong>${NOMES_CAMPO_ITEM_NOVO[item.field] || item.field}:</strong> ${escaparHTMLBanca(item.valor)}` +
+            (item.esporte ? ` <span style="opacity:.7;">(${escaparHTMLBanca(item.esporte)})</span>` : '') + ' ＋';
+        chip.setAttribute('aria-label', `Adicionar "${item.valor}" como novo ${NOMES_CAMPO_ITEM_NOVO[item.field] || item.field}`);
+        chip.addEventListener('click', () => abrirCaixaAjusteItemNovo(item));
+        chipsWrap.appendChild(chip);
+    });
+}
+
+function limparSugestoesNovosItens() {
+    const container = document.getElementById('sugestoesItensNovosBanca');
+    if (container) container.innerHTML = '';
+}
+
+function removerChipSugestao(itemAprovado) {
+    const container = document.getElementById('sugestoesItensNovosBanca');
+    if (!container) return;
+    const chipsWrap = container.querySelector('#chipsItensNovosBanca');
+    if (!chipsWrap) return;
+    const chip = Array.from(chipsWrap.children).find(el =>
+        el.getAttribute('aria-label') === `Adicionar "${itemAprovado.valor}" como novo ${NOMES_CAMPO_ITEM_NOVO[itemAprovado.field] || itemAprovado.field}`
+    );
+    if (chip) chip.remove();
+    if (!chipsWrap.children.length) container.innerHTML = '';
+}
+
+function escaparHTMLBanca(txt) {
+    const d = document.createElement('div');
+    d.textContent = txt == null ? '' : String(txt);
+    return d.innerHTML;
+}
+
+// Abre uma pequena caixa com o valor sugerido pela IA, pronto para o usuário
+// conferir ou ajustar antes de confirmar a inclusão na lista.
+function abrirCaixaAjusteItemNovo(item) {
     const overlay = document.createElement('div');
-    overlay.id = 'overlayItensNovos';
+    overlay.id = 'overlayAjusteItemNovo';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-labelledby', 'tituloItensNovos');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.setAttribute('aria-labelledby', 'tituloAjusteItemNovo');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3100;display:flex;align-items:center;justify-content:center;padding:16px;';
 
-    const nomes = { casa: 'Casa', esporte: 'Esporte', liga: 'Liga', mercado: 'Mercado' };
-
-    const linhas = itensNovos.map((item, i) => `
-        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;">
-            <input type="checkbox" id="itemNovo_${i}" checked style="width:18px;height:18px;flex-shrink:0;">
-            <span>
-                <strong>${nomes[item.field] || item.field}</strong>: ${item.valor}
-                ${item.esporte ? `<span style="color:var(--text-secondary);font-size:12px;"> (${item.esporte})</span>` : ''}
-            </span>
-        </label>`).join('');
+    const nomeCampo = NOMES_CAMPO_ITEM_NOVO[item.field] || item.field;
 
     overlay.innerHTML = `
-        <div style="background:var(--card);border-radius:var(--radius);padding:24px;max-width:460px;width:100%;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;">
-            <h2 id="tituloItensNovos" style="margin:0 0 8px;font-size:16px;">🆕 Itens novos detectados</h2>
-            <p style="margin:0 0 16px;font-size:13px;color:var(--text-secondary);">A IA identificou itens que ainda não estão nas suas listas. Marque os que deseja adicionar permanentemente ao Banca Pro:</p>
-            <div id="listaItensNovos" style="margin-bottom:16px;">${linhas}</div>
+        <div style="background:var(--card);border-radius:var(--radius);padding:24px;max-width:380px;width:100%;box-shadow:var(--shadow-lg);">
+            <h2 id="tituloAjusteItemNovo" style="margin:0 0 8px;font-size:16px;">🆕 Adicionar ${nomeCampo}</h2>
+            <p style="margin:0 0 12px;font-size:13px;color:var(--text-secondary);">Confira ou ajuste o valor antes de adicionar${item.esporte ? ' (esporte: ' + escaparHTMLBanca(item.esporte) + ')' : ''}:</p>
+            <label for="inputAjusteItemNovo" class="sr-only">Valor para ${nomeCampo}</label>
+            <input type="text" id="inputAjusteItemNovo" value="${escaparHTMLBanca(item.valor)}"
+                   style="width:100%;box-sizing:border-box;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:16px;background:var(--input);color:var(--text);">
             <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
-                <button id="btnItensNovosNenhum" class="btn btn-outline" style="width:auto;padding:0 16px;font-size:13px;">Não adicionar nenhum</button>
-                <button id="btnItensNovosConfirmar" class="btn btn-primary" style="width:auto;padding:0 16px;font-size:13px;">Confirmar selecionados</button>
+                <button id="btnAjusteItemNovoCancelar" class="btn btn-outline" style="width:auto;padding:0 16px;font-size:13px;">Cancelar</button>
+                <button id="btnAjusteItemNovoConfirmar" class="btn btn-primary" style="width:auto;padding:0 16px;font-size:13px;">Adicionar</button>
             </div>
         </div>`;
 
     document.body.appendChild(overlay);
 
-    // Foco acessível no título
-    setTimeout(() => overlay.querySelector('h2').focus(), 50);
-    anunciar(`${itensNovos.length} itens novos detectados. Confirme quais deseja adicionar às listas do Banca Pro.`);
+    const input = overlay.querySelector('#inputAjusteItemNovo');
+    setTimeout(() => { input.focus(); input.select(); }, 50);
 
-    function fechar(itensAprovados) {
+    function fechar() {
         overlay.remove();
-        callback(itensAprovados);
     }
 
-    overlay.querySelector('#btnItensNovosNenhum').addEventListener('click', () => fechar([]));
-    overlay.querySelector('#btnItensNovosConfirmar').addEventListener('click', () => {
-        const aprovados = itensNovos.filter((_, i) =>
-            overlay.querySelector(`#itemNovo_${i}`).checked
-        );
-        fechar(aprovados);
+    overlay.querySelector('#btnAjusteItemNovoCancelar').addEventListener('click', fechar);
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') fechar();
+        if (e.key === 'Enter') { e.preventDefault(); confirmar(); }
+    });
+
+    async function confirmar() {
+        const valorFinal = input.value.trim();
+        if (!valorFinal) { anunciar('Digite um valor antes de adicionar.', true); input.focus(); return; }
+        const btn = overlay.querySelector('#btnAjusteItemNovoConfirmar');
+        btn.disabled = true;
+        await aprovarItemNovo(item, valorFinal);
+        fechar();
+    }
+    overlay.querySelector('#btnAjusteItemNovoConfirmar').addEventListener('click', confirmar);
+}
+
+// Confirma um item novo: adiciona na lista local, persiste no Supabase e
+// aplica o valor ao(s) campo(s) do formulário que originaram a sugestão.
+async function aprovarItemNovo(item, valorFinal) {
+    const valorComposto = item.field === 'liga' ? ligaCompor(item.esporte, valorFinal)
+        : item.field === 'mercado' ? mercadoCompor(item.esporte, valorFinal)
+        : valorFinal;
+
+    if (!defaults[item.field].includes(valorComposto)) {
+        defaults[item.field].push(valorComposto);
+        defaults[item.field].sort((a, b) => a.localeCompare(b));
+    }
+
+    await adicionarOpcaoDB(item.field, valorComposto);
+
+    reaplicarItemNoFormulario(item, valorFinal);
+    fillSelects();
+    renderConfiguracoes();
+    removerChipSugestao(item);
+
+    const nomeCampo = NOMES_CAMPO_ITEM_NOVO[item.field] || item.field;
+    showToast(`✅ "${valorFinal}" adicionado em ${nomeCampo}.`, 'success');
+    anunciar(`"${valorFinal}" adicionado em ${nomeCampo} e aplicado ao formulário.`);
+}
+
+// Localiza, na última extração feita pela IA, o(s) campo(s) do formulário
+// atualmente em tela que correspondem a este item novo, e aplica o valor
+// aprovado (já ajustado pelo usuário, se for o caso).
+function reaplicarItemNoFormulario(item, valorFinal) {
+    const dados = extracaoAtualDados;
+    if (!dados) return;
+
+    if (item.field === 'casa') {
+        if (dados.casa && dados.casa.trim() === item.valor) {
+            renderRadioGroup('rg-casa', 'casa', valorFinal);
+            const radio = document.querySelector(`#rg-casa input[value="${CSS.escape(valorFinal)}"]`);
+            if (radio) radio.checked = true;
+            marcarCampoComoNovo(document.getElementById('rg-casa'));
+        }
+        return;
+    }
+
+    const blocos = document.querySelectorAll('.event');
+    (dados.eventos || []).forEach((ev, idx) => {
+        const bloco = blocos[idx];
+        if (!bloco) return;
+
+        if (item.field === 'esporte' && ev.esporte === item.valor) {
+            const selEsp = bloco.querySelector('.esporteEvento');
+            selEsp.innerHTML = `<option value="">— Esporte —</option>` + defaults.esporte.map(v => `<option value="${v}">${v}</option>`).join('');
+            selEsp.value = valorFinal;
+            atualizarLigasDoEvento(selEsp);
+            marcarCampoComoNovo(selEsp);
+        }
+
+        if (item.field === 'liga' && ev.esporte === item.esporte && ev.liga === item.valor) {
+            const selLig = bloco.querySelector('.ligaEvento');
+            if (selLig) {
+                selLig.innerHTML = `<option value="">— Liga —</option>` + ligasDoEsporte(ev.esporte).map(v => `<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
+                selLig.value = valorFinal;
+                marcarCampoComoNovo(selLig);
+            }
+        }
+
+        if (item.field === 'mercado' && ev.esporte === item.esporte && ev.mercado === item.valor) {
+            const merDiv = bloco.querySelector('.mercado');
+            if (merDiv) {
+                merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v => `<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
+                const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === valorFinal);
+                if (cb) { cb.checked = true; marcarCampoComoNovo(merDiv); }
+            }
+        }
     });
 }
 
@@ -2492,6 +2628,7 @@ function garantirOpcaoLocal(field, valorBruto) {
 }
 
 function preencherFormularioComExtracao(dados, origem) {
+    extracaoAtualDados = dados;
     limparFormulario();
     limparAvisosExtracao();
     // limparFormulario() já cria 1 evento vazio (addEvento()); removemos para
@@ -2528,26 +2665,16 @@ function preencherFormularioComExtracao(dados, origem) {
         }
     });
 
-    // Função que realmente preenche o formulário após confirmação dos itens novos
-    function aplicarExtracao(itensAprovados) {
-        // Adiciona localmente apenas os itens aprovados pelo usuário
-        itensAprovados.forEach(({ field, valor, esporte }) => {
-            if (field === 'liga') defaults.liga.push(ligaCompor(esporte, valor));
-            else if (field === 'mercado') defaults.mercado.push(mercadoCompor(esporte, valor));
-            else defaults[field].push(valor);
-        });
-
-        const novosCampos = itensAprovados.map(i =>
-            i.field === 'liga' ? `Liga "${i.valor}" (${i.esporte})` :
-            i.field === 'mercado' ? `Mercado "${i.valor}" (${i.esporte})` :
-            `${i.field.charAt(0).toUpperCase() + i.field.slice(1)} "${i.valor}"`
-        );
-
+    // Preenche o formulário imediatamente, sem esperar aprovação. Campos cujo
+    // valor ainda não existe nas listas (itensNovos) ficam em branco aqui —
+    // eles são resolvidos individualmente quando o usuário toca no chip de
+    // sugestão correspondente e confirma (ver aprovarItemNovo/reaplicarItemNoFormulario).
+    function aplicarExtracao() {
         // ---- Casa (radiogroup) ----
         if (dados.casa) {
-            renderRadioGroup('rg-casa', 'casa', dados.casa.trim());
-            const eraNovo = itensAprovados.some(i => i.field === 'casa' && i.valor === dados.casa.trim());
-            if (eraNovo) marcarCampoComoNovo(document.getElementById('rg-casa'));
+            const casaEhNova = itensNovos.some(i => i.field === 'casa' && i.valor === dados.casa.trim());
+            renderRadioGroup('rg-casa', 'casa', casaEhNova ? null : dados.casa.trim());
+            if (casaEhNova) marcarCampoBaixaConfianca(document.getElementById('rg-casa'));
             if ((conf.casa ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('rg-casa')); camposParaRevisar.push('Casa'); }
         }
 
@@ -2592,11 +2719,12 @@ function preencherFormularioComExtracao(dados, origem) {
             // Esporte
             if (ev.esporte) {
                 const selEsp = bloco.querySelector('.esporteEvento');
-                // Reconstrói opções do select incluindo eventuais novos aprovados
                 selEsp.innerHTML = `<option value="">— Esporte —</option>` + defaults.esporte.map(v=>`<option value="${v}">${v}</option>`).join('');
                 selEsp.value = ev.esporte;
                 atualizarLigasDoEvento(selEsp);
-                if (itensAprovados.some(i => i.field === 'esporte' && i.valor === ev.esporte)) marcarCampoComoNovo(selEsp);
+                // Se o esporte ainda não existe nas listas, o select fica em branco
+                // (sem opção correspondente) até o usuário aprovar o chip de sugestão.
+                if (itensNovos.some(i => i.field === 'esporte' && i.valor === ev.esporte)) marcarCampoBaixaConfianca(selEsp);
             }
 
             // Liga
@@ -2605,7 +2733,7 @@ function preencherFormularioComExtracao(dados, origem) {
                 const selLig = bloco.querySelector('.ligaEvento');
                 selLig.innerHTML = `<option value="">— Liga —</option>` + ligasDoEsporte(ev.esporte).map(v=>`<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
                 selLig.value = r.valor;
-                if (itensAprovados.some(i => i.field === 'liga' && i.valor === r.valor && i.esporte === ev.esporte)) marcarCampoComoNovo(selLig);
+                if (itensNovos.some(i => i.field === 'liga' && i.valor === r.valor && i.esporte === ev.esporte)) marcarCampoBaixaConfianca(selLig);
                 if (ev.confiancaLiga != null && ev.confiancaLiga < LIMIAR_BAIXA_CONFIANCA) {
                     marcarCampoBaixaConfianca(selLig);
                     camposParaRevisar.push(`Liga (Evento ${n}, possivelmente inferida)`);
@@ -2623,7 +2751,8 @@ function preencherFormularioComExtracao(dados, origem) {
                 const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor);
                 if (cb) {
                     cb.checked = true;
-                    if (itensAprovados.some(i => i.field === 'mercado' && i.valor === r.valor && i.esporte === ev.esporte)) marcarCampoComoNovo(merDiv);
+                } else if (itensNovos.some(i => i.field === 'mercado' && i.valor === r.valor && i.esporte === ev.esporte)) {
+                    marcarCampoBaixaConfianca(merDiv);
                 }
             }
 
@@ -2643,37 +2772,35 @@ function preencherFormularioComExtracao(dados, origem) {
         aplicarFiltros();
         renderConfiguracoes();
 
-        // Salva no Supabase apenas os itens aprovados — um de cada vez, nunca
-        // apagando e reconstruindo a lista inteira (evita perder itens que outra
-        // aba/importação possa ter adicionado enquanto esta ficou aberta).
-        if (itensAprovados.length > 0) {
-            const gravacoes = itensAprovados.map(item => {
-                const valorComposto = item.field === 'liga' ? ligaCompor(item.esporte, item.valor)
-                    : item.field === 'mercado' ? mercadoCompor(item.esporte, item.valor)
-                    : item.valor;
-                return adicionarOpcaoDB(item.field, valorComposto);
-            });
-            Promise.all(gravacoes).catch(() => {});
-        }
+        // Itens novos (casa/esporte/liga/mercado) não são salvos automaticamente:
+        // eles aparecem como chips de sugestão logo acima do formulário, e só são
+        // persistidos no Supabase quando o usuário toca no chip e confirma o valor.
+        const nomesItensNovos = itensNovos.map(i =>
+            i.field === 'liga' ? `Liga "${i.valor}" (${i.esporte})` :
+            i.field === 'mercado' ? `Mercado "${i.valor}" (${i.esporte})` :
+            `${i.field.charAt(0).toUpperCase() + i.field.slice(1)} "${i.valor}"`
+        );
 
         // Anúncio consolidado para o leitor de tela
         const partes = [origem === 'texto'
             ? '📋 Dados extraídos do texto do bilhete. Revise antes de salvar.'
             : '📷 Dados extraídos da imagem do bilhete. Revise antes de salvar.'];
-        if (novosCampos.length > 0) partes.push(`Itens novos adicionados às listas: ${novosCampos.join(', ')}.`);
+        if (nomesItensNovos.length > 0) partes.push(`Itens novos sugeridos (toque nos chips acima do formulário para adicionar): ${nomesItensNovos.join(', ')}.`);
         if (camposParaRevisar.length > 0) partes.push(`Confira com atenção: ${camposParaRevisar.join(', ')}.`);
-        showToast(partes[0] + (novosCampos.length || camposParaRevisar.length ? ' Veja os destaques no formulário.' : ''), 'success', 9000);
+        showToast(partes[0] + (nomesItensNovos.length || camposParaRevisar.length ? ' Veja os destaques no formulário.' : ''), 'success', 9000);
         anunciarExtracao(partes.join(' '));
 
         const primeiroRadioCasa = document.querySelector('#rg-casa input[type="radio"]');
         if (primeiroRadioCasa) primeiroRadioCasa.focus();
     }
 
-    // Se há itens novos, mostra janela de confirmação antes de preencher
+    // Preenche o formulário imediatamente. Itens que ainda não existem nas
+    // listas aparecem como chips de sugestão (não bloqueia o preenchimento).
+    aplicarExtracao();
     if (itensNovos.length > 0) {
-        mostrarJanelaItensNovos(itensNovos, aplicarExtracao);
+        renderizarSugestoesNovosItens(itensNovos);
     } else {
-        aplicarExtracao([]);
+        limparSugestoesNovosItens();
     }
 }
 
