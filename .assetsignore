@@ -1,0 +1,13 @@
+.env
+.env.*
+.git
+.gitignore
+.netlify
+netlify.toml
+netlify
+node_modules
+package.json
+package-lock.json
+wrangler.jsonc
+worker.js
+README.md

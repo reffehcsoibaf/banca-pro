@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banca Pro — Guia de Uso</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1a1a2e;
+    --ink-light:  #3d3d5c;
+    --ink-muted:  #7a7a9a;
+    --surface:    #ffffff;
+    --surface-2:  #f4f4f8;
+    --surface-3:  #eaeaf2;
+    --accent:     #2563eb;
+    --accent-2:   #7c3aed;
+    --accent-warm:#d97706;
+    --success:    #059669;
+    --danger:     #dc2626;
+    --border:     #d1d1e0;
+    --radius:     6px;
+    --sidebar-w:  260px;
+    --font-body:  Georgia, 'Times New Roman', serif;
+    --font-ui:    'Segoe UI', system-ui, sans-serif;
+    --font-code:  'Courier New', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:       #e8e8f4; --ink-light: #b8b8d4; --ink-muted: #7a7a9a;
+      --surface:   #12121e; --surface-2: #1a1a2e; --surface-3: #22223a;
+      --accent:    #60a5fa; --accent-2:  #a78bfa; --accent-warm:#fbbf24;
+      --success:   #34d399; --danger:    #f87171; --border:     #2e2e4a;
+    }
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--surface);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .skip-link {
+    position: absolute; top: -100px; left: 1rem;
+    background: var(--accent); color: #fff;
+    padding: 8px 16px; border-radius: var(--radius);
+    font-family: var(--font-ui); font-size: 14px; z-index: 9999;
+    transition: top .2s;
+  }
+  .skip-link:focus { top: 1rem; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: var(--sidebar-w); height: 100vh;
+    background: var(--surface-2); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 0 0 2rem;
+    z-index: 100; display: flex; flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 1.25rem 1.25rem 1rem; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface-2); z-index: 1;
+  }
+
+  .sidebar-logo {
+    font-family: var(--font-ui); font-size: 15px; font-weight: 700;
+    color: var(--ink); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; letter-spacing: -.2px;
+  }
+  .sidebar-logo span { font-size: 20px; }
+  .sidebar-subtitle {
+    font-family: var(--font-ui); font-size: 11px; color: var(--ink-muted);
+    margin-top: 3px; letter-spacing: .4px; text-transform: uppercase;
+  }
+
+  .sidebar-search { padding: .75rem 1.25rem; border-bottom: 1px solid var(--border); }
+  .sidebar-search input {
+    width: 100%; padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--ink);
+    font-family: var(--font-ui); font-size: 13px; outline: none;
+  }
+  .sidebar-search input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  .nav-section { padding: .5rem 0; }
+  .nav-section-title {
+    font-family: var(--font-ui); font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--ink-muted);
+    padding: .5rem 1.25rem .25rem;
+  }
+  .nav-link {
+    display: block; padding: 5px 1.25rem 5px 1.5rem;
+    font-family: var(--font-ui); font-size: 13.5px; color: var(--ink-light);
+    text-decoration: none; border-left: 3px solid transparent;
+    transition: all .15s; line-height: 1.4;
+  }
+  .nav-link:hover { color: var(--accent); background: var(--surface-3); border-left-color: var(--accent); }
+  .nav-link.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-left-color: var(--accent); font-weight: 600; }
+  .nav-link-sub { padding-left: 2.25rem; font-size: 13px; color: var(--ink-muted); }
+
+  /* ── Main ── */
+  .main { margin-left: var(--sidebar-w); flex: 1; max-width: 860px; padding: 3rem 4rem 6rem; }
+
+  .wiki-section { margin-bottom: 4rem; padding-top: 1rem; }
+  .wiki-section:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 3rem; }
+
+  h1 { font-family: var(--font-ui); font-size: 2rem; font-weight: 800; color: var(--ink); letter-spacing: -.5px; line-height: 1.2; margin-bottom: 1rem; }
+  h1 .tag { display: inline-block; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; padding: 2px 8px; border-radius: 3px; vertical-align: middle; margin-left: 10px; position: relative; top: -3px; }
+  h2 { font-family: var(--font-ui); font-size: 1.35rem; font-weight: 700; color: var(--ink); margin: 2rem 0 .75rem; letter-spacing: -.2px; display: flex; align-items: center; gap: .5rem; }
+  h2::after { content: ''; flex: 1; height: 1px; background: var(--border); margin-left: .5rem; }
+  h3 { font-family: var(--font-ui); font-size: 1rem; font-weight: 700; color: var(--ink); margin: 1.5rem 0 .5rem; }
+
+  .lead { font-size: 1.05rem; color: var(--ink-light); margin-bottom: 1.5rem; line-height: 1.8; }
+  p { margin-bottom: 1rem; }
+
+  .callout { border-left: 4px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--surface-2)); padding: .85rem 1.25rem; border-radius: 0 var(--radius) var(--radius) 0; margin: 1.25rem 0; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; }
+  .callout.tip  { border-color: var(--success); background: color-mix(in srgb, var(--success) 6%, var(--surface-2)); }
+  .callout.warn { border-color: var(--accent-warm); background: color-mix(in srgb, var(--accent-warm) 6%, var(--surface-2)); }
+  .callout.info { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 6%, var(--surface-2)); }
+  .callout-title { font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+
+  kbd { display: inline-block; background: var(--surface-3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--ink); box-shadow: 0 1px 0 var(--border); white-space: nowrap; }
+
+  .btn-demo { display: inline-flex; align-items: center; gap: 5px; background: var(--accent); color: #fff; padding: 4px 12px; border-radius: var(--radius); font-family: var(--font-ui); font-size: 13px; font-weight: 600; white-space: nowrap; vertical-align: middle; }
+  .btn-demo.outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+  .btn-demo.success { background: var(--success); }
+  .btn-demo.danger  { background: var(--danger); }
+  .btn-demo.warn    { background: var(--accent-warm); }
+  .btn-demo.neutral { background: var(--surface-3); color: var(--ink); border: 1px solid var(--border); }
+
+  .field-table { width: 100%; border-collapse: collapse; font-family: var(--font-ui); font-size: 13.5px; margin: 1rem 0 1.5rem; }
+  .field-table th { text-align: left; padding: 8px 12px; background: var(--surface-3); border: 1px solid var(--border); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--ink-muted); font-weight: 700; }
+  .field-table td { padding: 8px 12px; border: 1px solid var(--border); color: var(--ink-light); vertical-align: top; line-height: 1.5; }
+  .field-table tr:nth-child(even) td { background: var(--surface-2); }
+  .field-name { font-family: var(--font-code); font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .req { color: var(--danger); font-size: 11px; }
+  .opt { color: var(--ink-muted); font-size: 11px; }
+
+  .steps { list-style: none; padding: 0; margin: 1rem 0 1.5rem; }
+  .steps li { display: flex; gap: 1rem; margin-bottom: .85rem; font-family: var(--font-ui); font-size: 14px; line-height: 1.6; align-items: flex-start; }
+  .step-num { flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .col-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; font-family: var(--font-ui); font-size: 13.5px; line-height: 1.6; }
+  .col-card h4 { font-size: 13px; font-weight: 700; margin-bottom: .5rem; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+
+  .stat-grid { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0 1.25rem; }
+  .stat-pill { background: var(--surface-3); border: 1px solid var(--border); border-radius: 20px; padding: 3px 12px; font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--ink-light); white-space: nowrap; }
+
+  .col-list { display: flex; flex-wrap: wrap; gap: 6px; margin: .75rem 0; }
+  .col-tag { background: var(--surface-3); border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; font-family: var(--font-code); font-size: 12px; color: var(--accent); font-weight: 700; }
+
+  [id] { scroll-margin-top: 1.5rem; }
+
+  .hero-toc { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; margin: 1.5rem 0 2rem; font-family: var(--font-ui); font-size: 13.5px; }
+  .hero-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--ink-muted); margin-bottom: .75rem; }
+  .hero-toc ol { columns: 2; gap: 1rem; padding-left: 1.25rem; color: var(--ink-light); line-height: 2.2; }
+  .hero-toc a { color: var(--accent); text-decoration: none; }
+  .hero-toc a:hover { text-decoration: underline; }
+
+  .menu-toggle { display: none; position: fixed; top: 1rem; right: 1rem; z-index: 200; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 8px 14px; font-family: var(--font-ui); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); transition: transform .25s; }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 2rem 1.25rem 4rem; }
+    .menu-toggle { display: block; }
+    .cols-2 { grid-template-columns: 1fr; }
+    .hero-toc ol { columns: 1; }
+  }
+
+  mark { background: color-mix(in srgb, var(--accent-warm) 30%, transparent); color: inherit; border-radius: 2px; padding: 0 2px; }
+
+  @media print {
+    .sidebar, .menu-toggle, .skip-link { display: none; }
+    .main { margin-left: 0; padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+<button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false" id="menuToggle">☰ Menu</button>
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
+  <div class="sidebar-header">
+    <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
+    <div class="sidebar-subtitle">Guia de Uso — v5</div>
+  </div>
+  <div class="sidebar-search">
+    <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Início</div>
+    <a href="#visao-geral" class="nav-link">Visão Geral</a>
+    <a href="#navegacao" class="nav-link">Navegação e Seções</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Conta</div>
+    <a href="#conta" class="nav-link">Login e Cadastro</a>
+    <a href="#criar-conta" class="nav-link nav-link-sub">Criar conta</a>
+    <a href="#entrar" class="nav-link nav-link-sub">Entrar</a>
+    <a href="#sair" class="nav-link nav-link-sub">Sair</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Cabeçalho</div>
+    <a href="#cabecalho" class="nav-link">Botões do Cabeçalho</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Cadastro</div>
+    <a href="#cadastro" class="nav-link">Campos da Aposta</a>
+    <a href="#campos-obrigatorios" class="nav-link nav-link-sub">Campos obrigatórios</a>
+    <a href="#data-hora" class="nav-link nav-link-sub">Data e Hora</a>
+    <a href="#eventos" class="nav-link">Eventos</a>
+    <a href="#multiplos-eventos" class="nav-link nav-link-sub">Múltiplos eventos</a>
+    <a href="#preencher-por-foto" class="nav-link">Preencher por Foto (IA)</a>
+    <a href="#listas-dinamicas" class="nav-link">Listas Dinâmicas</a>
+    <a href="#calculo-automatico" class="nav-link">Cálculo Automático</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Filtros e Lista</div>
+    <a href="#filtros" class="nav-link">Filtros</a>
+    <a href="#resumo-filtro" class="nav-link">Resumo Estatístico</a>
+    <a href="#lista-apostas" class="nav-link">Lista de Apostas</a>
+    <a href="#acoes" class="nav-link nav-link-sub">Ações disponíveis</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Saldos</div>
+    <a href="#saldos" class="nav-link">Saldo por Casa</a>
+    <a href="#lancar-transacao" class="nav-link nav-link-sub">Lançar Depósito/Retirada</a>
+    <a href="#historico-transacoes" class="nav-link nav-link-sub">Histórico de Lançamentos</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Configurações</div>
+    <a href="#configuracoes" class="nav-link">Gerenciar Dados e Listas</a>
+    <a href="#exportar" class="nav-link nav-link-sub">Exportar Excel</a>
+    <a href="#importar" class="nav-link nav-link-sub">Importar Excel</a>
+    <a href="#limpar-dados" class="nav-link nav-link-sub">Limpar Dados</a>
+    <a href="#config-ligas-mercados" class="nav-link nav-link-sub">Ligas e Mercados por esporte</a>
+    <a href="#config-orfaos" class="nav-link nav-link-sub">Itens órfãos</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Dados</div>
+    <a href="#estrutura-planilha" class="nav-link">Estrutura da Planilha</a>
+    <a href="#portabilidade" class="nav-link">Portabilidade</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Referência</div>
+    <a href="#glossario" class="nav-link">Glossário</a>
+    <a href="#atalhos" class="nav-link">Atalhos de Teclado</a>
+  </div>
+</nav>
+
+<!-- ══════════════════ CONTEÚDO ══════════════════ -->
+<main class="main" id="conteudo" tabindex="-1">
+
+  <!-- TOPO -->
+  <div id="topo" class="wiki-section">
+    <h1>Banca Pro <span class="tag">v5</span></h1>
+    <p class="lead">Guia completo de uso do sistema de gerenciamento de banca para apostas esportivas. Navegue pelo índice à esquerda ou use a busca para localizar qualquer tópico.</p>
+    <div class="hero-toc" role="navigation" aria-label="Índice do guia">
+      <div class="hero-toc-title">📋 Neste guia</div>
+      <ol>
+        <li><a href="#visao-geral">Visão Geral</a></li>
+        <li><a href="#navegacao">Navegação e Seções</a></li>
+        <li><a href="#conta">Login e Cadastro</a></li>
+        <li><a href="#cabecalho">Botões do Cabeçalho</a></li>
+        <li><a href="#cadastro">Campos da Aposta</a></li>
+        <li><a href="#data-hora">Data e Hora</a></li>
+        <li><a href="#eventos">Eventos</a></li>
+        <li><a href="#preencher-por-foto">Preencher por Foto (IA)</a></li>
+        <li><a href="#listas-dinamicas">Listas Dinâmicas</a></li>
+        <li><a href="#calculo-automatico">Cálculo Automático</a></li>
+        <li><a href="#filtros">Filtros</a></li>
+        <li><a href="#resumo-filtro">Resumo Estatístico</a></li>
+        <li><a href="#lista-apostas">Lista e Ações</a></li>
+        <li><a href="#saldos">Saldo por Casa</a></li>
+        <li><a href="#configuracoes">Configurações</a></li>
+        <li><a href="#estrutura-planilha">Estrutura da Planilha</a></li>
+        <li><a href="#glossario">Glossário</a></li>
+        <li><a href="#atalhos">Atalhos de Teclado</a></li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- VISÃO GERAL -->
+  <section id="visao-geral" class="wiki-section" aria-labelledby="h-visao-geral">
+    <h2 id="h-visao-geral">🏦 Visão Geral</h2>
+    <p>O <strong>Banca Pro</strong> é um sistema de gerenciamento de banca para apostas esportivas que roda no navegador. Os dados ficam guardados na nuvem, vinculados à sua conta — você acessa o mesmo histórico de qualquer dispositivo, basta fazer login.</p>
+    <div class="cols-2">
+      <div class="col-card">
+        <h4>✅ O que o sistema faz</h4>
+        Registra e organiza apostas esportivas com múltiplos eventos, calcula lucro, ROI e unidades automaticamente, permite filtrar por qualquer critério e exportar ou importar dados em Excel.
+      </div>
+      <div class="col-card">
+        <h4>⚠️ Importante saber</h4>
+        É necessário criar uma conta (e-mail e senha) para usar o sistema. Os dados ficam salvos na nuvem e só você consegue acessá-los, fazendo login na sua conta.
+      </div>
+    </div>
+    <div class="callout tip">
+      <div class="callout-title">💡 Sistema inicia vazio</div>
+      Uma conta nova no Banca Pro começa sem apostas e sem tipsters ou ligas pré-cadastrados. Você constrói suas próprias listas conforme usa o sistema.
+    </div>
+  </section>
+
+  <!-- NAVEGAÇÃO -->
+  <section id="navegacao" class="wiki-section" aria-labelledby="h-navegacao">
+    <h2 id="h-navegacao">🧭 Navegação e Seções</h2>
+    <p>O sistema tem cinco seções, organizadas em <strong>abas</strong> no topo da tela. Apenas uma fica visível por vez, e você alterna entre elas clicando na aba desejada ou navegando com as setas ← e → do teclado (com o foco em uma aba).</p>
+    <div class="cols-2">
+      <div class="col-card"><h4>📝 Cadastro</h4>Formulário para registrar uma nova aposta ou editar uma existente. Ao salvar ou cancelar uma edição, o formulário é limpo automaticamente e a data/hora atual é preenchida.</div>
+      <div class="col-card"><h4>🔍 Filtros</h4>Painel de filtros com critérios de busca. Ao aplicar qualquer filtro, o sistema navega automaticamente para a aba Lista para mostrar o resultado.</div>
+    </div>
+    <div class="cols-2" style="margin-top:1rem;">
+      <div class="col-card"><h4>📋 Lista</h4>Resumo estatístico das apostas filtradas seguido da tabela completa com ações sobre cada linha.</div>
+      <div class="col-card"><h4>💰 Saldos</h4>Saldo calculado por casa de aposta, formulário para lançar depósitos/retiradas, e o histórico desses lançamentos.</div>
+    </div>
+    <div class="cols-2" style="margin-top:1rem;">
+      <div class="col-card"><h4>⚙️ Configurações</h4>Gerenciamento das listas de opções (Tipster, Esporte, Liga, Mercado etc.) e as operações globais de exportar, importar e limpar dados.</div>
+    </div>
+  </section>
+
+  <!-- CONTA -->
+  <section id="conta" class="wiki-section" aria-labelledby="h-conta">
+    <h2 id="h-conta">🔐 Login e Cadastro</h2>
+    <p>Ao abrir o Banca Pro, a primeira tela que aparece é a de login. É preciso ter uma conta para usar o sistema — os dados ficam guardados na nuvem, vinculados a ela, e nenhuma outra pessoa tem acesso ao seu histórico.</p>
+
+    <h3 id="criar-conta">Criar conta</h3>
+    <ol class="steps">
+      <li><span class="step-num">1</span>Na tela de login, preencha <strong>E-mail</strong> e <strong>Senha</strong> (mínimo de 6 caracteres).</li>
+      <li><span class="step-num">2</span>Toque em <span class="btn-demo outline">Criar conta</span>.</li>
+      <li><span class="step-num">3</span>Se o projeto exigir confirmação de e-mail, uma mensagem na tela avisa para verificar sua caixa de entrada e clicar no link antes de conseguir entrar. Se não exigir, você já entra direto no sistema.</li>
+    </ol>
+
+    <h3 id="entrar">Entrar</h3>
+    <p>Preencha o mesmo e-mail e senha usados no cadastro e toque em <span class="btn-demo success">Entrar</span>. Se o e-mail ou a senha estiverem incorretos, uma mensagem de erro aparece logo abaixo do formulário.</p>
+    <div class="callout tip">
+      <div class="callout-title">💡 Acesso de qualquer dispositivo</div>
+      Como os dados ficam na nuvem, basta fazer login com o mesmo e-mail e senha em qualquer computador ou celular para ver o mesmo histórico de apostas, sempre atualizado.
+    </div>
+
+    <h3 id="sair">🚪 Sair</h3>
+    <p>O botão <span class="btn-demo neutral">🚪 Sair</span>, no cabeçalho, encerra a sessão e volta para a tela de login. Uma confirmação é exigida antes de sair. Os dados continuam salvos na nuvem — ao entrar novamente, tudo está exatamente como você deixou.</p>
+  </section>
+
+  <!-- CABEÇALHO -->
+  <section id="cabecalho" class="wiki-section" aria-labelledby="h-cabecalho">
+    <h2 id="h-cabecalho">⚙️ Botões do Cabeçalho</h2>
+    <p>O cabeçalho fixo no topo da tela contém apenas o botão de saída e o link para este guia. As operações de exportar, importar e limpar dados foram movidas para a aba <strong>Configurações</strong>.</p>
+
+    <h3 id="sair-cabecalho">🚪 Sair</h3>
+    <p>Encerra a sessão e volta para a tela de login. Uma confirmação é exigida antes de sair. Os dados continuam salvos na nuvem — ao entrar novamente, tudo está exatamente como você deixou.</p>
+  </section>
+
+  <!-- CADASTRO -->
+  <section id="cadastro" class="wiki-section" aria-labelledby="h-cadastro">
+    <h2 id="h-cadastro">📝 Cadastro de Apostas</h2>
+    <p class="lead">O formulário está dividido em campos gerais da aposta e os eventos que a compõem.</p>
+
+    <h3 id="campos-obrigatorios">Campos da aposta</h3>
+    <table class="field-table" aria-label="Campos do formulário de cadastro">
+      <thead><tr><th>Campo</th><th>Tipo de controle</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Casa <span class="req">*</span></td><td>Radio button</td><td>Casa de apostas onde a entrada foi feita.</td></tr>
+        <tr><td class="field-name">Identificador <span class="req">*</span></td><td>Texto</td><td>Código único da aposta. Pode ser o código da casa ou qualquer referência sua.</td></tr>
+        <tr><td class="field-name">Data e Hora <span class="req">*</span></td><td>Texto <code>dd/mm/aaaa hh:mm</code></td><td>Preenchida automaticamente com a data/hora atual ao abrir o formulário. Editável livremente.</td></tr>
+        <tr><td class="field-name">Tipster <span class="req">*</span></td><td>Caixa combinada</td><td>Quem indicou a aposta. Use seu próprio nome para entradas próprias.</td></tr>
+        <tr><td class="field-name">Tipo <span class="req">*</span></td><td>Caixa combinada</td><td>Momento da aposta: <em>Pré Live</em> (antes do jogo) ou <em>Ao Vivo</em>.</td></tr>
+        <tr><td class="field-name">Status <span class="req">*</span></td><td>Radio button</td><td><em>Aberto</em> (aguardando resultado), <em>Ganhou</em>, <em>Perdeu</em>, <em>Ganho Parcial</em>, <em>Perda Parcial</em>, <em>Cash Out</em> ou <em>Anulada</em>.</td></tr>
+        <tr><td class="field-name">Stake <span class="req">*</span></td><td>Número</td><td>Valor em reais apostado nesta entrada.</td></tr>
+        <tr><td class="field-name">Bônus <span class="opt">opcional</span></td><td>Número</td><td>Valor de bônus aplicado pela casa (ex: free bet). Somado ao retornado quando a aposta ganha.</td></tr>
+        <tr><td class="field-name">ODD Total <span class="opt">opcional</span></td><td>Número</td><td>ODD final da aposta (produto das odds dos eventos em acumuladores). Calculado automaticamente.</td></tr>
+        <tr><td class="field-name">Retornado <span class="opt">opcional</span></td><td>Número</td><td>Valor recebido de volta em caso de ganho.</td></tr>
+        <tr><td class="field-name">Lucro</td><td>Calculado</td><td><em>Retornado − Stake</em>. Atualizado automaticamente.</td></tr>
+        <tr><td class="field-name">Unidade</td><td>Calculado</td><td><em>Lucro ÷ Stake</em>.</td></tr>
+        <tr><td class="field-name">ROI</td><td>Calculado</td><td><em>(Lucro ÷ Stake) × 100</em> em %.</td></tr>
+        <tr><td class="field-name">Valor Cash Out <span class="opt">condicional</span></td><td>Número</td><td>Aparece somente quando Status = <em>Cash Out</em>. Informe o valor efetivamente recebido ao encerrar a aposta antecipadamente.</td></tr>
+        <tr><td class="field-name">Observação <span class="opt">opcional</span></td><td>Texto</td><td>Anotação livre sobre a aposta. Exibida abaixo do status na tabela.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="data-hora">Data e Hora</h3>
+    <p>O campo Data e Hora usa o formato <strong>dd/mm/aaaa hh:mm</strong> (ex: <code>07/06/2026 14:30</code>). Ao abrir o formulário para uma nova aposta, ele é preenchido automaticamente com o horário atual do sistema — basta confirmar ou corrigir se necessário.</p>
+    <div class="callout info">
+      <div class="callout-title">ℹ️ Internamente em ISO</div>
+      Os dados são armazenados no formato ISO (<code>aaaa-mm-ddThh:mm</code>). A exibição em dd/mm/aaaa hh:mm é aplicada automaticamente em todos os lugares onde a data aparece.
+    </div>
+
+    <h3>Salvar e Cancelar</h3>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li><span class="btn-demo success">💾 Salvar Aposta</span> — salva e limpa o formulário, preenchendo a data/hora atual para a próxima entrada</li>
+      <li><span class="btn-demo outline">✕ Cancelar Edição</span> — descarta alterações e volta ao estado inicial (visível só durante edição)</li>
+    </ul>
+  </section>
+
+  <!-- EVENTOS -->
+  <section id="eventos" class="wiki-section" aria-labelledby="h-eventos">
+    <h2 id="h-eventos">⚽ Eventos</h2>
+    <p>Cada aposta contém um ou mais eventos. Um evento é uma seleção individual. Apostas simples têm um evento; acumuladores têm dois ou mais.</p>
+
+    <table class="field-table" aria-label="Campos de cada evento">
+      <thead><tr><th>Campo</th><th>Tipo de controle</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Esporte <span class="req">*</span></td><td>Caixa combinada</td><td>Modalidade esportiva (Futebol, Basquete, Tênis, Vôlei…).</td></tr>
+        <tr><td class="field-name">Liga <span class="req">*</span></td><td>Caixa combinada</td><td>Competição ou torneio. Lista vazia por padrão — adicione conforme usa.</td></tr>
+        <tr><td class="field-name">Evento <span class="req">*</span></td><td>Texto</td><td>Nome do jogo ou partida.</td></tr>
+        <tr><td class="field-name">Mercado <span class="req">*</span></td><td>Caixas de verificação</td><td>Tipo de mercado apostado. Permite marcar mais de um simultaneamente.</td></tr>
+        <tr><td class="field-name">Seleção <span class="req">*</span></td><td>Texto livre</td><td>O que foi apostado dentro do mercado (ex: Casa, Mais de 2.5, Sim).</td></tr>
+        <tr><td class="field-name">ODD <span class="req">*</span></td><td>Número</td><td>ODD deste evento específico.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="multiplos-eventos">Múltiplos eventos (Acumuladores)</h3>
+    <ol class="steps">
+      <li><span class="step-num">1</span>Preencha o primeiro evento.</li>
+      <li><span class="step-num">2</span>Clique em <span class="btn-demo">＋ Adicionar Evento</span> para incluir mais um bloco.</li>
+      <li><span class="step-num">3</span>Repita para quantos eventos precisar.</li>
+      <li><span class="step-num">4</span>Para remover um evento, clique em <span class="btn-demo danger">✕ Remover</span> dentro do bloco correspondente.</li>
+    </ol>
+    <div class="callout tip">
+      <div class="callout-title">💡 Navegação por leitor de tela</div>
+      Cada evento tem um cabeçalho de nível 3 ("Evento 1", "Evento 2"…). Use o atalho de navegação por cabeçalhos do seu leitor de tela para pular entre eventos.
+    </div>
+  </section>
+
+  <!-- PREENCHER POR FOTO (IA) -->
+  <section id="preencher-por-foto" class="wiki-section" aria-labelledby="h-preencher-foto">
+    <h2 id="h-preencher-foto">📷 Preencher por Foto (IA)</h2>
+    <p class="lead">Em vez de digitar manualmente cada campo, é possível selecionar uma foto ou print do bilhete de aposta e deixar que a inteligência artificial extraia os dados automaticamente, preenchendo o formulário para revisão antes de salvar.</p>
+
+    <div class="callout warn">
+      <div class="callout-title">⚠️ Nada é salvo automaticamente</div>
+      A extração apenas <strong>preenche o formulário</strong>. Nenhuma aposta é gravada sozinha — é sempre necessário revisar os campos e clicar em <span class="btn-demo success">💾 Salvar Aposta</span> manualmente, como em qualquer cadastro.
+    </div>
+
+    <h3 id="como-usar-foto">Como usar</h3>
+    <ol class="steps">
+      <li><span class="step-num">1</span>Na aba de Cadastro, clique em <span class="btn-demo outline">📷 Preencher por Foto</span>.</li>
+      <li><span class="step-num">2</span>Selecione uma imagem já salva no dispositivo (foto ou print do bilhete). A câmera não é acionada diretamente — é necessário escolher um arquivo existente.</li>
+      <li><span class="step-num">3</span>Aguarde a leitura, que leva alguns segundos. Um indicador de carregamento é exibido enquanto a imagem é processada.</li>
+      <li><span class="step-num">4</span>O formulário é preenchido automaticamente: Casa, Identificador, Data e Hora, Stake, Status, Observação e todos os eventos detectados.</li>
+      <li><span class="step-num">5</span>Revise os campos — especialmente os destacados, veja abaixo — e clique em <span class="btn-demo success">💾 Salvar Aposta</span> para confirmar.</li>
+    </ol>
+
+    <h3 id="destaques-extracao">Destaques visuais após a extração</h3>
+    <p>Dois tipos de aviso podem aparecer junto a um campo, e os dois podem ocorrer juntos no mesmo campo:</p>
+    <table class="field-table" aria-label="Tipos de destaque após extração por foto">
+      <thead><tr><th>Destaque</th><th>Significado</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">🆕 Valor novo</td><td>O esporte, liga, mercado ou casa identificado não existia ainda nas listas do sistema. O valor é preenchido mesmo assim e adicionado à lista automaticamente, mas fica marcado para que você confirme se está correto antes de salvar.</td></tr>
+        <tr><td class="field-name">⚠️ Confira este campo</td><td>A inteligência artificial teve baixa confiança nessa leitura específica — pode ser um número pouco legível na imagem, um trecho cortado, ou informação que precisou ser deduzida em vez de lida diretamente. Revise com atenção antes de confirmar.</td></tr>
+      </tbody>
+    </table>
+    <p>Ao final da extração, um único aviso sonoro resume o que foi feito e lista os campos que merecem atenção — útil para navegação com leitor de tela, sem precisar percorrer o formulário inteiro à procura de marcações.</p>
+
+    <h3 id="identificador-por-foto">Reconhecimento do Identificador</h3>
+    <p>O campo Identificador é tratado com regras específicas por casa, já que cada uma exibe essa informação de um jeito diferente:</p>
+    <table class="field-table" aria-label="Reconhecimento do identificador por casa de apostas">
+      <thead><tr><th>Casa</th><th>Onde aparece</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Betano</td><td>Geralmente visível no próprio bilhete, com o rótulo <code>ID:</code> seguido do número. Como reforço, o mesmo número também costuma estar no nome do arquivo baixado (padrão <code>bet-NNNNNNNNNN</code>), e é extraído automaticamente desse nome caso não seja lido na imagem.</td></tr>
+        <tr><td class="field-name">Superbet</td><td>Não aparece escrito dentro do bilhete. O código vem apenas no nome do arquivo gerado ao compartilhar o bilhete (padrão <code>ticket-XXXX-XXXXXX</code>, por exemplo <code>ticket-891Q-YDC5PH.png</code>) e é extraído automaticamente desse nome.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <div class="callout-title">ℹ️ O nome do arquivo importa</div>
+      Para a Superbet, mantenha o nome original do arquivo gerado ao salvar ou compartilhar o bilhete — é dele que o Identificador é extraído. Se o arquivo for renomeado antes do envio, esse preenchimento automático deixa de funcionar e o campo precisa ser preenchido manualmente.
+    </div>
+
+    <h3 id="liga-inferida">Liga lida vs. liga deduzida</h3>
+    <p>O preenchimento da Liga também varia conforme a casa, e isso afeta o nível de confiança reportado:</p>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li><strong>Superbet</strong> costuma exibir a liga/campeonato escrita diretamente no bilhete — quando isso acontece, o campo é preenchido com alta confiança, sem destaque.</li>
+      <li><strong>Betano</strong> frequentemente não exibe a liga, só os nomes dos times. Nesse caso, a liga pode ser deduzida pelo conhecimento da inteligência artificial sobre os times envolvidos — esse preenchimento recebe o destaque <strong>⚠️ Confira este campo</strong>, mesmo quando o palpite está correto, justamente para sinalizar que não foi uma leitura direta da imagem.</li>
+    </ul>
+
+    <h3 id="criador-apostas">Criador de Apostas (múltiplas condições no mesmo confronto)</h3>
+    <p>Recursos como "Criador de Apostas" ou "Bet Builder" permitem combinar várias condições dentro de um único jogo (por exemplo: vencedor do jogo + mais de 2.5 gols + ambas as equipes marcam, tudo no mesmo confronto). Esse tipo de aposta é reconhecido e tratado como <strong>um único evento</strong>, em vez de ser separado em vários:</p>
+    <table class="field-table" aria-label="Como o criador de apostas é preenchido">
+      <thead><tr><th>Campo do evento</th><th>Como é preenchido</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Evento</td><td>Nome do confronto, uma única vez (ex: <em>Grêmio x Internacional</em>).</td></tr>
+        <tr><td class="field-name">Mercado</td><td>Marcado como <em>Combinada</em> (ou <em>Criador de Apostas</em>, quando esse termo aparece explicitamente no bilhete).</td></tr>
+        <tr><td class="field-name">Seleção</td><td>Todas as condições do confronto, unidas com <code> + </code>, na ordem em que aparecem no bilhete (ex: <em>Grêmio vence + Mais de 2.5 gols + Ambas marcam</em>).</td></tr>
+        <tr><td class="field-name">ODD</td><td>A odd combinada do conjunto de condições daquele confronto, já calculada pela casa — não a soma das odds individuais.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout tip">
+      <div class="callout-title">💡 Mercado "Combinada" pode aparecer como novo</div>
+      Se for a primeira vez que esse tipo de aposta é registrado, o mercado <em>Combinada</em> provavelmente ainda não existe na sua lista para aquele esporte — ele será criado automaticamente e marcado com o destaque <strong>🆕 Valor novo</strong>.
+    </div>
+
+    <h3 id="limitacoes-foto">Limitações conhecidas</h3>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li>Funciona apenas com <strong>imagens</strong> (foto ou print). Bilhetes que existem só como texto no histórico de uma casa — sem opção de gerar uma imagem — precisam ser preenchidos manualmente.</li>
+      <li>A qualidade da leitura depende da nitidez da imagem. Fotos tiradas em ângulo, desfocadas ou com baixo contraste tendem a gerar mais campos marcados com baixa confiança.</li>
+      <li>Casas de apostas não cobertas explicitamente ainda podem funcionar razoavelmente bem (a leitura é genérica por padrão), mas sem os ajustes finos de identificador e liga descritos acima.</li>
+    </ul>
+  </section>
+
+  <!-- LISTAS DINÂMICAS -->
+  <section id="listas-dinamicas" class="wiki-section" aria-labelledby="h-listas">
+    <h2 id="h-listas">📋 Listas Dinâmicas</h2>
+    <p>Os campos Casa, Tipster, Tipo, Esporte, Liga e Mercado têm listas personalizáveis. Cada campo tem dois botões de gerenciamento:</p>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li><span class="btn-demo success">+</span> — abre um diálogo para digitar e adicionar um novo valor. Se já existir um valor equivalente na lista — mesmo com maiúsculas/minúsculas ou espaços diferentes — o sistema avisa e não cria um duplicado. O novo valor é <strong>selecionado automaticamente</strong> após ser adicionado.</li>
+      <li><span class="btn-demo danger">−</span> — remove o valor atualmente selecionado, após confirmação.</li>
+    </ul>
+    <div class="callout info">
+      <div class="callout-title">🔄 Preenchimento automático ao importar</div>
+      Ao importar uma planilha Excel, todos os valores únicos de Casa, Tipster, Tipo, Esporte, Liga e Mercado são mesclados nas listas existentes sem duplicar — mesmo que a grafia varie em maiúsculas/minúsculas ou espaços extras.
+    </div>
+    <div class="callout tip">
+      <div class="callout-title">💡 Sistema começa sem tipsters e ligas</div>
+      As listas de Tipster e Liga iniciam vazias. Adicione os seus próprios usando o botão <span class="btn-demo success">+</span> ou importe uma planilha com dados existentes.
+    </div>
+  </section>
+
+  <!-- CÁLCULO AUTOMÁTICO -->
+  <section id="calculo-automatico" class="wiki-section" aria-labelledby="h-calculo">
+    <h2 id="h-calculo">🧮 Cálculo Automático</h2>
+    <p>Os campos de resultado são recalculados automaticamente sempre que Stake, ODD, Status ou Bônus são alterados. A fórmula de <strong>Retornado</strong> varia conforme o Status:</p>
+    <table class="field-table" aria-label="Fórmulas de retorno por status">
+      <thead><tr><th>Status</th><th>Retornado</th><th>Lucro</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Ganhou</td><td><code>Stake × ODD Total + Bônus</code></td><td><code>Retornado − Stake</code></td></tr>
+        <tr><td class="field-name">Perdeu</td><td><code>0</code></td><td><code>−Stake</code></td></tr>
+        <tr><td class="field-name">Ganho Parcial</td><td><code>(Stake ÷ 2) × ODD + (Stake ÷ 2) + Bônus</code></td><td><code>Retornado − Stake</code></td></tr>
+        <tr><td class="field-name">Perda Parcial</td><td><code>Stake ÷ 2</code></td><td><code>Retornado − Stake</code></td></tr>
+        <tr><td class="field-name">Anulada</td><td><code>Stake</code> (devolução integral)</td><td><code>0</code></td></tr>
+        <tr><td class="field-name">Cash Out</td><td>Valor informado manualmente no campo <em>Valor Cash Out</em></td><td><code>Retornado − Stake</code></td></tr>
+        <tr><td class="field-name">Aberto</td><td><code>0</code> (sem retorno calculado)</td><td><code>0</code></td></tr>
+      </tbody>
+    </table>
+    <table class="field-table" aria-label="Demais fórmulas calculadas">
+      <thead><tr><th>Campo</th><th>Fórmula</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">ODD Total</td><td>Produto das ODDs de todos os eventos do acumulador</td></tr>
+        <tr><td class="field-name">Unidade</td><td><code>Lucro ÷ Stake</code></td></tr>
+        <tr><td class="field-name">ROI</td><td><code>(Lucro ÷ Stake) × 100</code> em %</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <div class="callout-title">🎯 Precisão decimal da ODD Total</div>
+      Em acumuladores, a ODD Total é o produto das ODDs de todos os eventos — e esse produto nem sempre fecha em 2 casas decimais (ex: 1.85 × 1.92 × 2.10 = 7.4592). Por isso a ODD Total é exibida e calculada com pelo menos 2 casas decimais, estendendo para até 6 quando necessário para não perder precisão no Lucro e no ROI. ODDs simples (um só evento, ex: 1.85) continuam aparecendo normalmente com 2 casas.
+    </div>
+  </section>
+
+  <!-- FILTROS -->
+  <section id="filtros" class="wiki-section" aria-labelledby="h-filtros">
+    <h2 id="h-filtros">🔍 Filtros</h2>
+    <p>A seção Filtros permite localizar apostas por múltiplos critérios. Os filtros são aplicados em tempo real e ao confirmar, o sistema navega automaticamente para a seção Apostas.</p>
+    <table class="field-table" aria-label="Filtros disponíveis">
+      <thead><tr><th>Filtro</th><th>O que faz</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Buscar ID ou Evento</td><td>Busca livre por texto no identificador ou nome do evento.</td></tr>
+        <tr><td class="field-name">Casa</td><td>Filtra por casa de apostas.</td></tr>
+        <tr><td class="field-name">Tipster</td><td>Filtra por tipster.</td></tr>
+        <tr><td class="field-name">Tipo</td><td>Filtra por tipo (Ao Vivo / Pré Live).</td></tr>
+        <tr><td class="field-name">Esporte</td><td>Filtra pelo esporte dos eventos.</td></tr>
+        <tr><td class="field-name">Liga</td><td>Filtra pela liga dos eventos.</td></tr>
+        <tr><td class="field-name">Mercado</td><td>Filtra pelo mercado apostado em qualquer evento da aposta (Vencedor, Gols, Cartões…). Considera todos os mercados marcados, mesmo quando o evento tem mais de um.</td></tr>
+        <tr><td class="field-name">Status</td><td>Filtra por estado: Aberto, Ganhou ou Perdeu.</td></tr>
+        <tr><td class="field-name">Data Inicial / Final</td><td>Define um intervalo de datas para as apostas exibidas.</td></tr>
+      </tbody>
+    </table>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li><span class="btn-demo outline">✕ Limpar Filtros</span> — remove todos os filtros e exibe todas as apostas</li>
+      <li><span class="btn-demo success">📥 Exportar Filtro</span> — exporta para Excel apenas as apostas visíveis no filtro atual</li>
+    </ul>
+  </section>
+
+  <!-- RESUMO -->
+  <section id="resumo-filtro" class="wiki-section" aria-labelledby="h-resumo">
+    <h2 id="h-resumo">📊 Resumo Estatístico</h2>
+    <p>Sempre que há apostas visíveis, um painel de resumo é exibido automaticamente acima da tabela com os totais calculados sobre as apostas filtradas:</p>
+    <div class="stat-grid" role="list" aria-label="Métricas do resumo">
+      <span class="stat-pill" role="listitem">Entradas</span>
+      <span class="stat-pill" role="listitem">✅ Ganhas</span>
+      <span class="stat-pill" role="listitem">❌ Perdidas</span>
+      <span class="stat-pill" role="listitem">⏳ Abertas</span>
+      <span class="stat-pill" role="listitem">Stake Total</span>
+      <span class="stat-pill" role="listitem">Lucro</span>
+      <span class="stat-pill" role="listitem">Unidades</span>
+      <span class="stat-pill" role="listitem">ROI %</span>
+      <span class="stat-pill" role="listitem">% Acerto</span>
+    </div>
+    <div class="callout tip">
+      <div class="callout-title">💡 Análise segmentada</div>
+      Combine filtros de data, tipster ou esporte para analisar desempenho por período, por indicador ou por modalidade. O resumo recalcula instantaneamente.
+    </div>
+  </section>
+
+  <!-- LISTA -->
+  <section id="lista-apostas" class="wiki-section" aria-labelledby="h-lista">
+    <h2 id="h-lista">📋 Lista de Apostas</h2>
+    <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, ODD, Status, Stake, Lucro, ROI e Ações.</p>
+    <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>.</p>
+
+    <h3 id="acoes">Ações disponíveis</h3>
+    <table class="field-table" aria-label="Botões de ação da lista">
+      <thead><tr><th>Botão</th><th>Ação</th></tr></thead>
+      <tbody>
+        <tr><td><span class="btn-demo success">✓</span></td><td><strong>Marcar como Ganhou</strong> — define Status como <em>Ganhou</em> e recalcula lucro pela ODD.</td></tr>
+        <tr><td><span class="btn-demo danger">✗</span></td><td><strong>Marcar como Perdeu</strong> — define Status como <em>Perdeu</em> e lucro como <code>−Stake</code>.</td></tr>
+        <tr><td><span class="btn-demo neutral">⋯</span></td><td><strong>Menu de outros status</strong> — dropdown com <em>Ganho Parcial</em>, <em>Perda Parcial</em>, <em>Cash Out</em> (solicita valor recebido), <em>Anulada</em> e <em>Aberto</em> (reabrir aposta).</td></tr>
+        <tr><td><span class="btn-demo warn">✏️</span></td><td><strong>Editar aposta</strong> — carrega os dados no formulário Cadastro para edição.</td></tr>
+        <tr><td><span class="btn-demo danger">🗑️</span></td><td><strong>Excluir aposta</strong> — remove permanentemente após confirmação.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <div class="callout-title">☁️ Tudo salva direto na nuvem</div>
+      Qualquer ação acima — marcar resultado, editar ou excluir — é enviada para a nuvem no mesmo instante. Não existe um botão separado de "salvar tudo": cada alteração já vai sozinha.
+    </div>
+
+    <h3>Editar uma aposta</h3>
+    <ol class="steps">
+      <li><span class="step-num">1</span>Clique em <span class="btn-demo warn">✏️ Editar aposta</span> na linha desejada.</li>
+      <li><span class="step-num">2</span>O sistema navega para a seção Cadastro com os dados preenchidos.</li>
+      <li><span class="step-num">3</span>Faça as alterações e clique em <span class="btn-demo success">💾 Salvar Aposta</span>.</li>
+      <li><span class="step-num">4</span>Ou clique em <span class="btn-demo outline">✕ Cancelar Edição</span> para descartar.</li>
+    </ol>
+  </section>
+
+  <!-- SALDOS -->
+  <section id="saldos" class="wiki-section" aria-labelledby="h-saldos">
+    <h2 id="h-saldos">💰 Saldo por Casa</h2>
+    <p>Mostra quanto dinheiro você tem disponível em cada casa de aposta, calculado automaticamente a partir dos seus depósitos, retiradas e do resultado das suas apostas — sem precisar atualizar nada manualmente.</p>
+
+    <div class="callout info">
+      <div class="callout-title">🧮 Como o saldo é calculado</div>
+      <code>Saldo = Depósitos − Retiradas − Stake apostado + Retornado das apostas ganhas</code><br><br>
+      O stake sai do saldo no momento em que a aposta é registrada, esteja ela aberta, ganha ou perdida — é o dinheiro "travado" naquela aposta. Quando ela é marcada como <em>Ganhou</em>, o valor retornado (stake + lucro) volta a entrar no saldo. Quando é marcada como <em>Perdeu</em>, nada volta — o stake já saiu e não retorna. Apostas <em>Abertas</em> mantêm o stake fora do saldo até serem resolvidas.
+    </div>
+
+    <p>O resumo no topo da seção mostra um cartão por casa, com o saldo atual em destaque e, abaixo, o total depositado, total retirado e o resultado líquido só das apostas (sem contar depósitos/retiradas) daquela casa.</p>
+
+    <h3 id="lancar-transacao">➕ Lançar Depósito ou Retirada</h3>
+    <p>Preencha o formulário com:</p>
+    <table class="field-table" aria-label="Campos do lançamento de saldo">
+      <thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Casa *</td><td>Em qual casa de aposta o valor entrou ou saiu. Usa a mesma lista de Casas do Cadastro.</td></tr>
+        <tr><td class="field-name">Tipo *</td><td><strong>Depósito</strong> (dinheiro entrando) ou <strong>Retirada</strong> (dinheiro saindo).</td></tr>
+        <tr><td class="field-name">Valor *</td><td>Valor em reais do depósito ou retirada.</td></tr>
+        <tr><td class="field-name">Data</td><td>Data em que o depósito/retirada aconteceu. Vem preenchida com a data de hoje, mas pode ser alterada.</td></tr>
+        <tr><td class="field-name">Observação</td><td>Campo livre opcional — útil para anotar a forma de pagamento (PIX, cartão) ou um motivo.</td></tr>
+      </tbody>
+    </table>
+    <p>Toque em <span class="btn-demo success">💾 Lançar</span> para salvar. O saldo de todas as casas é recalculado imediatamente.</p>
+
+    <h3 id="historico-transacoes">📜 Histórico de Lançamentos</h3>
+    <p>Lista todos os depósitos e retiradas já lançados, do mais recente para o mais antigo. Cada linha tem um botão 🗑️ para excluir aquele lançamento específico, com confirmação antes de remover.</p>
+    <div class="callout tip">
+      <div class="callout-title">💡 Saldo sempre atualizado</div>
+      Não existe botão de "recalcular saldo" — qualquer aposta cadastrada, editada, marcada como ganha/perdida, excluída, ou qualquer depósito/retirada lançado já atualiza o saldo de todas as casas na mesma hora.
+    </div>
+  </section>
+
+  <!-- CONFIGURAÇÕES -->
+  <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
+    <h2 id="h-configuracoes">⚙️ Configurações</h2>
+    <p>A seção Configurações centraliza o gerenciamento das listas de opções e as operações globais de dados: exportar, importar e limpar.</p>
+
+    <h3 id="exportar">📊 Exportar Excel</h3>
+    <p>Gera um arquivo <code>.xlsx</code> com <strong>todas</strong> as apostas cadastradas (aba <em>Apostas</em>) e todos os lançamentos de saldo (aba <em>Transações</em>). O nome do arquivo inclui data e hora no formato <code>aaaa-mm-dd_hh-mm-ss</code>. Use regularmente como backup.</p>
+    <p>Há também o botão <span class="btn-demo success">📥 Exportar Filtro</span> na seção Filtros, que exporta apenas as apostas visíveis no momento (sem a aba de Transações).</p>
+
+    <h3 id="importar">📥 Importar Excel</h3>
+    <p>Carrega apostas a partir de um arquivo <code>.xlsx</code> exportado pelo próprio sistema e <strong>envia tudo para a nuvem</strong>, na sua conta. A importação <strong>substitui todos os dados já salvos na nuvem</strong>. Exporte antes se quiser preservar o que está no sistema.</p>
+    <p>Ao importar, valores únicos de Casa, Tipster, Tipo, Esporte, Liga e Mercado encontrados na planilha são mesclados automaticamente nas listas existentes — ignorando diferenças de maiúsculas/minúsculas e espaços extras, para não criar duplicados. Se a planilha tiver a aba <em>Transações</em>, os lançamentos de saldo também são substituídos; caso contrário, os lançamentos existentes na nuvem são preservados.</p>
+    <div class="callout warn">
+      <div class="callout-title">⚠️ Atenção</div>
+      A importação apaga e substitui todas as apostas atuais <strong>na nuvem</strong>. Sempre exporte antes de importar um arquivo diferente.
+    </div>
+
+    <h3 id="limpar-dados">🗑️ Limpar Dados</h3>
+    <p>Apaga <strong>todas as apostas e lançamentos de saldo salvos na nuvem</strong> (na sua conta) e redefine todas as listas de opções para o estado inicial (tipsters e ligas ficam vazios). Uma confirmação é exigida antes de executar. O sistema retorna para a tela de Cadastro limpa.</p>
+    <div class="callout warn">
+      <div class="callout-title">⚠️ Ação irreversível</div>
+      Não há desfazer após limpar os dados. Se necessário, exporte antes para ter um backup.
+    </div>
+
+    <h3>Gerenciar listas de opções</h3>
+    <p>Casa, Tipster, Tipo, Esporte, Liga e Mercado têm listas personalizáveis. Alterações são salvas imediatamente na nuvem e refletem em todos os formulários e filtros.</p>
+    <p>Para os campos simples (Casa, Tipster, Tipo, Esporte), cada lista exibe os valores como chips clicáveis. Use o campo de texto + botão <span class="btn-demo success">Adicionar</span> para incluir um novo valor, e o ícone <strong>×</strong> dentro de cada chip para remover.</p>
+
+    <h3 id="config-ligas-mercados">Ligas e Mercados por esporte</h3>
+    <p>Liga e Mercado são vinculados a um esporte específico — a lista exibida no formulário de Cadastro muda automaticamente conforme o esporte selecionado em cada evento. Nas Configurações, escolha o esporte no seletor e então adicione ou remova ligas/mercados para aquele esporte.</p>
+    <div class="callout tip">
+      <div class="callout-title">💡 Filtrar antes de adicionar</div>
+      Sempre selecione o esporte correto antes de adicionar uma liga ou mercado. Isso evita criar entradas desvinculadas que aparecem na lista errada.
+    </div>
+
+    <h3 id="config-orfaos">Itens órfãos</h3>
+    <p>Ligas e mercados cadastrados antes da funcionalidade de vinculação por esporte existir ficam marcados como <em>órfãos</em> e aparecem em uma seção separada. Para cada item órfão, use o seletor de esporte ao lado e clique em <strong>Mover</strong> para atribuí-lo ao esporte correto. Se já existir uma entrada equivalente naquele esporte, o item órfão é removido sem criar duplicado.</p>
+  </section>
+
+  <!-- ESTRUTURA PLANILHA -->
+  <section id="estrutura-planilha" class="wiki-section" aria-labelledby="h-planilha">
+    <h2 id="h-planilha">📄 Estrutura da Planilha</h2>
+    <p>Cada linha da planilha representa um <strong>evento</strong>. Apostas com múltiplos eventos geram múltiplas linhas, todas com o mesmo <strong>Identificador</strong>. Ao importar, o sistema agrupa as linhas pelo Identificador e reconstrói a aposta completa.</p>
+    <p>As 21 colunas exportadas são:</p>
+    <div class="col-list" role="list" aria-label="Colunas da planilha exportada">
+      <span class="col-tag" role="listitem">Data Hora</span>
+      <span class="col-tag" role="listitem">Casa</span>
+      <span class="col-tag" role="listitem">Identificador</span>
+      <span class="col-tag" role="listitem">Tipster</span>
+      <span class="col-tag" role="listitem">Tipo</span>
+      <span class="col-tag" role="listitem">Status</span>
+      <span class="col-tag" role="listitem">ODD Total</span>
+      <span class="col-tag" role="listitem">Stake</span>
+      <span class="col-tag" role="listitem">Retornado</span>
+      <span class="col-tag" role="listitem">Lucro</span>
+      <span class="col-tag" role="listitem">Unidades</span>
+      <span class="col-tag" role="listitem">ROI (%)</span>
+      <span class="col-tag" role="listitem">Bônus</span>
+      <span class="col-tag" role="listitem">Valor Cash Out</span>
+      <span class="col-tag" role="listitem">Observação</span>
+      <span class="col-tag" role="listitem">Evento</span>
+      <span class="col-tag" role="listitem">Esporte</span>
+      <span class="col-tag" role="listitem">Liga</span>
+      <span class="col-tag" role="listitem">Mercado</span>
+      <span class="col-tag" role="listitem">Seleção</span>
+      <span class="col-tag" role="listitem">ODD Evento</span>
+    </div>
+
+    <p>A aba <strong>Transações</strong> é exportada junto (quando se usa <em>Exportar Geral</em>) e contém as colunas: Data, Casa, Tipo, Valor e Observação. Ao importar, se a planilha tiver essa aba, os lançamentos são substituídos; caso contrário, os lançamentos existentes na nuvem são preservados.</p>
+
+    <h3 id="portabilidade">Portabilidade entre dispositivos</h3>
+    <p>Como os dados ficam na nuvem, levar o histórico para outro dispositivo não exige mais exportar e importar planilha: basta fazer login com a mesma conta em qualquer computador ou celular, e as apostas aparecem automaticamente, sempre atualizadas.</p>
+    <p>Exportar e Importar continuam existindo, mas agora servem para outras duas finalidades:</p>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li><strong>Backup</strong> — uma cópia de segurança fora da nuvem, guardada no seu computador, e-mail ou outro serviço de armazenamento.</li>
+      <li><strong>Migração de dados antigos</strong> — trazer um histórico que estava em outro sistema (ou numa versão anterior do Banca Pro) para dentro da sua conta na nuvem.</li>
+    </ul>
+    <div class="callout tip">
+      <div class="callout-title">💡 Backup regular</div>
+      Mesmo com os dados seguros na nuvem, vale exportar a planilha de vez em quando e guardar em local separado (computador, e-mail, outro serviço de nuvem) como segunda camada de segurança.
+    </div>
+  </section>
+
+  <!-- GLOSSÁRIO -->
+  <section id="glossario" class="wiki-section" aria-labelledby="h-glossario">
+    <h2 id="h-glossario">📖 Glossário</h2>
+    <table class="field-table" aria-label="Glossário de termos">
+      <thead><tr><th>Termo</th><th>Definição</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Stake</td><td>Valor em dinheiro apostado em uma entrada.</td></tr>
+        <tr><td class="field-name">ODD</td><td>Multiplicador de retorno oferecido pela casa. ODD 2.5 sobre R$100 retorna R$250.</td></tr>
+        <tr><td class="field-name">ODD Total</td><td>Em acumuladores, produto das odds individuais de todos os eventos.</td></tr>
+        <tr><td class="field-name">Retornado</td><td>Valor efetivamente recebido de volta (stake + lucro) em uma aposta ganha.</td></tr>
+        <tr><td class="field-name">Lucro</td><td>Ganho líquido: <em>Retornado − Stake</em>. Negativo em perdas.</td></tr>
+        <tr><td class="field-name">Unidade</td><td>Lucro expresso em múltiplos do stake. +1u = lucro igual ao stake apostado.</td></tr>
+        <tr><td class="field-name">ROI</td><td>Return on Investment. Percentual de retorno sobre o stake total.</td></tr>
+        <tr><td class="field-name">% Acerto</td><td>Ganhas ÷ (Ganhas + Perdidas) × 100. Apostas abertas não entram no cálculo.</td></tr>
+        <tr><td class="field-name">Acumulador</td><td>Aposta com dois ou mais eventos. Ganha somente se todos os eventos ganharem.</td></tr>
+        <tr><td class="field-name">Tipster</td><td>Pessoa que indica ou recomenda a aposta.</td></tr>
+        <tr><td class="field-name">Mercado</td><td>Tipo de aposta dentro de um evento (Vencedor, Handicap, Gols, Cartões…).</td></tr>
+        <tr><td class="field-name">Seleção</td><td>A escolha feita dentro do mercado (Casa, Fora, Mais de 2.5…).</td></tr>
+        <tr><td class="field-name">Pré Live</td><td>Aposta realizada antes do início do evento.</td></tr>
+        <tr><td class="field-name">Ao Vivo</td><td>Aposta realizada durante o evento em andamento.</td></tr>
+        <tr><td class="field-name">Ganho Parcial</td><td>Status para apostas ganhas pela metade: metade do stake é paga à ODD cheia, a outra metade é devolvida.</td></tr>
+        <tr><td class="field-name">Perda Parcial</td><td>Status para apostas perdidas pela metade: metade do stake é perdida, a outra metade é devolvida.</td></tr>
+        <tr><td class="field-name">Anulada</td><td>Status para apostas anuladas/void: o stake é devolvido integralmente, lucro = 0.</td></tr>
+        <tr><td class="field-name">Cash Out</td><td>Encerramento antecipado da aposta pelo usuário. O valor recebido é informado manualmente e usado no cálculo do lucro.</td></tr>
+        <tr><td class="field-name">Bônus</td><td>Valor extra oferecido pela casa (ex: free bet) somado ao retornado quando a aposta ganha.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ATALHOS -->
+  <section id="atalhos" class="wiki-section" aria-labelledby="h-atalhos">
+    <h2 id="h-atalhos">⌨️ Atalhos de Teclado</h2>
+    <table class="field-table" aria-label="Atalhos de teclado">
+      <thead><tr><th>Tecla</th><th>Ação</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>Tab</kbd></td><td>Avança para o próximo campo ou botão.</td></tr>
+        <tr><td><kbd>Shift</kbd> + <kbd>Tab</kbd></td><td>Retorna ao campo ou botão anterior.</td></tr>
+        <tr><td><kbd>Enter</kbd> / <kbd>Espaço</kbd></td><td>Aciona o botão ou link em foco.</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Fecha qualquer diálogo de confirmação aberto.</td></tr>
+        <tr><td><kbd>H</kbd> (leitor de tela)</td><td>Navega entre cabeçalhos — útil para pular entre eventos no formulário.</td></tr>
+        <tr><td><kbd>Setas ↑↓</kbd></td><td>Navega entre opções de radio button (Casa, Status).</td></tr>
+        <tr><td><kbd>Espaço</kbd></td><td>Marca ou desmarca uma caixa de verificação de Mercado.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+</main>
+
+<script>
+// ── Highlight active nav link on scroll ──
+(function() {
+    const links = document.querySelectorAll('.nav-link');
+    const sections = Array.from(document.querySelectorAll('section[id], div[id]'));
+    function updateActive() {
+        let current = '';
+        sections.forEach(sec => { if (sec.getBoundingClientRect().top <= 80) current = sec.id; });
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + current));
+    }
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// ── Mobile sidebar toggle ──
+(function() {
+    const btn = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    btn.addEventListener('click', function() {
+        const open = sidebar.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open);
+        btn.textContent = open ? '✕ Fechar' : '☰ Menu';
+    });
+    sidebar.querySelectorAll('.nav-link').forEach(l => {
+        l.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('open');
+                btn.setAttribute('aria-expanded', 'false');
+                btn.textContent = '☰ Menu';
+            }
+        });
+    });
+})();
+
+// ── Search / highlight ──
+(function() {
+    const input = document.getElementById('searchInput');
+    const main  = document.getElementById('conteudo');
+    let origHTML = null;
+
+    function clearMarks() {
+        if (origHTML !== null) { main.innerHTML = origHTML; origHTML = null; bindSearch(); }
+    }
+
+    function doSearch(term) {
+        if (!term) { clearMarks(); return; }
+        if (origHTML === null) origHTML = main.innerHTML;
+        main.innerHTML = origHTML;
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp('(' + escaped + ')', 'gi');
+        function walk(node) {
+            if (node.nodeType === 3) {
+                if (rx.test(node.textContent)) {
+                    const span = document.createElement('span');
+                    span.innerHTML = node.textContent.replace(rx, '<mark>$1</mark>');
+                    node.parentNode.replaceChild(span, node);
+                }
+            } else if (node.nodeType === 1 && !['SCRIPT','STYLE','INPUT'].includes(node.tagName)) {
+                Array.from(node.childNodes).forEach(walk);
+            }
+        }
+        walk(main);
+        const first = main.querySelector('mark');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function bindSearch() {
+        const inp = document.getElementById('searchInput');
+        if (inp) inp.addEventListener('input', function() { doSearch(this.value.trim()); });
+    }
+    bindSearch();
+})();
+</script>
+</body>
+</html>

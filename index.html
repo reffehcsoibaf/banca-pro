@@ -1,0 +1,4031 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Banca Pro">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#1e3a5f">
+    <title>Gestão Profissional de Banca</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ========== VARIÁVEIS CSS ========== */
+        :root {
+            --bg: #f0f4f8;
+            --card: #ffffff;
+            --text: #1a2332;
+            --text-secondary: #4a5568;
+            --primary: #1e3a5f;
+            --primary-light: #2563eb;
+            --primary-hover: #1a3050;
+            --success: #15803d;
+            --success-bg: #dcfce7;
+            --danger: #b91c1c;
+            --danger-bg: #fee2e2;
+            --warning: #b45309;
+            --warning-bg: #fef3c7;
+            --info: #1d4ed8;
+            --info-bg: #dbeafe;
+            --neutral: #6b21a8;
+            --neutral-bg: #f3e8ff;
+            --muted: #475569;
+            --muted-bg: #e2e8f0;
+            --border: #d1dce8;
+            --border-light: #e8eef5;
+            --shadow: 0 2px 12px rgba(30,58,95,.10);
+            --shadow-lg: 0 8px 32px rgba(30,58,95,.16);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: .18s cubic-bezier(.4,0,.2,1);
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --tap-target: 48px;
+            --input-height: 48px;
+        }
+
+        /* ========== DARK MODE ========== */
+        [data-theme="dark"] {
+            --bg: #0f1923;
+            --card: #1a2535;
+            --text: #e8edf5;
+            --text-secondary: #94a3b8;
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-hover: #1d4ed8;
+            --border: #2d3d54;
+            --border-light: #243347;
+            --shadow: 0 2px 12px rgba(0,0,0,.35);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,.45);
+            --success-bg: #14532d;
+            --danger-bg: #7f1d1d;
+            --warning-bg: #78350f;
+            --info-bg: #1e3a8a;
+            --neutral-bg: #4c1d95;
+            --muted-bg: #334155;
+        }
+
+        /* ========== RESET & BASE ========== */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html {
+            scroll-behavior: smooth;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: contain;
+        }
+
+        /* ========== SKIP TO MAIN ========== */
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 12px;
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 0 0 8px 8px;
+            z-index: 10000;
+            font-weight: 600;
+            text-decoration: none;
+            transition: top .2s;
+        }
+        .skip-link:focus { top: 0; }
+
+        /* ========== NAV POR ABAS (topo, desktop e mobile) ========== */
+        .tabs-nav {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all var(--transition);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary-light); border-bottom-color: var(--primary-light); }
+        .tab-btn:focus-visible { outline: 3px solid var(--primary-light); outline-offset: 2px; }
+
+        /* ========== TOPBAR ========== */
+        .topbar {
+            background: var(--primary);
+            color: white;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 400;
+            box-shadow: var(--shadow-lg);
+        }
+        .topbar-inner {
+            max-width: 1700px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 60px;
+            gap: 12px;
+        }
+        .topbar h1 {
+            margin: 0;
+            font-size: clamp(15px, 3vw, 20px);
+            font-weight: 700;
+            white-space: nowrap;
+            letter-spacing: -.3px;
+        }
+        .topbar-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .topbar-btn {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.25);
+            color: white;
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            min-height: 36px;
+            min-width: 36px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background var(--transition);
+        }
+        .topbar-btn:hover { background: rgba(255,255,255,.25); }
+        .topbar-btn:active { transform: scale(.96); }
+
+        /* ========== CONTAINER ========== */
+        .container {
+            max-width: 1700px;
+            margin: auto;
+            padding: 20px 16px;
+        }
+
+        /* ========== SECTIONS (navegação por abas, sempre) ========== */
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* ========== CARD ========== */
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-light);
+        }
+        .card h2 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ========== GRID ========== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        /* ========== INPUTS & FORMS ========== */
+        input, select, textarea {
+            width: 100%;
+            height: var(--input-height);
+            padding: 0 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            background: var(--card);
+            color: var(--text);
+            font-size: 15px;
+            font-family: var(--font);
+            transition: border-color var(--transition), box-shadow var(--transition);
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(37,99,235,.18);
+        }
+        input[readonly] {
+            background: var(--bg);
+            cursor: default;
+            font-weight: 600;
+        }
+        textarea {
+            height: auto;
+            padding: 12px;
+            resize: vertical;
+        }
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+        .field-required { color: #e53e3e; margin-left: 3px; }
+
+        /* ========== PREENCHIMENTO POR FOTO (IA) ========== */
+        .campo-novo-valor {
+            border-color: var(--info) !important;
+            box-shadow: 0 0 0 2px var(--info-bg);
+        }
+        .campo-baixa-confianca {
+            border-color: var(--warning) !important;
+            box-shadow: 0 0 0 2px var(--warning-bg);
+        }
+        .aviso-extracao {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+        .aviso-extracao.novo { background: var(--info-bg); color: var(--info); }
+        .aviso-extracao.revisar { background: var(--warning-bg); color: var(--warning); }
+        .foto-bilhete-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .foto-bilhete-box {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 28px;
+            max-width: 360px;
+            width: 100%;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+        .foto-bilhete-spinner {
+            width: 38px;
+            height: 38px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary-light);
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            animation: girar 0.8s linear infinite;
+        }
+        @keyframes girar { to { transform: rotate(360deg); } }
+
+        /* ========== BUTTONS ========== */
+        button {
+            cursor: pointer;
+            font-family: var(--font);
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            border: none;
+            transition: all var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active { transform: scale(.96); }
+
+        .btn { height: var(--input-height); padding: 0 18px; font-size: 14px; width: 100%; }
+        .btn-sm { height: 36px; padding: 0 12px; font-size: 13px; }
+        .btn-xs { height: 30px; padding: 0 8px; font-size: 12px; }
+
+        .btn-primary { background: var(--primary-light); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #166534; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #991b1b; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-secondary:hover { background: #4b5563; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: var(--bg); }
+
+        /* ========== INLINE ROW ========== */
+        .inline { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+        .btn-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+        /* ========== EVENT CARD ========== */
+        .event {
+            border: 1.5px solid var(--border-light);
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: var(--radius);
+            background: var(--bg);
+            position: relative;
+        }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .event-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary-light);
+            margin: 0;
+        }
+
+        /* ========== SUMMARY CARDS ========== */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 16px;
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card::after {
+            content: '';
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.08);
+        }
+        .summary-card h3 { margin: 0 0 4px 0; font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: .6px; }
+        .summary-card .value { font-size: 20px; font-weight: 800; }
+        .summary-card.green { background: linear-gradient(135deg, #15803d, #22c55e); }
+        .summary-card.red { background: linear-gradient(135deg, #b91c1c, #ef4444); }
+        .summary-card.orange { background: linear-gradient(135deg, #b45309, #f59e0b); }
+
+        /* ========== TABLE ========== */
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius-sm); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+            font-size: 13px;
+        }
+        th, td {
+            border-bottom: 1px solid var(--border-light);
+            padding: 10px 8px;
+            vertical-align: middle;
+            text-align: left;
+            white-space: nowrap;
+        }
+        td:nth-child(6) { white-space: normal; min-width: 200px; }
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            position: sticky;
+            top: 61px;
+        }
+        tr:hover td { background: var(--bg); }
+        td .btn-xs { white-space: nowrap; }
+
+        /* Status badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-green { background: var(--success-bg); color: var(--success); }
+        .badge-red { background: var(--danger-bg); color: var(--danger); }
+        .badge-orange { background: var(--warning-bg); color: var(--warning); }
+        .badge-blue { background: var(--info-bg); color: var(--info); }
+        .badge-purple { background: var(--neutral-bg); color: var(--neutral); }
+        .badge-gray { background: var(--muted-bg); color: var(--muted); }
+
+        /* ========== MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            align-items: center;
+            justify-content: center;
+            z-index: 900;
+            padding: 16px;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: modalIn .22s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(.93) translateY(10px); }
+            to { opacity: 1; transform: none; }
+        }
+        .modal h3 { margin: 0 0 16px 0; font-size: 18px; color: var(--primary); }
+
+        /* ========== TOAST NOTIFICATIONS ========== */
+        .toast-container {
+            position: fixed;
+            bottom: calc(80px + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+        }
+        @media (min-width: 769px) {
+            .toast-container { bottom: 20px; right: 20px; left: auto; transform: none; align-items: flex-end; }
+        }
+        .toast {
+            background: #1a2535;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            animation: toastIn .25s ease;
+            max-width: 340px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: all;
+        }
+        .toast.success { border-left: 4px solid #22c55e; }
+        .toast.error { border-left: 4px solid #ef4444; }
+        .toast.info { border-left: 4px solid #60a5fa; }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: none; }
+        }
+        @keyframes toastOut {
+            to { opacity: 0; transform: translateY(20px); }
+        }
+
+        .guide-toc { list-style: none; padding: 0; margin: 0 0 24px 0; }
+        .guide-toc li { padding: 0; }
+        .guide-toc a {
+            display: block;
+            padding: 10px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--primary-light);
+            font-weight: 600;
+            font-size: 14px;
+            transition: background var(--transition);
+        }
+        .guide-toc a:hover { background: var(--bg); }
+        .guide-section { margin-bottom: 28px; }
+        .guide-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            border-left: 4px solid var(--primary-light);
+            padding-left: 10px;
+            margin-bottom: 10px;
+        }
+        .guide-section p, .guide-section li {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .guide-step {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .guide-step-num {
+            background: var(--primary-light);
+            color: white;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .guide-step-text { font-size: 14px; color: var(--text); line-height: 1.6; }
+        .guide-tip {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 13px;
+            color: #1e40af;
+            margin-top: 8px;
+        }
+        [data-theme="dark"] .guide-tip { background: #1e3a5f; border-color: #2563eb; color: #93c5fd; }
+
+        /* ========== FILTERS ========== */
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        /* ========== CONFIGURAÇÕES (chips) ========== */
+        .config-categoria { margin-bottom: 28px; }
+        .config-categoria h3 { font-size: 15px; margin-bottom: 10px; }
+        .chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; min-height: 32px; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 999px; padding: 6px 8px 6px 14px;
+            font-family: var(--font-ui); font-size: 13px; color: var(--text);
+        }
+        .chip button {
+            background: none; border: none; color: var(--danger);
+            font-size: 16px; line-height: 1; cursor: pointer;
+            width: 22px; height: 22px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .chip button:hover, .chip button:focus-visible { background: var(--danger); color: white; }
+        .config-add-row { display: flex; gap: 8px; }
+        .config-add-row input { flex: 1; }
+
+        /* ========== TELA DE LOGIN ========== */
+        .tela-login {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: var(--bg);
+        }
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 32px 28px;
+        }
+        .login-card h1 { font-size: 22px; margin: 0 0 4px; text-align: center; color: var(--text); }
+        .login-subtitle { text-align: center; color: var(--text-secondary); font-size: 13px; margin: 0 0 24px; }
+        .login-guia-link {
+            display: block;
+            text-align: center;
+            font-size: 13px;
+            color: var(--primary-light);
+            text-decoration: none;
+            margin: -12px 0 20px;
+            font-weight: 600;
+        }
+        .login-guia-link:hover, .login-guia-link:focus { text-decoration: underline; }
+        .login-field { margin-bottom: 16px; }
+        .login-btn { margin-bottom: 10px; }
+        .login-erro {
+            min-height: 18px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--danger);
+            margin-bottom: 12px;
+        }
+        .login-hint { font-size: 12px; color: var(--text-secondary); text-align: center; margin-top: 16px; line-height: 1.5; }
+
+        /* ========== DARK MODE TOGGLE ========== */
+
+        /* ========== ARIA LIVE ========== */
+        .sr-only {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        /* ========== CANVAS ========== */
+        canvas {
+            border-radius: var(--radius-sm);
+            max-width: 100%;
+        }
+
+        /* ========== RADIO GROUP ========== */
+        .radio-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--text);
+            font-weight: 500;
+            cursor: pointer;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1.5px solid var(--border);
+            background: var(--card);
+            transition: all var(--transition);
+        }
+        .radio-group label:hover { border-color: var(--primary-light); background: var(--bg); }
+        .radio-group input[type="radio"] { width: 18px; height: 18px; accent-color: var(--primary-light); flex-shrink: 0; }
+
+        /* ========== RESPONSIVE HELPERS ========== */
+        @media (max-width: 768px) {
+            .topbar-actions .label-text { display: none; }
+            .hide-mobile { display: none !important; }
+            th { top: 60px; }
+        }
+        @media (min-width: 769px) {
+            .hide-desktop { display: none !important; }
+        }
+
+        /* ========== RESUMO GLOBAL COMPACT ========== */
+        #resumoGlobalGrid .summary-card {
+            padding: 10px 12px;
+        }
+        #resumoGlobalGrid .summary-card h3 {
+            font-size: 10px;
+            margin-bottom: 2px;
+        }
+        #resumoGlobalGrid .summary-card .value {
+            font-size: 15px;
+        }
+
+        /* ========== FOCUS VISIBLE ========== */
+        :focus-visible { outline: 3px solid var(--primary-light); outline-offset: 2px; }
+
+        /* ========== SCROLLBAR ========== */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* ── Radio / Checkbox option groups ── */
+        .option-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 4px 0;
+        }
+        .option-group label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13.5px;
+            font-family: var(--font-ui, system-ui, sans-serif);
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            transition: border-color .15s, background .15s, color .15s;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .option-group label:hover {
+            border-color: var(--primary-light);
+            background: var(--bg);
+        }
+        .option-group input[type="radio"],
+        .option-group input[type="checkbox"] {
+            width: 15px;
+            height: 15px;
+            accent-color: var(--primary-light);
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .option-group input[type="radio"]:checked + span,
+        .option-group input[type="checkbox"]:checked + span {
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+        .option-group label:has(input:checked) {
+            border-color: var(--primary-light);
+            background: color-mix(in srgb, var(--primary-light) 10%, var(--bg-card));
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        /* ── Filtro de texto para option-groups ── */
+        .og-filter-wrap {
+            position: relative;
+            margin-bottom: 6px;
+        }
+        .og-filter-wrap input[type="search"] {
+            width: 100%;
+            padding: 5px 10px 5px 28px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 13px;
+            font-family: var(--font-ui, system-ui, sans-serif);
+            outline: none;
+            box-sizing: border-box;
+        }
+        .og-filter-wrap input[type="search"]:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-light) 20%, transparent);
+        }
+        .og-filter-wrap .og-filter-icon {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            pointer-events: none;
+            opacity: .5;
+        }
+        .option-group label.og-hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Aria live -->
+<div aria-live="polite" aria-atomic="true" class="sr-only"><span id="avisoSalvar"></span></div>
+<div aria-live="assertive" aria-atomic="true" class="sr-only"><span id="avisoExtracao"></span></div>
+
+<!-- Skip link -->
+<a href="#main" class="skip-link">Ir para conteúdo principal</a>
+
+<!-- ========== TELA DE LOGIN ========== -->
+<div id="telaLogin" class="tela-login">
+    <div class="login-card">
+        <h1>🏦 Banca Pro</h1>
+        <p class="login-subtitle">Gestão profissional de banca</p>
+        <a href="wiki.html" target="_blank" class="login-guia-link">📖 O que é o Banca Pro? Veja o guia de uso</a>
+
+        <form id="formLogin" novalidate>
+            <div class="login-field">
+                <label for="loginEmail">E-mail</label>
+                <input type="email" id="loginEmail" autocomplete="email" required aria-required="true">
+            </div>
+            <div class="login-field">
+                <label for="loginSenha">Senha</label>
+                <input type="password" id="loginSenha" autocomplete="current-password" required aria-required="true" minlength="6">
+            </div>
+            <div id="loginErro" class="login-erro" role="alert"></div>
+            <button type="submit" id="btnEntrar" class="btn btn-primary login-btn">Entrar</button>
+            <button type="button" id="btnCriarConta" class="btn btn-outline login-btn">Criar conta</button>
+        </form>
+        <p class="login-hint" id="loginHint">Ainda não tem conta? Preencha e-mail e senha (mínimo 6 caracteres) e toque em "Criar conta".</p>
+    </div>
+</div>
+
+<!-- ========== CONTEÚDO DO APP (visível só depois do login) ========== -->
+<div id="appConteudo" style="display:none;">
+
+<!-- ========== TOPBAR ========== -->
+<header class="topbar" role="banner">
+    <div class="topbar-inner">
+        <h1>🏦 Banca Pro</h1>
+        <div class="topbar-actions">
+            <a href="wiki.html" target="_blank" class="topbar-btn" aria-label="Abrir guia de uso em nova aba" title="Guia de uso">
+                📖 <span class="label-text">Guia</span>
+            </a>
+            <button class="topbar-btn" onclick="sairDaConta()" aria-label="Sair da conta" title="Sair">
+                🚪 <span class="label-text">Sair</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- ========== RESUMO GLOBAL (todas as telas) ========== -->
+<div id="resumoGlobal" role="region" aria-label="Resumo do filtro atual" style="display:none; background:var(--bg); padding:0 16px 0; position:sticky; top:60px; z-index:350; border-bottom:1px solid var(--border-light); box-shadow:0 2px 8px rgba(30,58,95,.08);">
+    <div style="max-width:1700px; margin:auto; padding:10px 0 4px;">
+        <div style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;" aria-hidden="true">📊 Resumo do Filtro</div>
+        <div class="summary-grid" id="resumoGlobalGrid" style="grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap:8px; margin-bottom:8px;"></div>
+    </div>
+</div>
+
+<!-- ========== MAIN ========== -->
+<main id="main" class="container">
+
+    <!-- ===== NAVEGAÇÃO POR ABAS ===== -->
+    <div class="tabs-nav" role="tablist" aria-label="Seções do Banca Pro" id="tabs-nav" onkeydown="navegarAbasTeclado(event)">
+        <button type="button" role="tab" class="tab-btn active" data-secao="cadastro" id="tab-btn-cadastro" aria-selected="true" aria-controls="sec-cadastro" tabindex="0" onclick="irPara('cadastro', this)"><span aria-hidden="true">📝</span> Cadastro</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="filtros" id="tab-btn-filtros" aria-selected="false" aria-controls="sec-filtros" tabindex="-1" onclick="irPara('filtros', this)"><span aria-hidden="true">🔍</span> Filtros</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="lista" id="tab-btn-lista" aria-selected="false" aria-controls="sec-lista" tabindex="-1" onclick="irPara('lista', this)"><span aria-hidden="true">📋</span> Lista</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="saldos" id="tab-btn-saldos" aria-selected="false" aria-controls="sec-saldos" tabindex="-1" onclick="irPara('saldos', this)"><span aria-hidden="true">💰</span> Saldos</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="config" id="tab-btn-config" aria-selected="false" aria-controls="sec-config" tabindex="-1" onclick="irPara('config', this)"><span aria-hidden="true">⚙️</span> Configurações</button>
+    </div>
+
+    <!-- ===== SEÇÃO: CADASTRO ===== -->
+    <section class="section active" id="sec-cadastro" aria-label="Cadastro de apostas" role="tabpanel" aria-labelledby="tab-btn-cadastro">
+        <div class="card">
+            <h2>📝 Cadastro de Aposta</h2>
+
+            <div class="btn-row" style="margin-bottom:16px; gap:8px;">
+                <button class="btn btn-outline" id="btnPreencherFoto" onclick="document.getElementById('inputFotoBilhete').click()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Preencher aposta a partir de uma foto do bilhete">
+                    📷 Preencher por Foto
+                </button>
+                <input type="file" id="inputFotoBilhete" accept="image/*" style="display:none" onchange="processarFotoBilhete(event)" aria-hidden="true">
+                <button class="btn btn-outline" id="btnPreencherTexto" onclick="abrirModalTexto()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Preencher aposta colando o texto do bilhete">
+                    📋 Preencher por Texto
+                </button>
+            </div>
+
+            <!-- Modal: colar texto do bilhete -->
+            <div id="modalTextoBilhete" role="dialog" aria-modal="true" aria-labelledby="modalTextoTitulo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:2000; align-items:center; justify-content:center; padding:16px;">
+                <div style="background:var(--card); border-radius:var(--radius); padding:24px; max-width:480px; width:100%; box-shadow:var(--shadow-lg);">
+                    <h2 id="modalTextoTitulo" style="margin:0 0 8px; font-size:16px;">📋 Preencher por Texto</h2>
+                    <p style="margin:0 0 12px; font-size:13px; color:var(--text-secondary);">Cole abaixo o texto copiado do bilhete (Betano, Superbet, etc.). O app vai identificar os dados e preencher o formulário para revisão.</p>
+                    <label for="inputTextoBilhete" class="sr-only">Texto do bilhete</label>
+                    <textarea id="inputTextoBilhete" rows="10" style="width:100%; box-sizing:border-box; font-family:var(--font-ui); font-size:13px; padding:8px; border:1.5px solid var(--border); border-radius:6px; background:var(--input); color:var(--text); resize:vertical;" placeholder="Cole aqui o texto do bilhete..."></textarea>
+                    <div class="btn-row" style="margin-top:12px; gap:8px; justify-content:flex-end;">
+                        <button class="btn btn-outline" onclick="fecharModalTexto()" style="width:auto; padding:0 18px;">Cancelar</button>
+                        <button class="btn btn-primary" onclick="processarTextoBilhete()" style="width:auto; padding:0 18px;">Preencher</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div>
+                    <label>Casa <span class="field-required" aria-hidden="true">*</span></label>
+                    <div id="rg-casa" class="option-group" role="radiogroup" aria-label="Casa de aposta" aria-required="true"></div>
+                    <div class="inline" style="margin-top:4px;">
+                        <button class="btn-sm btn-success" onclick="addOption('casa')" aria-label="Adicionar casa">+ Casa</button>
+                        <button class="btn-sm btn-danger" onclick="removeOption('casa')" aria-label="Remover casa selecionada">−</button>
+                    </div>
+                </div>
+                <div>
+                    <label for="identificador">Identificador <span class="field-required" aria-hidden="true">*</span></label>
+                    <input id="identificador" aria-label="ID único da aposta" aria-required="true" placeholder="">
+                </div>
+                <div>
+                    <label for="dataHora">Data e Hora <span class="field-required" aria-hidden="true">*</span></label>
+                    <input type="datetime-local" id="dataHora" aria-required="true">
+                </div>
+                <div>
+                    <label for="tipster">Tipster</label>
+                    <select id="tipster"></select>
+                    <div class="inline" style="margin-top:4px;">
+                        <button class="btn-sm btn-success" onclick="addOption('tipster')" aria-label="Adicionar tipster">+ Tipster</button>
+                        <button class="btn-sm btn-danger" onclick="removeOption('tipster')" aria-label="Remover tipster selecionado">−</button>
+                    </div>
+                </div>
+                <div>
+                    <label for="tipo">Tipo</label>
+                    <select id="tipo"></select>
+                    <div class="inline" style="margin-top:4px;">
+                        <button class="btn-sm btn-success" onclick="addOption('tipo')" aria-label="Adicionar tipo">+ Tipo</button>
+                        <button class="btn-sm btn-danger" onclick="removeOption('tipo')" aria-label="Remover tipo selecionado">−</button>
+                    </div>
+                </div>
+                <div>
+                    <label>Status <span class="field-required" aria-hidden="true">*</span></label>
+                    <div id="rg-status" class="option-group" role="radiogroup" aria-label="Status da aposta" aria-required="true">
+                        <label><input type="radio" name="rg-status" value="Aberto" checked onchange="calcular()"><span>Aberto</span></label>
+                        <label><input type="radio" name="rg-status" value="Ganhou" onchange="calcular()"><span>Ganhou</span></label>
+                        <label><input type="radio" name="rg-status" value="Perdeu" onchange="calcular()"><span>Perdeu</span></label>
+                        <label><input type="radio" name="rg-status" value="Ganho Parcial" onchange="calcular()"><span>Ganho Parcial</span></label>
+                        <label><input type="radio" name="rg-status" value="Perda Parcial" onchange="calcular()"><span>Perda Parcial</span></label>
+                        <label><input type="radio" name="rg-status" value="Cash Out" onchange="calcular()"><span>Cash Out</span></label>
+                        <label><input type="radio" name="rg-status" value="Anulada" onchange="calcular()"><span>Anulada</span></label>
+                    </div>
+                </div>
+                <div>
+                    <label for="stake">Stake (R$) <span class="field-required" aria-hidden="true">*</span></label>
+                    <input type="number" step="0.01" id="stake" oninput="calcular()" aria-required="true" placeholder="0,00" inputmode="decimal">
+                </div>
+                <div id="campoCashOut" style="display:none;" aria-hidden="true">
+                    <label for="cashOutValor">Valor do Cash Out (R$)</label>
+                    <input type="number" step="0.01" id="cashOutValor" oninput="calcular()" placeholder="0,00" inputmode="decimal" aria-label="Valor recebido no cash out">
+                </div>
+                <div>
+                    <label for="bonus">Bônus (R$) <small style="font-weight:400;color:var(--text-secondary);">opcional</small></label>
+                    <input type="number" step="0.01" id="bonus" oninput="calcular()" placeholder="0,00" inputmode="decimal" aria-label="Valor de bônus que incide sobre o ganho">
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <label for="observacao">Observação <small style="font-weight:400;color:var(--text-secondary);">opcional</small></label>
+                    <input type="text" id="observacao" placeholder="Ex: placar final, quantidade de pontos, por quanto ganhou/perdeu..." aria-label="Observação sobre o resultado da aposta">
+                </div>
+            </div>
+
+            <div id="eventos"></div>
+
+            <div class="btn-row">
+                <button class="btn btn-outline" id="btnEvento" onclick="addEvento()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Adicionar evento à aposta">
+                    ＋ Adicionar Evento
+                </button>
+            </div>
+
+            <div class="grid" style="margin-top:16px;">
+                <div>
+                    <label>ODD Total</label>
+                    <input id="oddTotal" readonly value="0.00" aria-label="ODD total calculada">
+                </div>
+                <div>
+                    <label>Retornado</label>
+                    <input id="recebido" readonly value="R$ 0,00" aria-label="Valor retornado">
+                </div>
+                <div>
+                    <label>Lucro</label>
+                    <input id="lucro" readonly value="R$ 0,00" aria-label="Lucro da aposta">
+                </div>
+                <div>
+                    <label>Unidade</label>
+                    <input id="unidades" readonly value="0.00" aria-label="Unidades">
+                </div>
+                <div>
+                    <label>ROI</label>
+                    <input id="roi" readonly value="0,00%" aria-label="ROI da aposta">
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" id="btnSalvar" onclick="salvar()" style="max-width:220px;">
+                    💾 Salvar Aposta
+                </button>
+                <button class="btn btn-outline" id="btnCancelarEdicao" onclick="limparFormulario()" style="display:none; max-width:180px;">
+                    ✕ Cancelar Edição
+                </button>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ===== SEÇÃO: FILTROS ===== -->
+    <section class="section" id="sec-filtros" aria-label="Filtros de apostas" role="tabpanel" aria-labelledby="tab-btn-filtros">
+        <div class="card">
+            <h2>🔍 Filtros</h2>
+            <div class="filters-grid">
+                <div>
+                    <label for="campoBusca">Buscar ID ou Evento</label>
+                    <input type="search" id="campoBusca" placeholder="Digite..." oninput="aplicarFiltros()" aria-label="Buscar apostas" inputmode="search">
+                </div>
+                <div>
+                    <label for="fCasa">Casa</label>
+                    <select id="fCasa" onchange="aplicarFiltros()"><option value="">Todas</option></select>
+                </div>
+                <div>
+                    <label for="fTipster">Tipster</label>
+                    <select id="fTipster" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+                </div>
+                <div>
+                    <label for="fTipo">Tipo</label>
+                    <select id="fTipo" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+                </div>
+                <div>
+                    <label for="fEsporte">Esporte</label>
+                    <select id="fEsporte" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+                </div>
+                <div>
+                    <label for="fLiga">Liga</label>
+                    <select id="fLiga" onchange="aplicarFiltros()"><option value="">Todas</option></select>
+                </div>
+                <div>
+                    <label for="fMercado">Mercado</label>
+                    <select id="fMercado" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+                </div>
+                <div>
+                    <label for="fStatus">Status</label>
+                    <select id="fStatus" onchange="aplicarFiltros()">
+                        <option value="">Todos</option>
+                        <option value="Aberto">Aberto</option>
+                        <option value="Ganhou">Ganhou</option>
+                        <option value="Perdeu">Perdeu</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="fDataInicial">Data Inicial</label>
+                    <input type="date" id="fDataInicial" onchange="aplicarFiltros()">
+                </div>
+                <div>
+                    <label for="fDataFinal">Data Final</label>
+                    <input type="date" id="fDataFinal" onchange="aplicarFiltros()">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button class="btn-sm btn-outline" onclick="limparFiltros()">✕ Limpar Filtros</button>
+                <button class="btn-sm btn-success" onclick="exportarFiltrosExcel()">📥 Exportar Filtro</button>
+                <button class="btn-sm btn-primary" onclick="irPara('lista', document.querySelector('.tab-btn[data-secao=&quot;lista&quot;]'))" aria-label="Ver lista de apostas filtradas">📋 Ver Apostas</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== SEÇÃO: LISTA ===== -->
+    <section class="section" id="sec-lista" aria-label="Lista de apostas" role="tabpanel" aria-labelledby="tab-btn-lista">
+        <div id="resumoFiltro" class="card" style="display:none;">
+            <h2>📊 Resumo do Filtro</h2>
+            <div class="summary-grid" id="resumoFiltroGrid" style="grid-template-columns: repeat(auto-fit, minmax(130px,1fr));"></div>
+        </div>
+
+        <div class="card">
+            <h2>📋 Apostas</h2>
+            <div class="table-wrap">
+                <table role="grid" aria-label="Tabela de apostas registradas">
+                    <thead>
+                        <tr>
+                            <th scope="col">Data</th>
+                            <th scope="col">Casa</th>
+                            <th scope="col">ID</th>
+                            <th scope="col">Tipster</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Eventos</th>
+                            <th scope="col">ODD</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Stake</th>
+                            <th scope="col">Lucro</th>
+                            <th scope="col">ROI</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== SALDOS POR CASA ========== -->
+    <section class="section" id="sec-saldos" aria-label="Saldos por casa de aposta" role="tabpanel" aria-labelledby="tab-btn-saldos">
+        <div class="card">
+            <h2>💰 Saldo por Casa</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Saldo = depósitos − retiradas − stake apostado + retornado das apostas ganhas.
+            </p>
+            <div class="summary-grid" id="saldosGrid" style="grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px;"></div>
+        </div>
+
+        <div class="card">
+            <h2>➕ Lançar Depósito ou Retirada</h2>
+            <div class="grid">
+                <div>
+                    <label for="transCasa">Casa <span class="field-required" aria-hidden="true">*</span></label>
+                    <select id="transCasa" aria-required="true"></select>
+                </div>
+                <div>
+                    <label>Tipo <span class="field-required" aria-hidden="true">*</span></label>
+                    <div id="rg-transTipo" class="option-group" role="radiogroup" aria-label="Tipo de transação" aria-required="true">
+                        <label><input type="radio" name="rg-transTipo" id="rg-transTipo_0" value="Depósito" checked><span>Depósito</span></label>
+                        <label><input type="radio" name="rg-transTipo" id="rg-transTipo_1" value="Retirada"><span>Retirada</span></label>
+                    </div>
+                </div>
+                <div>
+                    <label for="transValor">Valor (R$) <span class="field-required" aria-hidden="true">*</span></label>
+                    <input type="number" id="transValor" step="0.01" min="0.01" inputmode="decimal" aria-required="true">
+                </div>
+                <div>
+                    <label for="transData">Data</label>
+                    <input type="date" id="transData">
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <label for="transObs">Observação (opcional)</label>
+                    <input type="text" id="transObs" maxlength="200">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="salvarTransacao()" aria-label="Lançar depósito ou retirada">💾 Lançar</button>
+        </div>
+
+        <div class="card">
+            <h2>📜 Histórico de Lançamentos</h2>
+            <div class="table-wrap">
+                <table role="grid" aria-label="Histórico de depósitos e retiradas">
+                    <thead>
+                        <tr>
+                            <th scope="col">Data</th>
+                            <th scope="col">Casa</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Valor</th>
+                            <th scope="col">Observação</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyTransacoes"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ========== CONFIGURAÇÕES ========== -->
+    <section class="section" id="sec-config" aria-label="Configurações" role="tabpanel" aria-labelledby="tab-btn-config">
+        <div class="card">
+            <h2>⚙️ Gerenciar Listas</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Veja, adicione e remova os valores disponíveis em cada campo, sem precisar estar no meio do preenchimento de uma aposta.
+            </p>
+
+            <div class="config-categoria">
+                <h3>🏦 Casa</h3>
+                <div class="chip-list" id="chips-casa"></div>
+                <div class="config-add-row">
+                    <input type="text" id="config-add-casa" placeholder="Nova casa..." aria-label="Nova casa">
+                    <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('casa')">+ Adicionar</button>
+                </div>
+            </div>
+
+            <div class="config-categoria">
+                <h3>👤 Tipster</h3>
+                <div class="chip-list" id="chips-tipster"></div>
+                <div class="config-add-row">
+                    <input type="text" id="config-add-tipster" placeholder="Novo tipster..." aria-label="Novo tipster">
+                    <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('tipster')">+ Adicionar</button>
+                </div>
+            </div>
+
+            <div class="config-categoria">
+                <h3>🏷️ Tipo</h3>
+                <div class="chip-list" id="chips-tipo"></div>
+                <div class="config-add-row">
+                    <input type="text" id="config-add-tipo" placeholder="Novo tipo..." aria-label="Novo tipo">
+                    <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('tipo')">+ Adicionar</button>
+                </div>
+            </div>
+
+            <div class="config-categoria">
+                <h3>⚽ Esporte</h3>
+                <div class="chip-list" id="chips-esporte"></div>
+                <div class="config-add-row">
+                    <input type="text" id="config-add-esporte" placeholder="Novo esporte..." aria-label="Novo esporte">
+                    <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('esporte')">+ Adicionar</button>
+                </div>
+            </div>
+
+            <div class="config-categoria">
+                <h3>🏆 Liga</h3>
+                <div style="margin-bottom:10px;">
+                    <label for="config-liga-esporte" style="font-size:13px;">Esporte</label>
+                    <select id="config-liga-esporte" onchange="renderConfiguracoes()" aria-label="Filtrar ligas por esporte">
+                    </select>
+                </div>
+                <div class="chip-list" id="chips-liga"></div>
+                <div class="config-add-row">
+                    <input type="text" id="config-add-liga" placeholder="Nova liga..." aria-label="Nova liga">
+                    <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('liga')">+ Adicionar</button>
+                </div>
+            </div>
+
+            <div class="config-categoria">
+                <h3>🎯 Mercado</h3>
+                <div style="margin-bottom:10px;">
+                    <label for="config-mercado-esporte" style="font-size:13px;">Esporte</label>
+                    <select id="config-mercado-esporte" onchange="renderConfiguracoes()" aria-label="Filtrar mercados por esporte">
+                    </select>
+                </div>
+                <div class="chip-list" id="chips-mercado"></div>
+                <div class="config-add-row">
+                    <input type="text" id="config-add-mercado" placeholder="Novo mercado..." aria-label="Novo mercado">
+                    <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('mercado')">+ Adicionar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💾 Dados</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Backup completo (apostas e lançamentos de saldo) e reset do sistema.
+            </p>
+            <div class="inline" style="flex-wrap:wrap; gap:10px;">
+                <button class="btn btn-primary" onclick="exportarTabelaGeralExcel()" aria-label="Exportar planilha Excel completa" style="width:auto;">
+                    📊 Exportar Tudo (Excel)
+                </button>
+                <button class="btn btn-outline" onclick="document.getElementById('importExcelFile').click()" aria-label="Importar planilha Excel" style="width:auto;">
+                    📥 Importar Excel
+                </button>
+                <button class="btn btn-outline" onclick="limparTodosDados()" aria-label="Limpar todos os dados e resetar sistema" style="width:auto; color:#ef4444; border-color:#ef4444;">
+                    🗑️ Limpar Todos os Dados
+                </button>
+            </div>
+        </div>
+    </section>
+
+
+</main>
+
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+</div> <!-- fecha #appConteudo -->
+
+<!-- ========== SCRIPTS ========== -->
+<script>
+/* ==================== SUPABASE ==================== */
+const SUPABASE_URL = 'https://nccpmxavmwipsvzquzeg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_XAjlhNGUMf9EzoqY4C3J9w_FJ1k-SxT';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ==================== DADOS ==================== */
+const defaults = {
+    casa: ["Betano","Betfair","Superbet"].sort((a,b)=>a.localeCompare(b)),
+    tipster: [],
+    tipo: ["Ao Vivo","Pré Live"],
+    esporte: ["Basquete","Futebol","Tênis","Vôlei"].sort((a,b)=>a.localeCompare(b)),
+    liga: [],
+    mercado: ["Cartões","Chance Dupla","Empate","Gols","Handicap","Vencedor"].sort((a,b)=>a.localeCompare(b)),
+    selecao: []
+};
+
+let apostas = [];
+let editIndex = null;
+let relatorioAtualDados = [];
+let apostasFiltradasAtuais = [];
+let transacoes = [];
+
+// ---- Ligas vinculadas a um esporte ----
+// Cada item de defaults.liga é armazenado como "Esporte::Nome da Liga" (string única,
+// compatível com a tabela "opcoes" do Supabase, que só guarda campo+valor).
+// Ligas antigas, salvas antes dessa vinculação, não têm "::" e ficam sob "Sem esporte definido".
+const LIGA_SEP = '::';
+const LIGA_ESPORTE_INDEFINIDO = 'Sem esporte definido';
+function ligaCompor(esporte, nome) { return `${esporte}${LIGA_SEP}${nome}`; }
+function ligaDecompor(valor) {
+    const i = valor.indexOf(LIGA_SEP);
+    if (i === -1) return { esporte: LIGA_ESPORTE_INDEFINIDO, nome: valor };
+    return { esporte: valor.slice(0, i), nome: valor.slice(i + LIGA_SEP.length) };
+}
+function ligaNomeExibicao(valor) { return ligaDecompor(valor).nome; }
+function ligasDoEsporte(esporte) {
+    return (defaults.liga || [])
+        .filter(v => ligaDecompor(v).esporte === esporte)
+        .sort((a,b) => ligaNomeExibicao(a).localeCompare(ligaNomeExibicao(b)));
+}
+
+// ---- Mercados vinculados a um esporte (mesmo padrão usado para Liga) ----
+// Cada item de defaults.mercado é armazenado como "Esporte::Nome do Mercado".
+// Mercados antigos, salvos antes dessa vinculação, não têm "::" e ficam sob "Sem esporte definido".
+const MERCADO_ESPORTE_INDEFINIDO = 'Sem esporte definido';
+function mercadoCompor(esporte, nome) { return `${esporte}${LIGA_SEP}${nome}`; }
+function mercadoDecompor(valor) {
+    const i = valor.indexOf(LIGA_SEP);
+    if (i === -1) return { esporte: MERCADO_ESPORTE_INDEFINIDO, nome: valor };
+    return { esporte: valor.slice(0, i), nome: valor.slice(i + LIGA_SEP.length) };
+}
+function mercadoNomeExibicao(valor) { return mercadoDecompor(valor).nome; }
+function mercadosDoEsporte(esporte) {
+    return (defaults.mercado || [])
+        .filter(v => mercadoDecompor(v).esporte === esporte)
+        .sort((a,b) => mercadoNomeExibicao(a).localeCompare(mercadoNomeExibicao(b)));
+}
+
+/* ==================== INIT ==================== */
+let appJaIniciado = false;
+
+window.addEventListener('DOMContentLoaded', () => {
+    // Tema (aplica tanto na tela de login quanto no app)
+    loadTheme();
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (!localStorage.getItem('theme')) {
+        if (mq.matches) setTheme('dark');
+    }
+    mq.addEventListener('change', e => {
+        if (!localStorage.getItem('theme')) setTheme(e.matches ? 'dark' : 'light');
+    });
+
+    // Verifica se já existe uma sessão válida (ex: usuário voltou ao site já logado)
+    sb.auth.getSession().then(({ data }) => {
+        if (data.session) mostrarApp(); else mostrarTelaLogin();
+    });
+
+    // Reage a login/cadastro/logout em tempo real
+    sb.auth.onAuthStateChange((_evento, session) => {
+        if (session) mostrarApp(); else mostrarTelaLogin();
+    });
+
+    // Formulário de login / criação de conta
+    const form = document.getElementById('formLogin');
+    form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        exibirErroLogin('');
+        const email = document.getElementById('loginEmail').value.trim();
+        const senha = document.getElementById('loginSenha').value;
+        if (!email || !senha) { exibirErroLogin('Preencha e-mail e senha.'); return; }
+
+        const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+        if (error) {
+            exibirErroLogin(error.message === 'Invalid login credentials'
+                ? 'E-mail ou senha incorretos.'
+                : error.message);
+        }
+        // Sucesso: onAuthStateChange chama mostrarApp() automaticamente
+    });
+
+    document.getElementById('btnCriarConta').addEventListener('click', async () => {
+        exibirErroLogin('');
+        const email = document.getElementById('loginEmail').value.trim();
+        const senha = document.getElementById('loginSenha').value;
+        if (!email || !senha) { exibirErroLogin('Preencha e-mail e senha.'); return; }
+        if (senha.length < 6) { exibirErroLogin('A senha precisa ter pelo menos 6 caracteres.'); return; }
+
+        const { data, error } = await sb.auth.signUp({ email, password: senha });
+        if (error) { exibirErroLogin(error.message); return; }
+
+        if (data.session) {
+            return; // Confirmação de e-mail desativada no projeto: onAuthStateChange já entra direto
+        }
+        document.getElementById('loginHint').textContent =
+            'Conta criada! Verifique seu e-mail (' + email + ') e clique no link de confirmação antes de entrar.';
+        exibirErroLogin('');
+    });
+});
+
+/* ==================== AUTENTICAÇÃO ==================== */
+function mostrarTelaLogin() {
+    document.getElementById('appConteudo').style.display = 'none';
+    document.getElementById('telaLogin').style.display = 'flex';
+    const email = document.getElementById('loginEmail');
+    if (email) email.focus();
+}
+
+function mostrarApp() {
+    document.getElementById('telaLogin').style.display = 'none';
+    document.getElementById('appConteudo').style.display = '';
+    if (!appJaIniciado) {
+        appJaIniciado = true;
+        iniciarApp();
+    }
+}
+
+function exibirErroLogin(msg) {
+    const el = document.getElementById('loginErro');
+    el.textContent = msg;
+}
+
+function sairDaConta() {
+    if (!confirm('Sair da conta?')) return;
+    appJaIniciado = false;
+    sb.auth.signOut();
+}
+
+async function iniciarApp() {
+    showToast('⏳ Carregando seus dados...', 'info', 4000);
+
+    // Dados
+    await carregarOpcoes();
+    await carregarApostas();
+    await carregarTransacoes();
+    fillSelects();
+    // Renderizar radio group do formulário principal
+    renderRadioGroup('rg-casa', 'casa', null);
+    ordenarApostasPorData();
+    aplicarFiltros();
+    addEvento();
+    renderSaldos();
+    renderConfiguracoes();
+    const campoData = document.getElementById('transData');
+    if (campoData) campoData.value = new Date().toISOString().slice(0,10);
+    // Garantir que a seção de cadastro esteja visível no início
+    irPara('cadastro', document.querySelector('.tab-btn[data-secao="cadastro"]'));
+
+    showToast(`✅ Pronto para uso! ${apostas.length} aposta(s) carregada(s).`, 'success');
+}
+
+
+/* ==================== TEMA ==================== */
+function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+}
+function loadTheme() {
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(prefersDark ? 'dark' : 'light');
+    // Seguir mudanças dinâmicas na preferência do sistema
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        setTheme(e.matches ? 'dark' : 'light');
+    });
+}
+function toggleTheme() { /* removido — tema segue preferência do sistema */ }
+
+/* ==================== NAVEGAÇÃO (Abas) ==================== */
+const ABAS_BANCA = ['cadastro', 'filtros', 'lista', 'saldos', 'config'];
+const ROTULO_ABA_BANCA = {
+    cadastro: 'Cadastro', filtros: 'Filtros', lista: 'Lista de Apostas',
+    saldos: 'Saldos', config: 'Configurações'
+};
+
+function irPara(secao, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+        b.tabIndex = -1;
+    });
+    document.getElementById('sec-' + secao).classList.add('active');
+    if (btn) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        btn.tabIndex = 0;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    anunciar('Aba ' + (ROTULO_ABA_BANCA[secao] || secao) + ' selecionada.');
+}
+
+function navegarAbasTeclado(e) {
+    if (!['ArrowRight','ArrowLeft','Home','End'].includes(e.key)) return;
+    const atualBtn = document.querySelector('.tab-btn[aria-selected="true"]');
+    const atual = atualBtn ? atualBtn.dataset.secao : 'cadastro';
+    const idx = ABAS_BANCA.indexOf(atual);
+    let novo = null;
+    if (e.key === 'ArrowRight') novo = ABAS_BANCA[(idx + 1) % ABAS_BANCA.length];
+    else if (e.key === 'ArrowLeft') novo = ABAS_BANCA[(idx - 1 + ABAS_BANCA.length) % ABAS_BANCA.length];
+    else if (e.key === 'Home') novo = ABAS_BANCA[0];
+    else if (e.key === 'End') novo = ABAS_BANCA[ABAS_BANCA.length - 1];
+    if (novo) {
+        e.preventDefault();
+        const btn = document.querySelector('.tab-btn[data-secao="' + novo + '"]');
+        irPara(novo, btn);
+        btn.focus();
+    }
+}
+
+/* ==================== TOAST ==================== */
+function showToast(msg, type = 'info', duration = 3500) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastOut .3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+    // Aria live para leitores de tela
+    anunciar(msg);
+}
+
+function anunciar(msg) {
+    const el = document.getElementById('avisoSalvar');
+    if (el) { el.textContent = ''; requestAnimationFrame(() => { el.textContent = msg; }); }
+}
+
+// Anúncio dedicado à extração de bilhete por foto, usando uma região aria-live
+// "assertive" própria — interrompe o leitor de tela com prioridade, já que
+// nesse momento pode haver campos que precisam de revisão urgente.
+function anunciarExtracao(msg) {
+    const el = document.getElementById('avisoExtracao');
+    if (el) { el.textContent = ''; requestAnimationFrame(() => { el.textContent = msg; }); }
+}
+
+/* ==================== STORAGE (Supabase) ==================== */
+
+// ---- Conversão entre o formato do app (camelCase) e as tabelas do banco (snake_case) ----
+function apostaParaLinha(a) {
+    return {
+        identificador: a.identificador,
+        data_hora: a.dataHora,
+        casa: a.casa,
+        tipster: a.tipster,
+        tipo: a.tipo,
+        status: a.status,
+        stake: a.stake,
+        odd_total: a.oddTotal,
+        recebido: a.recebido,
+        lucro: a.lucro,
+        unidades: a.unidades,
+        roi: a.roi,
+        bonus: a.bonus || 0,
+        observacao: a.observacao || null,
+        cash_out_valor: a.cashOutValor || null
+    };
+}
+function linhaParaAposta(row) {
+    return {
+        id: row.id,
+        identificador: row.identificador,
+        dataHora: String(row.data_hora).slice(0, 16),
+        casa: row.casa,
+        tipster: row.tipster,
+        tipo: row.tipo,
+        status: row.status,
+        stake: Number(row.stake),
+        oddTotal: Number(row.odd_total),
+        recebido: Number(row.recebido),
+        lucro: Number(row.lucro),
+        unidades: Number(row.unidades),
+        roi: Number(row.roi),
+        bonus: row.bonus != null ? Number(row.bonus) : 0,
+        observacao: row.observacao || '',
+        cashOutValor: row.cash_out_valor != null ? Number(row.cash_out_valor) : null,
+        eventos: []
+    };
+}
+function eventoParaLinha(e, apostaId) {
+    return {
+        aposta_id: apostaId,
+        numero: e.numero,
+        esporte: e.esporte,
+        liga: e.liga,
+        evento: e.evento,
+        mercado: e.mercado,
+        selecao: e.selecao,
+        odd: e.odd
+    };
+}
+function linhaParaEvento(row) {
+    return {
+        id: row.id,
+        numero: row.numero,
+        esporte: row.esporte,
+        liga: row.liga,
+        evento: row.evento,
+        mercado: row.mercado,
+        selecao: row.selecao,
+        odd: Number(row.odd)
+    };
+}
+
+// ---- Carregar do Supabase para a memória ----
+// ---- Ler todas as linhas de uma tabela, mesmo passando do limite padrão de 1000 por requisição ----
+async function selecionarTudo(tabela, ordenarPor, colunas) {
+    const TAMANHO_PAGINA = 1000;
+    let todos = [];
+    let pagina = 0;
+    while (true) {
+        let query = sb.from(tabela).select(colunas || '*')
+            .order(ordenarPor)
+            .range(pagina * TAMANHO_PAGINA, (pagina + 1) * TAMANHO_PAGINA - 1);
+        const { data, error } = await query;
+        if (error) return { data: todos, error };
+        todos = todos.concat(data || []);
+        if (!data || data.length < TAMANHO_PAGINA) break;
+        pagina++;
+    }
+    return { data: todos, error: null };
+}
+
+async function carregarOpcoes() {
+    const { data, error } = await selecionarTudo('opcoes', 'id', 'campo, valor');
+    if (error) { showToast('❌ Erro ao carregar listas: ' + error.message, 'error'); return; }
+
+    if (!data || data.length === 0) {
+        await semearOpcoesPadrao(); // primeira vez deste usuário: grava as listas padrão no banco
+        return;
+    }
+    ['casa','tipster','tipo','esporte','liga','mercado'].forEach(c => defaults[c] = []);
+    data.forEach(row => {
+        if (!defaults[row.campo]) defaults[row.campo] = [];
+        defaults[row.campo].push(row.valor);
+    });
+    Object.keys(defaults).forEach(c => { if (Array.isArray(defaults[c])) defaults[c].sort((a,b)=>a.localeCompare(b)); });
+}
+
+async function semearOpcoesPadrao() {
+    const linhas = [];
+    ['casa','tipster','tipo','esporte','liga','mercado'].forEach(campo => {
+        (defaults[campo] || []).forEach(valor => linhas.push({ campo, valor }));
+    });
+    if (linhas.length === 0) return;
+    const { error } = await sb.from('opcoes').insert(linhas);
+    if (error) showToast('❌ Erro ao criar listas iniciais: ' + error.message, 'error');
+}
+
+async function carregarApostas() {
+    const { data: apostasRows, error: e1 } = await selecionarTudo('apostas', 'id');
+    if (e1) { showToast('❌ Erro ao carregar apostas: ' + e1.message, 'error'); apostas = []; return; }
+
+    // Paginado por id (estável); a ordem correta dentro de cada aposta vem do campo "numero", reordenado abaixo
+    const { data: eventosRows, error: e2 } = await selecionarTudo('eventos', 'id');
+    if (e2) { showToast('❌ Erro ao carregar eventos: ' + e2.message, 'error'); }
+
+    const porAposta = {};
+    (eventosRows || []).forEach(row => {
+        if (!porAposta[row.aposta_id]) porAposta[row.aposta_id] = [];
+        porAposta[row.aposta_id].push(linhaParaEvento(row));
+    });
+    Object.values(porAposta).forEach(lista => lista.sort((a,b) => a.numero - b.numero));
+
+    apostas = (apostasRows || []).map(row => {
+        const a = linhaParaAposta(row);
+        a.eventos = porAposta[row.id] || [];
+        return a;
+    });
+}
+
+// ---- Transações financeiras (Depósitos/Retiradas por casa) ----
+function transacaoParaLinha(t) {
+    return { casa: t.casa, tipo: t.tipo, valor: t.valor, data: t.data, observacao: t.observacao || null };
+}
+function linhaParaTransacao(row) {
+    return {
+        id: row.id,
+        casa: row.casa,
+        tipo: row.tipo,
+        valor: Number(row.valor),
+        data: String(row.data).slice(0, 10),
+        observacao: row.observacao || ''
+    };
+}
+
+async function carregarTransacoes() {
+    const { data, error } = await selecionarTudo('transacoes', 'id');
+    if (error) { showToast('❌ Erro ao carregar saldos: ' + error.message, 'error'); transacoes = []; return; }
+    transacoes = (data || []).map(linhaParaTransacao);
+}
+
+async function inserirTransacaoDB(t) {
+    const { data, error } = await sb.from('transacoes').insert(transacaoParaLinha(t)).select().single();
+    if (error) { showToast('❌ Erro ao lançar transação: ' + error.message, 'error'); return false; }
+    t.id = data.id;
+    return true;
+}
+
+async function excluirTransacaoDB(id) {
+    const { error } = await sb.from('transacoes').delete().eq('id', id);
+    if (error) showToast('❌ Erro ao excluir transação: ' + error.message, 'error');
+}
+
+// ---- Operações SEGURAS e incrementais sobre a tabela 'opcoes' ----
+// IMPORTANTE: estas funções NUNCA apagam a lista inteira de um campo — cada uma
+// mexe em UMA linha só (inserir ou remover um valor específico). Isso evita que
+// uma aba/sessão com dados desatualizados na memória apague, sem querer, itens
+// que foram adicionados por outra aba, importação em massa, ou outro dispositivo
+// enquanto esta aba estava aberta.
+async function adicionarOpcaoDB(campo, valor) {
+    // Verifica no BANCO (não só na memória local) antes de inserir, para não
+    // duplicar linhas caso outra sessão já tenha adicionado o mesmo valor.
+    const { data: existentes, error: eSel } = await sb.from('opcoes').select('id').eq('campo', campo).eq('valor', valor).limit(1);
+    if (eSel) { showToast('❌ Erro ao verificar opção existente: ' + eSel.message, 'error'); return; }
+    if (existentes && existentes.length > 0) return; // já existe no banco — nada a fazer
+    const { error } = await sb.from('opcoes').insert({ campo, valor });
+    if (error) showToast('❌ Erro ao salvar opção: ' + error.message, 'error');
+}
+
+async function removerOpcaoDB(campo, valor) {
+    const { error } = await sb.from('opcoes').delete().eq('campo', campo).eq('valor', valor);
+    if (error) showToast('❌ Erro ao remover opção: ' + error.message, 'error');
+}
+
+// ---- CRUD de uma aposta individual ----
+async function inserirApostaDB(aposta) {
+    const { data, error } = await sb.from('apostas').insert(apostaParaLinha(aposta)).select().single();
+    if (error) { showToast('❌ Erro ao salvar aposta: ' + error.message, 'error'); return false; }
+    aposta.id = data.id;
+    if (aposta.eventos && aposta.eventos.length > 0) {
+        const linhas = aposta.eventos.map(e => eventoParaLinha(e, data.id));
+        const { data: dataEv, error: e2 } = await sb.from('eventos').insert(linhas).select();
+        if (e2) { showToast('❌ Erro ao salvar eventos: ' + e2.message, 'error'); return false; }
+        dataEv.forEach((row, i) => { aposta.eventos[i].id = row.id; });
+    }
+    return true;
+}
+
+async function atualizarApostaDB(aposta) {
+    const { error } = await sb.from('apostas').update(apostaParaLinha(aposta)).eq('id', aposta.id);
+    if (error) { showToast('❌ Erro ao atualizar aposta: ' + error.message, 'error'); return false; }
+    // Eventos: substitui todos (a tela de edição sempre reenvia a lista completa)
+    const { error: eDel } = await sb.from('eventos').delete().eq('aposta_id', aposta.id);
+    if (eDel) { showToast('❌ Erro ao atualizar eventos: ' + eDel.message, 'error'); return false; }
+    if (aposta.eventos && aposta.eventos.length > 0) {
+        const linhas = aposta.eventos.map(e => eventoParaLinha(e, aposta.id));
+        const { data: dataEv, error: eIns } = await sb.from('eventos').insert(linhas).select();
+        if (eIns) { showToast('❌ Erro ao salvar eventos: ' + eIns.message, 'error'); return false; }
+        dataEv.forEach((row, i) => { aposta.eventos[i].id = row.id; });
+    }
+    return true;
+}
+
+async function atualizarStatusApostaDB(aposta) {
+    const { error } = await sb.from('apostas').update({
+        status: aposta.status,
+        recebido: aposta.recebido,
+        lucro: aposta.lucro,
+        roi: aposta.roi,
+        unidades: aposta.unidades
+    }).eq('id', aposta.id);
+    if (error) showToast('❌ Erro ao atualizar status: ' + error.message, 'error');
+}
+
+async function excluirApostaDB(id) {
+    const { error } = await sb.from('apostas').delete().eq('id', id);
+    if (error) showToast('❌ Erro ao excluir aposta: ' + error.message, 'error');
+}
+
+// ---- Upsert em lote (usado por Limpar Duplicados e Recalcular Odds, que alteram várias apostas de uma vez) ----
+// ---- Inserir/upsert em lotes (evita falhas por requisição grande demais com milhares de linhas) ----
+const TAMANHO_LOTE = 200;
+
+async function inserirEmLotes(tabela, linhas, retornarDados) {
+    let inseridas = [];
+    for (let i = 0; i < linhas.length; i += TAMANHO_LOTE) {
+        const lote = linhas.slice(i, i + TAMANHO_LOTE);
+        const query = sb.from(tabela).insert(lote);
+        const { data, error } = retornarDados ? await query.select() : await query;
+        if (error) return { error, inseridas, totalEsperado: linhas.length };
+        if (retornarDados) inseridas = inseridas.concat(data);
+    }
+    return { error: null, inseridas, totalEsperado: linhas.length };
+}
+
+/* ==================== SELECTS ==================== */
+function fillSelects() {
+    // Radio groups: apenas casa
+    if (document.getElementById('rg-casa')) {
+        const cur = getRadioValue('rg-casa');
+        renderRadioGroup('rg-casa', 'casa', defaults.casa.includes(cur) ? cur : undefined);
+    }
+    // Selects simples: tipster, tipo — incluem opção vazia no início (sem pré-seleção)
+    ['tipster','tipo'].forEach(field => {
+        const sel = document.getElementById(field);
+        if (sel) {
+            const cur = sel.value;
+            const label = field === 'tipster' ? '— Tipster —' : '— Tipo —';
+            sel.innerHTML = `<option value="">` + label + `</option>` +
+                defaults[field].map(v => `<option value="${v}">${v}</option>`).join('');
+            if (defaults[field].includes(cur)) sel.value = cur;
+        }
+    });
+    // Select de casa no formulário de Saldos
+    const selTransCasa = document.getElementById('transCasa');
+    if (selTransCasa) {
+        const cur = selTransCasa.value;
+        selTransCasa.innerHTML = defaults.casa.map(v => `<option value="${v}">${v}</option>`).join('');
+        if (defaults.casa.includes(cur)) selTransCasa.value = cur;
+    }
+    fillFilters();
+}
+
+/* ==================== RENDER OPTION GROUPS ==================== */
+/* ==================== FILTRO DE OPTION GROUPS ==================== */
+function filterOptionGroup(inputEl, groupId) {
+    const term = inputEl.value.trim().toLowerCase();
+    const group = document.getElementById(groupId);
+    if (!group) return;
+    group.querySelectorAll('label').forEach(lbl => {
+        const text = lbl.querySelector('span') ? lbl.querySelector('span').textContent.toLowerCase() : lbl.textContent.toLowerCase();
+        lbl.classList.toggle('og-hidden', term !== '' && !text.includes(term));
+    });
+}
+
+
+function renderRadioGroup(containerId, field, selectedValue) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const vals = defaults[field] || [];
+    // selectedValue === undefined → mantém comportamento atual (pré-seleciona o primeiro)
+    // selectedValue === null      → não pré-seleciona nada (campo em branco até o usuário escolher)
+    // selectedValue === 'valor'   → seleciona o valor correspondente
+    container.innerHTML = vals.map((v, i) => {
+        const uid = `${containerId}_${i}`;
+        let checked = '';
+        if (selectedValue !== undefined && selectedValue !== null) {
+            checked = v === selectedValue ? 'checked' : '';
+        } else if (selectedValue === undefined) {
+            checked = i === 0 ? 'checked' : '';
+        }
+        // selectedValue === null → checked sempre vazio
+        return `<label><input type="radio" name="${containerId}" id="${uid}" value="${v}" ${checked}><span>${v}</span></label>`;
+    }).join('');
+}
+
+function renderCheckboxGroup(containerId, field, selectedValues) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const vals = defaults[field] || [];
+    const sel = selectedValues || [];
+    container.innerHTML = vals.map((v, i) => {
+        const uid = `${containerId}_${i}`;
+        const checked = sel.includes(v) ? 'checked' : '';
+        return `<label><input type="checkbox" id="${uid}" value="${v}" ${checked}><span>${v}</span></label>`;
+    }).join('');
+}
+
+function getRadioValue(containerId) {
+    const checked = document.querySelector(`#${containerId} input[type="radio"]:checked`);
+    if (checked) return checked.value;
+    // fallback: primeiro disponível
+    const first = document.querySelector(`#${containerId} input[type="radio"]`);
+    return first ? first.value : '';
+}
+
+function getCheckboxValues(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`))
+        .map(cb => cb.value);
+}
+
+
+function fillFilters() {
+    ["casa","tipster","tipo","esporte"].forEach(k => {
+        const el = document.getElementById("f"+k.charAt(0).toUpperCase()+k.slice(1));
+        if (el) {
+            const cur = el.value;
+            el.innerHTML = `<option value="">Todos</option>` +
+                (defaults[k] || []).map(v => `<option value="${v}">${v}</option>`).join('');
+            // Preserva a seleção atual se ainda existir na lista; caso contrário, volta para "Todos"
+            el.value = (defaults[k] || []).includes(cur) ? cur : "";
+        }
+    });
+    // Liga: lista de nomes puros (sem repetir), já que o filtro compara contra e.liga (nome puro)
+    const fLiga = document.getElementById("fLiga");
+    if (fLiga) {
+        const cur = fLiga.value;
+        const nomes = Array.from(new Set((defaults.liga || []).map(ligaNomeExibicao))).sort((a,b)=>a.localeCompare(b));
+        fLiga.innerHTML = `<option value="">Todas</option>` + nomes.map(v => `<option value="${v}">${v}</option>`).join('');
+        fLiga.value = nomes.includes(cur) ? cur : "";
+    }
+    // Mercado: lista de nomes puros (sem repetir), já que o filtro compara contra e.mercado (nome puro)
+    const fMercado = document.getElementById("fMercado");
+    if (fMercado) {
+        const cur = fMercado.value;
+        const nomes = Array.from(new Set((defaults.mercado || []).map(mercadoNomeExibicao))).sort((a,b)=>a.localeCompare(b));
+        fMercado.innerHTML = `<option value="">Todos</option>` + nomes.map(v => `<option value="${v}">${v}</option>`).join('');
+        fMercado.value = nomes.includes(cur) ? cur : "";
+    }
+}
+
+/* ==================== DEDUPLICAÇÃO (case/espaço-insensível) ==================== */
+function chaveNormalizada(s) {
+    return String(s).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// Adiciona um valor a uma lista evitando duplicados que diferem apenas por
+// maiúsculas/minúsculas ou espaços extras. Não insere nada nessa função;
+// quem chamar decide se ordena/salva. Retorna o valor já existente (se houver)
+// ou o novo valor normalizado (trim + espaços internos colapsados).
+function buscarOuPrepararValor(lista, valorBruto) {
+    const v = String(valorBruto).trim().replace(/\s+/g, ' ');
+    if (!v) return { valor: '', duplicado: false };
+    const chave = chaveNormalizada(v);
+    const existente = (lista || []).find(x => chaveNormalizada(x) === chave);
+    if (existente) return { valor: existente, duplicado: true };
+    return { valor: v, duplicado: false };
+}
+
+async function addOption(field) {
+    const value = prompt(`Nova opção para ${field}:`);
+    if (!value || !value.trim()) return;
+    const r = buscarOuPrepararValor(defaults[field], value);
+    if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" na lista`, 'info'); return; }
+    const v = r.valor;
+    defaults[field].push(v);
+    defaults[field].sort((a,b)=>a.localeCompare(b));
+    await adicionarOpcaoDB(field, v);
+    fillSelects();
+    renderConfiguracoes();
+    // Selecionar automaticamente o novo valor
+    const rgId = 'rg-' + field;
+    if (document.getElementById(rgId)) {
+        // Radio group (casa): renderizar selecionando o novo
+        renderRadioGroup(rgId, field, v);
+        const newInput = document.querySelector(`#${rgId} input[value="${v}"]`);
+        if (newInput) setTimeout(() => { newInput.checked = true; newInput.focus(); }, 50);
+    } else {
+        // Select (tipster, tipo): selecionar o novo valor
+        const sel = document.getElementById(field);
+        if (sel) setTimeout(() => { sel.value = v; sel.focus(); }, 50);
+    }
+    showToast(`✅ "${v}" adicionado`, 'success');
+}
+
+async function removeOption(field) {
+    let v = '';
+    const rgId = 'rg-' + field;
+    if (document.getElementById(rgId)) {
+        // Radio group (casa)
+        v = getRadioValue(rgId);
+    } else {
+        // Select (tipster, tipo)
+        const sel = document.getElementById(field);
+        v = sel ? sel.value : '';
+    }
+    if (!v) { showToast('⚠️ Nenhum item selecionado para remover', 'info'); return; }
+    if (!confirm(`Remover "${v}" da lista de ${field}?`)) return;
+    defaults[field] = defaults[field].filter(x => x !== v);
+    await removerOpcaoDB(field, v);
+    fillSelects();
+    aplicarFiltros();
+    renderConfiguracoes();
+    showToast(`✅ "${v}" removido`, 'success');
+}
+
+async function addDynamicOption(field, button) {
+    if (field === 'liga') {
+        const container = button ? button.closest(".inline").parentElement : null;
+        const eventDiv = container ? container.closest('.event') : null;
+        const esporte = eventDiv ? eventDiv.querySelector('.esporteEvento').value : (defaults.esporte[0] || '');
+        if (!esporte) { showToast('⚠️ Escolha o esporte antes de adicionar a liga', 'info'); return; }
+        const nome = prompt(`Nova liga para ${esporte}:`);
+        if (!nome || !nome.trim()) return;
+        const r = buscarOuPrepararValor(ligasDoEsporte(esporte).map(ligaNomeExibicao), nome);
+        if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" em ${esporte}`, 'info'); return; }
+        const v = ligaCompor(esporte, r.valor);
+        defaults.liga.push(v);
+        await adicionarOpcaoDB('liga', v);
+        updateDynamicSelects('liga');
+        fillFilters();
+        aplicarFiltros();
+        renderConfiguracoes();
+        setTimeout(() => {
+            if (eventDiv) {
+                const sel = eventDiv.querySelector('.ligaEvento');
+                if (sel) sel.value = r.valor;
+            }
+        }, 50);
+        showToast(`✅ "${r.valor}" adicionado em ${esporte}`, 'success');
+        return;
+    }
+    if (field === 'mercado') {
+        const container = button ? button.closest(".inline").parentElement : null;
+        const eventDiv = container ? container.closest('.event') : null;
+        const esporte = eventDiv ? eventDiv.querySelector('.esporteEvento').value : (defaults.esporte[0] || '');
+        if (!esporte) { showToast('⚠️ Escolha o esporte antes de adicionar o mercado', 'info'); return; }
+        const nome = prompt(`Novo mercado para ${esporte}:`);
+        if (!nome || !nome.trim()) return;
+        const r = buscarOuPrepararValor(mercadosDoEsporte(esporte).map(mercadoNomeExibicao), nome);
+        if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" em ${esporte}`, 'info'); return; }
+        const vMerc = mercadoCompor(esporte, r.valor);
+        defaults.mercado.push(vMerc);
+        await adicionarOpcaoDB('mercado', vMerc);
+        updateDynamicSelects('mercado');
+        fillFilters();
+        aplicarFiltros();
+        renderConfiguracoes();
+        setTimeout(() => {
+            if (eventDiv) {
+                const merDiv = eventDiv.querySelector('.mercado');
+                const cb = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor) : null;
+                if (cb) cb.checked = true;
+            }
+        }, 50);
+        showToast(`✅ "${r.valor}" adicionado em ${esporte}`, 'success');
+        return;
+    }
+    const value = prompt(`Nova opção para ${field}:`);
+    if (!value || !value.trim()) return;
+    if (!defaults[field]) defaults[field] = [];
+    const r = buscarOuPrepararValor(defaults[field], value);
+    if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" na lista`, 'info'); return; }
+    const v = r.valor;
+    defaults[field].push(v);
+    defaults[field].sort((a,b)=>a.localeCompare(b));
+    await adicionarOpcaoDB(field, v);
+    updateDynamicSelects(field);
+    fillFilters();      // mantém o combo de Filtros sincronizado com a nova opção
+    aplicarFiltros();
+    renderConfiguracoes();
+    // Selecionar automaticamente o novo valor, mas só no evento onde o botão "+" foi clicado
+    // (não em todos os eventos já preenchidos no formulário)
+    setTimeout(() => {
+        const container = button ? button.closest(".inline").parentElement : null;
+        if (!container) return;
+        const sel = container.querySelector('select');
+        if (sel) sel.value = v;
+    }, 50);
+    showToast(`✅ "${v}" adicionado`, 'success');
+}
+
+async function removeDynamicOption(field, button) {
+    const container = button.closest(".inline").parentElement;
+
+    if (field === 'liga') {
+        const eventDiv = container.closest('.event');
+        const selLiga = container.querySelector('select.ligaEvento');
+        const esporte = eventDiv ? eventDiv.querySelector('.esporteEvento').value : '';
+        const nome = selLiga ? selLiga.value : '';
+        if (!nome) { showToast('⚠️ Selecione uma liga para remover', 'info'); return; }
+        const valorComposto = ligaCompor(esporte, nome);
+        if (!defaults.liga.includes(valorComposto)) {
+            showToast(`⚠️ "${nome}" não está na lista de ${esporte} (pode já ter sido removida)`, 'info');
+            return;
+        }
+        if (!confirm(`Remover "${nome}" da lista de ligas de ${esporte}?`)) return;
+        defaults.liga = defaults.liga.filter(x => x !== valorComposto);
+        await removerOpcaoDB('liga', valorComposto);
+        updateDynamicSelects('liga');
+        fillFilters();
+        aplicarFiltros();
+        renderConfiguracoes();
+        showToast(`✅ "${nome}" removida`, 'success');
+        return;
+    }
+
+    if (field === 'mercado') {
+        const eventDiv = container.closest('.event');
+        const merDiv = container.querySelector('.option-group.mercado');
+        const esporte = eventDiv ? eventDiv.querySelector('.esporteEvento').value : '';
+        if (!merDiv) return;
+        const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked'));
+        if (checked.length === 0) { showToast('⚠️ Marque o mercado que deseja remover', 'info'); return; }
+        if (checked.length > 1) { showToast('⚠️ Marque apenas um mercado para remover', 'info'); return; }
+        const nome = checked[0].value;
+        const valorComposto = mercadoCompor(esporte, nome);
+        if (!defaults.mercado.includes(valorComposto)) {
+            showToast(`⚠️ "${nome}" não está na lista de ${esporte} (pode já ter sido removido)`, 'info');
+            return;
+        }
+        if (!confirm(`Remover "${nome}" da lista de mercados de ${esporte}?`)) return;
+        defaults.mercado = defaults.mercado.filter(x => x !== valorComposto);
+        await removerOpcaoDB('mercado', valorComposto);
+        updateDynamicSelects('mercado');
+        fillFilters();
+        aplicarFiltros();
+        renderConfiguracoes();
+        showToast(`✅ "${nome}" removido`, 'success');
+        return;
+    }
+
+    let v = '';
+    {
+        // Select (esporte): pegar qualquer select dentro do container
+        const sel = container.querySelector('select');
+        if (!sel) { showToast('⚠️ Selecione um item para remover', 'info'); return; }
+        v = sel.value;
+    }
+    if (!v) { showToast('⚠️ Selecione um item para remover', 'info'); return; }
+    if (!defaults[field] || !defaults[field].includes(v)) {
+        showToast(`⚠️ "${v}" não está na lista de ${field} (pode já ter sido removido)`, 'info');
+        return;
+    }
+    if (!confirm(`Remover "${v}" da lista de ${field}?`)) return;
+    defaults[field] = defaults[field].filter(x => x !== v);
+    await removerOpcaoDB(field, v);
+    updateDynamicSelects(field);
+    fillFilters();      // garante que o item removido também desapareça do combo de Filtros
+    aplicarFiltros();   // reaplica os filtros (caso o item removido fosse o filtro ativo)
+    renderConfiguracoes();
+    showToast(`✅ "${v}" removido`, 'success');
+}
+
+function updateDynamicSelects(field) {
+    // Mapa campo → classe CSS real no elemento
+    const classMap = { esporte: 'esporteEvento', liga: 'ligaEvento' };
+    const cls = classMap[field] || field;
+    if (field === 'mercado') {
+        // Cada bloco de evento mantém sua própria lista de mercados, filtrada pelo esporte já escolhido nele
+        document.querySelectorAll('.event').forEach(eventDiv => {
+            const merDiv = eventDiv.querySelector('.mercado.option-group');
+            const selEsp = eventDiv.querySelector('.esporteEvento');
+            if (!merDiv || !selEsp) return;
+            const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+            const opcoes = mercadosDoEsporte(selEsp.value);
+            if (opcoes.length === 0) {
+                merDiv.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);">Nenhum mercado cadastrado para ${selEsp.value}</span>`;
+            } else {
+                merDiv.innerHTML = opcoes.map(v => {
+                    const nome = mercadoNomeExibicao(v);
+                    return `<label><input type="checkbox" value="${nome}" ${checked.includes(nome)?'checked':''}><span>${nome}</span></label>`;
+                }).join('');
+            }
+        });
+    } else if (field === 'liga') {
+        // Cada bloco de evento mantém sua própria lista de ligas, filtrada pelo esporte já escolhido nele
+        document.querySelectorAll('.event').forEach(eventDiv => {
+            const selLiga = eventDiv.querySelector('.ligaEvento');
+            const selEsp = eventDiv.querySelector('.esporteEvento');
+            if (!selLiga || !selEsp) return;
+            const cur = selLiga.value; // já é nome puro, não composto
+            const opcoes = ligasDoEsporte(selEsp.value);
+            selLiga.innerHTML = opcoes.map(v => `<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
+            if (opcoes.some(v => ligaNomeExibicao(v) === cur)) selLiga.value = cur;
+        });
+    } else if (field === 'esporte') {
+        // Trocar a lista de esportes não deve perder a liga já escolhida; só repopula o select de esporte
+        document.querySelectorAll('select.' + cls).forEach(sel => {
+            const cur = sel.value;
+            sel.innerHTML = defaults.esporte.map(v => `<option value="${v}">${v}</option>`).join('');
+            if (defaults.esporte.includes(cur)) sel.value = cur;
+        });
+    } else {
+        // Selects: usar a classe correta
+        document.querySelectorAll('select.' + cls).forEach(sel => {
+            const cur = sel.value;
+            sel.innerHTML = defaults[field].map(v => `<option value="${v}">${v}</option>`).join('');
+            if (defaults[field].includes(cur)) sel.value = cur;
+        });
+    }
+}
+
+/* ==================== EVENTOS ==================== */
+function atualizarLigasDoEvento(selectEsporte) {
+    const div = selectEsporte.closest('.event');
+    if (!div) return;
+    const esporte = selectEsporte.value;
+
+    const selectLiga = div.querySelector('.ligaEvento');
+    if (selectLiga) {
+        const opcoesLiga = ligasDoEsporte(esporte);
+        if (opcoesLiga.length === 0) {
+            selectLiga.innerHTML = `<option value="">Nenhuma liga cadastrada para ${esporte}</option>`;
+        } else {
+            selectLiga.innerHTML = `<option value="">— Liga —</option>` +
+                opcoesLiga.map(v => `<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
+        }
+    }
+
+    const merDiv = div.querySelector('.mercado');
+    if (merDiv) {
+        const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        const opcoesMercado = mercadosDoEsporte(esporte);
+        if (opcoesMercado.length === 0) {
+            merDiv.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);">Nenhum mercado cadastrado para ${esporte}</span>`;
+        } else {
+            merDiv.innerHTML = opcoesMercado.map(v => {
+                const nome = mercadoNomeExibicao(v);
+                return `<label><input type="checkbox" value="${nome}" ${checked.includes(nome)?'checked':''}><span>${nome}</span></label>`;
+            }).join('');
+        }
+    }
+}
+
+function addEvento() {
+    const div = document.createElement("div");
+    div.className = "event";
+    const n = document.querySelectorAll(".event").length + 1;
+    const id = `ev${n}`;
+
+    div.innerHTML = `
+    <div class="event-header">
+        <h3 class="event-title" id="${id}-titulo">⚽ Evento ${n}</h3>
+        ${n > 1 ? `<button type="button" class="btn-xs btn-danger" onclick="this.closest('.event').remove(); calcular();" aria-label="Remover evento ${n}">✕ Remover</button>` : ''}
+    </div>
+    <div class="grid">
+        <div>
+            <label for="${id}-esp">Esporte</label>
+            <select id="${id}-esp" class="esporteEvento" onchange="atualizarLigasDoEvento(this)">
+                <option value="">— Esporte —</option>
+                ${defaults.esporte.map(v=>`<option value="${v}">${v}</option>`).join("")}
+            </select>
+            <div class="inline" style="margin-top:4px;">
+                <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('esporte',this)" aria-label="Adicionar esporte">+</button>
+                <button type="button" class="btn-xs btn-danger" onclick="removeDynamicOption('esporte',this)" aria-label="Remover esporte">−</button>
+            </div>
+        </div>
+        <div>
+            <label for="${id}-lig">Liga</label>
+            <select id="${id}-lig" class="ligaEvento">
+                <option value="">— Liga —</option>
+                ${ligasDoEsporte(defaults.esporte[0] || '').map(v=>`<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join("")}
+            </select>
+            <div class="inline" style="margin-top:4px;">
+                <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('liga',this)" aria-label="Adicionar liga">+</button>
+                <button type="button" class="btn-xs btn-danger" onclick="removeDynamicOption('liga',this)" aria-label="Remover liga">−</button>
+            </div>
+        </div>
+        <div>
+            <label for="${id}-nom">Evento <span class="field-required">*</span></label>
+            <input id="${id}-nom" class="evento" aria-required="true" placeholder="">
+        </div>
+        <div>
+            <label>Mercado <span class="field-required">*</span></label>
+            <div id="${id}-mer" class="option-group mercado" role="group" aria-label="Mercado" aria-required="true">
+                ${mercadosDoEsporte(defaults.esporte[0] || '').map(v=>`<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join("")}
+            </div>
+            <div class="inline" style="margin-top:4px;">
+                <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('mercado',this)" aria-label="Adicionar mercado">+</button>
+                <button type="button" class="btn-xs btn-danger" onclick="removeDynamicOption('mercado',this)" aria-label="Remover mercado">−</button>
+            </div>
+        </div>
+        <div>
+            <label for="${id}-sel">Seleção <span class="field-required">*</span></label>
+            <input type="text" id="${id}-sel" class="selecao" aria-required="true" placeholder="" autocomplete="off">
+        </div>
+        <div>
+            <label for="${id}-odd">ODD <span class="field-required">*</span></label>
+            <input type="number" step="0.01" id="${id}-odd" class="odd" value="1.00" oninput="calcular()" aria-required="true" inputmode="decimal">
+        </div>
+    </div>`;
+
+    document.getElementById("eventos").appendChild(div);
+    calcular();
+}
+function parseFloat2(v) { return parseFloat(v) || 0; }
+
+/* ==================== PREENCHER BILHETE POR FOTO (IA) ====================
+   Fluxo: usuário seleciona uma imagem do bilhete -> a imagem é enviada para
+   o Worker do Cloudflare em /api/ler-bilhete (que guarda a chave da API em
+   segredo no servidor) -> ele devolve os dados extraídos em JSON -> o formulário
+   é preenchido automaticamente, mas NADA é salvo sozinho. O usuário revisa
+   e confirma com o botão "Salvar Aposta", como em qualquer outro cadastro.
+
+   Campos novos (esporte/liga/mercado fora das listas existentes) são
+   preenchidos mesmo assim, mas marcados visualmente como "novo". Campos com
+   baixa confiança na leitura da IA são destacados em laranja e anunciados
+   por aria-live para revisão prioritária com o leitor de tela. */
+
+const LIMIAR_BAIXA_CONFIANCA = 0.6;
+
+function mostrarOverlayExtracao(mostrar) {
+    let overlay = document.getElementById('overlayExtracaoFoto');
+    if (mostrar) {
+        if (overlay) return;
+        overlay = document.createElement('div');
+        overlay.id = 'overlayExtracaoFoto';
+        overlay.className = 'foto-bilhete-overlay';
+        overlay.setAttribute('role', 'status');
+        overlay.setAttribute('aria-live', 'polite');
+        overlay.innerHTML = `
+            <div class="foto-bilhete-box">
+                <div class="foto-bilhete-spinner" aria-hidden="true"></div>
+                <p style="margin:0;font-weight:600;">Lendo o bilhete na imagem...</p>
+                <p style="margin:6px 0 0;font-size:13px;color:var(--text-secondary);">Isso pode levar alguns segundos.</p>
+            </div>`;
+        document.body.appendChild(overlay);
+    } else if (overlay) {
+        overlay.remove();
+    }
+}
+
+async function processarFotoBilhete(event) {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        showToast('⚠️ Selecione um arquivo de imagem (foto ou print do bilhete).', 'error');
+        input.value = '';
+        return;
+    }
+
+    // Tenta extrair o identificador do nome do arquivo antes de chamar a IA.
+    // A Superbet gera arquivos no padrão "ticket-XXXX-XXXXXX.png" (ex: ticket-891Q-YDC5PH.png),
+    // onde o identificador é o trecho que casa com o padrão XXXX-XXXXXX (4+ chars, hífen, 4+ chars).
+    // Isso é feito aqui (client-side) porque esse código não fica visível na imagem do bilhete.
+    const idDoNomeArquivo = extrairIdentificadorDoNomeArquivo(file.name);
+
+    mostrarOverlayExtracao(true);
+    try {
+        const { base64, mediaType } = await arquivoParaBase64(file);
+
+        const resposta = await fetch('/api/ler-bilhete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imagemBase64: base64, mediaType })
+        });
+
+        const dados = await resposta.json();
+        if (!resposta.ok) {
+            throw new Error(dados.error || 'Erro ao processar a imagem.');
+        }
+
+        // Se a IA não preencheu o identificador mas o nome do arquivo tinha um,
+        // usa o do nome do arquivo (mais confiável, já que vem da própria casa)
+        if (!dados.identificador && idDoNomeArquivo) {
+            dados.identificador = idDoNomeArquivo;
+            dados.confiancaGeral = dados.confiancaGeral || {};
+            dados.confiancaGeral.identificador = 0.95; // alta confiança — veio do nome do arquivo
+        }
+
+        preencherFormularioComExtracao(dados, 'foto');
+    } finally {
+        mostrarOverlayExtracao(false);
+        input.value = ''; // permite selecionar a mesma imagem de novo, se preciso
+    }
+}
+
+// Extrai o identificador do bilhete a partir do nome do arquivo.
+// Cobre dois padrões conhecidos:
+// - Superbet: "ticket-891Q-YDC5PH.png"  → extrai "891Q-YDC5PH"  (alfanumérico com hífen no meio)
+// - Betano:   "bet-6448039621.png"       → extrai "6448039621"   (só números, sem hífen interno)
+// Para outros arquivos sem esses padrões (ex: IMG_0161.JPG), retorna null.
+function extrairIdentificadorDoNomeArquivo(nomeArquivo) {
+    // Remove a extensão e o caminho, fica só com o nome base
+    const base = nomeArquivo.replace(/\.[^.]+$/, '').replace(/.*[/\\]/, '');
+
+    // Padrão Superbet / genérico: prefixo- + XXXX-XXXXXX (alfanumérico com hífen interno)
+    // Ex: ticket-891Q-YDC5PH, bilhete-ABC1-DEF2
+    const matchAlfanum = base.match(/^(?:ticket|bilhete|aposta|bet|voucher)-([A-Z0-9]{4,}-[A-Z0-9]{4,})/i);
+    if (matchAlfanum) return matchAlfanum[1].toUpperCase();
+
+    // Padrão Betano: prefixo "bet-" + sequência longa de dígitos (sem hífen interno)
+    // Ex: bet-6448039621, bet-20521100529
+    const matchBetano = base.match(/^bet-(\d{8,})/i);
+    if (matchBetano) return matchBetano[1];
+
+    return null;
+}
+
+function abrirModalTexto() {
+    const modal = document.getElementById('modalTextoBilhete');
+    modal.style.display = 'flex';
+    setTimeout(() => { document.getElementById('inputTextoBilhete').focus(); }, 50);
+    anunciar('Modal aberto. Cole o texto do bilhete no campo e clique em Preencher.');
+}
+
+function fecharModalTexto() {
+    const modal = document.getElementById('modalTextoBilhete');
+    modal.style.display = 'none';
+    document.getElementById('inputTextoBilhete').value = '';
+    document.getElementById('btnPreencherTexto').focus();
+}
+
+async function processarTextoBilhete() {
+    const texto = document.getElementById('inputTextoBilhete').value.trim();
+    if (!texto) {
+        showToast('⚠️ Cole o texto do bilhete antes de continuar.', 'error');
+        return;
+    }
+
+    fecharModalTexto();
+    mostrarOverlayExtracao(true);
+    try {
+        const resposta = await fetch('/api/ler-bilhete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ textoBilhete: texto })
+        });
+
+        const dados = await resposta.json();
+        if (!resposta.ok) throw new Error(dados.error || 'Erro ao processar o texto.');
+
+        preencherFormularioComExtracao(dados, 'texto');
+    } catch (err) {
+        showToast('❌ Não foi possível ler o bilhete: ' + err.message, 'error', 9000);
+        console.error('processarTextoBilhete erro:', err);
+    } finally {
+        mostrarOverlayExtracao(false);
+    }
+}
+
+function arquivoParaBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            // reader.result vem como "data:image/png;base64,AAAA..."
+            const [, base64] = reader.result.split(',');
+            resolve({ base64, mediaType: file.type });
+        };
+        reader.onerror = () => reject(new Error('Falha ao ler o arquivo de imagem.'));
+        reader.readAsDataURL(file);
+    });
+}
+
+// Marca um campo (input/select) como "valor novo" (fora das listas existentes)
+function marcarCampoComoNovo(el) {
+    if (!el) return;
+    el.classList.add('campo-novo-valor');
+    inserirAvisoExtracao(el, 'novo', '🆕 Valor novo — não existia na lista');
+}
+
+// Marca um campo como "baixa confiança" para revisão prioritária
+function marcarCampoBaixaConfianca(el) {
+    if (!el) return;
+    el.classList.add('campo-baixa-confianca');
+    inserirAvisoExtracao(el, 'revisar', '⚠️ Confira este campo');
+}
+
+function inserirAvisoExtracao(el, tipo, texto) {
+    if (!el || !el.parentElement) return;
+    const aviso = document.createElement('div');
+    aviso.className = `aviso-extracao ${tipo}`;
+    aviso.textContent = texto;
+    el.insertAdjacentElement('afterend', aviso);
+}
+
+function limparAvisosExtracao() {
+    document.querySelectorAll('.campo-novo-valor, .campo-baixa-confianca').forEach(el => {
+        el.classList.remove('campo-novo-valor', 'campo-baixa-confianca');
+    });
+    document.querySelectorAll('.aviso-extracao').forEach(el => el.remove());
+}
+
+// Mostra janela de confirmação listando itens novos detectados.
+// O usuário marca/desmarca cada item e decide quais entram nas listas.
+// Só após confirmar (ou cancelar) o formulário é preenchido.
+function mostrarJanelaItensNovos(itensNovos, callback) {
+    const overlay = document.createElement('div');
+    overlay.id = 'overlayItensNovos';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'tituloItensNovos');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:3000;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+    const nomes = { casa: 'Casa', esporte: 'Esporte', liga: 'Liga', mercado: 'Mercado' };
+
+    const linhas = itensNovos.map((item, i) => `
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;">
+            <input type="checkbox" id="itemNovo_${i}" checked style="width:18px;height:18px;flex-shrink:0;">
+            <span>
+                <strong>${nomes[item.field] || item.field}</strong>: ${item.valor}
+                ${item.esporte ? `<span style="color:var(--text-secondary);font-size:12px;"> (${item.esporte})</span>` : ''}
+            </span>
+        </label>`).join('');
+
+    overlay.innerHTML = `
+        <div style="background:var(--card);border-radius:var(--radius);padding:24px;max-width:460px;width:100%;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;">
+            <h2 id="tituloItensNovos" style="margin:0 0 8px;font-size:16px;">🆕 Itens novos detectados</h2>
+            <p style="margin:0 0 16px;font-size:13px;color:var(--text-secondary);">A IA identificou itens que ainda não estão nas suas listas. Marque os que deseja adicionar permanentemente ao Banca Pro:</p>
+            <div id="listaItensNovos" style="margin-bottom:16px;">${linhas}</div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+                <button id="btnItensNovosNenhum" class="btn btn-outline" style="width:auto;padding:0 16px;font-size:13px;">Não adicionar nenhum</button>
+                <button id="btnItensNovosConfirmar" class="btn btn-primary" style="width:auto;padding:0 16px;font-size:13px;">Confirmar selecionados</button>
+            </div>
+        </div>`;
+
+    document.body.appendChild(overlay);
+
+    // Foco acessível no título
+    setTimeout(() => overlay.querySelector('h2').focus(), 50);
+    anunciar(`${itensNovos.length} itens novos detectados. Confirme quais deseja adicionar às listas do Banca Pro.`);
+
+    function fechar(itensAprovados) {
+        overlay.remove();
+        callback(itensAprovados);
+    }
+
+    overlay.querySelector('#btnItensNovosNenhum').addEventListener('click', () => fechar([]));
+    overlay.querySelector('#btnItensNovosConfirmar').addEventListener('click', () => {
+        const aprovados = itensNovos.filter((_, i) =>
+            overlay.querySelector(`#itemNovo_${i}`).checked
+        );
+        fechar(aprovados);
+    });
+}
+
+// Garante que um valor exista em defaults[field]; se não existir, adiciona
+// (sem salvar no Supabase ainda — só localmente, pra aparecer nos selects).
+// Retorna true se o valor era novo.
+function garantirOpcaoLocal(field, valorBruto) {
+    if (!valorBruto) return false;
+    const r = buscarOuPrepararValor(defaults[field], valorBruto);
+    if (r.duplicado) return false;
+    defaults[field].push(r.valor);
+    defaults[field].sort((a,b)=>a.localeCompare(b));
+    return true;
+}
+
+function preencherFormularioComExtracao(dados, origem) {
+    limparFormulario();
+    limparAvisosExtracao();
+    // limparFormulario() já cria 1 evento vazio (addEvento()); removemos para
+    // dar lugar aos eventos extraídos da imagem, evitando um bloco em branco extra.
+    if ((dados.eventos || []).length > 0) {
+        document.getElementById('eventos').innerHTML = '';
+    }
+
+    const camposParaRevisar = [];
+    const conf = dados.confiancaGeral || {};
+
+    // Coleta itens novos (esporte/liga/mercado/casa) ANTES de adicionar qualquer coisa,
+    // para poder perguntar ao usuário se quer incluir nas listas.
+    const itensNovos = []; // [{tipo, valor, esporte (opcional)}]
+
+    function registrarSeNovo(field, valor, esporte) {
+        const r = buscarOuPrepararValor(defaults[field], valor);
+        if (!r.duplicado) itensNovos.push({ field, valor: r.valor, esporte: esporte || null });
+        return r;
+    }
+
+    if (dados.casa) registrarSeNovo('casa', dados.casa);
+    (dados.eventos || []).forEach(ev => {
+        if (ev.esporte) registrarSeNovo('esporte', ev.esporte);
+        if (ev.liga && ev.esporte) {
+            const ligasExibicao = ligasDoEsporte(ev.esporte).map(ligaNomeExibicao);
+            const r = buscarOuPrepararValor(ligasExibicao, ev.liga);
+            if (!r.duplicado) itensNovos.push({ field: 'liga', valor: r.valor, esporte: ev.esporte });
+        }
+        if (ev.mercado && ev.esporte) {
+            const mercadosExibicao = mercadosDoEsporte(ev.esporte).map(mercadoNomeExibicao);
+            const r = buscarOuPrepararValor(mercadosExibicao, ev.mercado);
+            if (!r.duplicado) itensNovos.push({ field: 'mercado', valor: r.valor, esporte: ev.esporte });
+        }
+    });
+
+    // Função que realmente preenche o formulário após confirmação dos itens novos
+    function aplicarExtracao(itensAprovados) {
+        // Adiciona localmente apenas os itens aprovados pelo usuário
+        itensAprovados.forEach(({ field, valor, esporte }) => {
+            if (field === 'liga') defaults.liga.push(ligaCompor(esporte, valor));
+            else if (field === 'mercado') defaults.mercado.push(mercadoCompor(esporte, valor));
+            else defaults[field].push(valor);
+        });
+
+        const novosCampos = itensAprovados.map(i =>
+            i.field === 'liga' ? `Liga "${i.valor}" (${i.esporte})` :
+            i.field === 'mercado' ? `Mercado "${i.valor}" (${i.esporte})` :
+            `${i.field.charAt(0).toUpperCase() + i.field.slice(1)} "${i.valor}"`
+        );
+
+        // ---- Casa (radiogroup) ----
+        if (dados.casa) {
+            renderRadioGroup('rg-casa', 'casa', dados.casa.trim());
+            const eraNovo = itensAprovados.some(i => i.field === 'casa' && i.valor === dados.casa.trim());
+            if (eraNovo) marcarCampoComoNovo(document.getElementById('rg-casa'));
+            if ((conf.casa ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('rg-casa')); camposParaRevisar.push('Casa'); }
+        }
+
+        // ---- Identificador ----
+        if (dados.identificador) {
+            document.getElementById('identificador').value = dados.identificador;
+            if ((conf.identificador ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('identificador')); camposParaRevisar.push('Identificador'); }
+        }
+
+        // ---- Data e hora ----
+        if (dados.dataHora) {
+            document.getElementById('dataHora').value = dados.dataHora;
+            if ((conf.dataHora ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('dataHora')); camposParaRevisar.push('Data e Hora'); }
+        }
+
+        // ---- Stake ----
+        if (dados.stake != null) {
+            document.getElementById('stake').value = dados.stake;
+            if ((conf.stake ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('stake')); camposParaRevisar.push('Stake'); }
+        }
+
+        // ---- Status ----
+        if (dados.status) {
+            const radio = document.querySelector(`#rg-status input[value="${dados.status}"]`);
+            if (radio) {
+                radio.checked = true;
+                if ((conf.status ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('rg-status')); camposParaRevisar.push('Status'); }
+            }
+        }
+
+        // ---- Observação ----
+        if (dados.observacao) document.getElementById('observacao').value = dados.observacao;
+
+        // ---- Eventos ----
+        (dados.eventos || []).forEach(ev => {
+            addEvento();
+            const blocos = document.querySelectorAll('.event');
+            const bloco = blocos[blocos.length - 1];
+            const n = blocos.length;
+            const id = `ev${n}`;
+
+            // Esporte
+            if (ev.esporte) {
+                const selEsp = bloco.querySelector('.esporteEvento');
+                // Reconstrói opções do select incluindo eventuais novos aprovados
+                selEsp.innerHTML = `<option value="">— Esporte —</option>` + defaults.esporte.map(v=>`<option value="${v}">${v}</option>`).join('');
+                selEsp.value = ev.esporte;
+                atualizarLigasDoEvento(selEsp);
+                if (itensAprovados.some(i => i.field === 'esporte' && i.valor === ev.esporte)) marcarCampoComoNovo(selEsp);
+            }
+
+            // Liga
+            if (ev.liga && ev.esporte) {
+                const r = buscarOuPrepararValor(ligasDoEsporte(ev.esporte).map(ligaNomeExibicao), ev.liga);
+                const selLig = bloco.querySelector('.ligaEvento');
+                selLig.innerHTML = `<option value="">— Liga —</option>` + ligasDoEsporte(ev.esporte).map(v=>`<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
+                selLig.value = r.valor;
+                if (itensAprovados.some(i => i.field === 'liga' && i.valor === r.valor && i.esporte === ev.esporte)) marcarCampoComoNovo(selLig);
+                if (ev.confiancaLiga != null && ev.confiancaLiga < LIMIAR_BAIXA_CONFIANCA) {
+                    marcarCampoBaixaConfianca(selLig);
+                    camposParaRevisar.push(`Liga (Evento ${n}, possivelmente inferida)`);
+                }
+            }
+
+            // Nome do evento
+            if (ev.evento) document.getElementById(`${id}-nom`).value = ev.evento;
+
+            // Mercado
+            if (ev.mercado && ev.esporte) {
+                const r = buscarOuPrepararValor(mercadosDoEsporte(ev.esporte).map(mercadoNomeExibicao), ev.mercado);
+                const merDiv = bloco.querySelector('.mercado');
+                merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v=>`<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
+                const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor);
+                if (cb) {
+                    cb.checked = true;
+                    if (itensAprovados.some(i => i.field === 'mercado' && i.valor === r.valor && i.esporte === ev.esporte)) marcarCampoComoNovo(merDiv);
+                }
+            }
+
+            // Seleção e Odd
+            if (ev.selecao) document.getElementById(`${id}-sel`).value = ev.selecao;
+            if (ev.odd != null) document.getElementById(`${id}-odd`).value = ev.odd;
+
+            // Confiança baixa no evento
+            if (ev.confianca != null && ev.confianca < LIMIAR_BAIXA_CONFIANCA) {
+                marcarCampoBaixaConfianca(bloco.querySelector('.evento'));
+                camposParaRevisar.push(`Evento ${n} (${ev.evento || 'sem nome'})`);
+            }
+        });
+
+        calcular();
+        fillSelects();
+        aplicarFiltros();
+        renderConfiguracoes();
+
+        // Salva no Supabase apenas os itens aprovados — um de cada vez, nunca
+        // apagando e reconstruindo a lista inteira (evita perder itens que outra
+        // aba/importação possa ter adicionado enquanto esta ficou aberta).
+        if (itensAprovados.length > 0) {
+            const gravacoes = itensAprovados.map(item => {
+                const valorComposto = item.field === 'liga' ? ligaCompor(item.esporte, item.valor)
+                    : item.field === 'mercado' ? mercadoCompor(item.esporte, item.valor)
+                    : item.valor;
+                return adicionarOpcaoDB(item.field, valorComposto);
+            });
+            Promise.all(gravacoes).catch(() => {});
+        }
+
+        // Anúncio consolidado para o leitor de tela
+        const partes = [origem === 'texto'
+            ? '📋 Dados extraídos do texto do bilhete. Revise antes de salvar.'
+            : '📷 Dados extraídos da imagem do bilhete. Revise antes de salvar.'];
+        if (novosCampos.length > 0) partes.push(`Itens novos adicionados às listas: ${novosCampos.join(', ')}.`);
+        if (camposParaRevisar.length > 0) partes.push(`Confira com atenção: ${camposParaRevisar.join(', ')}.`);
+        showToast(partes[0] + (novosCampos.length || camposParaRevisar.length ? ' Veja os destaques no formulário.' : ''), 'success', 9000);
+        anunciarExtracao(partes.join(' '));
+
+        const primeiroRadioCasa = document.querySelector('#rg-casa input[type="radio"]');
+        if (primeiroRadioCasa) primeiroRadioCasa.focus();
+    }
+
+    // Se há itens novos, mostra janela de confirmação antes de preencher
+    if (itensNovos.length > 0) {
+        mostrarJanelaItensNovos(itensNovos, aplicarExtracao);
+    } else {
+        aplicarExtracao([]);
+    }
+}
+
+
+// Regra única de cálculo de Retornado/Lucro para cada status — usada no formulário,
+// ao salvar e ao trocar o status rapidamente na tabela. Mantém todo o app consistente.
+function calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor) {
+    bonus = bonus || 0;
+    let retornado = 0;
+    if (status === "Ganhou") {
+        retornado = stake * oddTotal + bonus;
+    } else if (status === "Perdeu") {
+        retornado = 0;
+    } else if (status === "Ganho Parcial") {
+        // Meio ganho: metade do stake é paga à odd cheia, a outra metade é devolvida
+        retornado = (stake / 2) * oddTotal + (stake / 2) + bonus;
+    } else if (status === "Perda Parcial") {
+        // Meia perda: metade do stake é perdida, a outra metade é devolvida
+        retornado = stake / 2;
+    } else if (status === "Anulada") {
+        // Void: devolução total do stake, lucro zero
+        retornado = stake;
+    } else if (status === "Cash Out") {
+        // Valor informado manualmente pelo usuário ao encerrar a aposta antes do fim
+        retornado = parseFloat2(cashOutValor);
+    } else {
+        // Aberto (ou qualquer status desconhecido): sem retorno calculado ainda
+        retornado = 0;
+    }
+    const lucro = (status === "Aberto") ? 0 : (retornado - stake);
+    return { retornado, lucro };
+}
+
+// Status que liberam o campo de bônus/observação livremente, mas só "Cash Out" exige um valor manual de retorno
+function statusUsaCashOutManual(status) { return status === "Cash Out"; }
+
+function atualizarVisibilidadeCampoCashOut() {
+    const status = getRadioValue('rg-status');
+    const campo = document.getElementById('campoCashOut');
+    if (!campo) return;
+    const mostrar = statusUsaCashOutManual(status);
+    campo.style.display = mostrar ? 'block' : 'none';
+    campo.setAttribute('aria-hidden', mostrar ? 'false' : 'true');
+}
+
+function calcular() {
+    atualizarVisibilidadeCampoCashOut();
+    const stake = parseFloat2(document.getElementById("stake").value);
+    const status = getRadioValue('rg-status');
+    const bonus = parseFloat2(document.getElementById("bonus").value);
+    const cashOutValor = document.getElementById("cashOutValor") ? document.getElementById("cashOutValor").value : 0;
+    const odds = document.querySelectorAll(".odd");
+    let oddTotal = 1, temOdd = false;
+    odds.forEach(el => { const o = parseFloat2(el.value); if (o > 0) { oddTotal *= o; temOdd = true; } });
+    if (!temOdd) oddTotal = 0;
+    const { retornado, lucro } = calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor);
+    const unidades = stake > 0 ? lucro / stake : 0;
+    const roi = stake > 0 ? (lucro / stake) * 100 : 0;
+    document.getElementById("oddTotal").value = formatarOdd(oddTotal);
+    document.getElementById("recebido").value = formatarMoeda(retornado);
+    document.getElementById("lucro").value = formatarMoeda(lucro);
+    document.getElementById("unidades").value = formatarDecimal(unidades);
+    document.getElementById("roi").value = formatarDecimal(roi) + "%";
+}
+
+/* ==================== SALVAR ==================== */
+async function salvar() {
+    const stake = parseFloat2(document.getElementById("stake").value);
+    if (stake <= 0) { showToast('⚠️ Digite um valor válido de stake.', 'error'); return; }
+
+    const divsEventos = document.querySelectorAll(".event");
+    const listaEventos = [];
+    divsEventos.forEach((e, idx) => {
+        const esporte = e.querySelector(".esporteEvento").value;
+        const liga    = e.querySelector(".ligaEvento").value;
+        // mercado: checkboxes
+        const merDiv  = e.querySelector(".mercado");
+        const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
+
+        listaEventos.push({
+            numero: idx + 1,
+            esporte,
+            liga,
+            evento: e.querySelector(".evento").value || "Evento Omitido",
+            mercado,
+            selecao: e.querySelector(".selecao").value,
+            odd: parseFloat2(e.querySelector(".odd").value)
+        });
+    });
+
+    const status = getRadioValue('rg-status');
+    const oddTotal = parseFloat2(document.getElementById("oddTotal").value);
+    const bonus = parseFloat2(document.getElementById("bonus").value);
+    const cashOutValor = document.getElementById("cashOutValor") ? parseFloat2(document.getElementById("cashOutValor").value) : 0;
+    if (status === "Cash Out" && cashOutValor <= 0) { showToast('⚠️ Digite o valor recebido no Cash Out.', 'error'); return; }
+    const observacao = document.getElementById("observacao").value.trim();
+    const { retornado: recebido, lucro } = calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor);
+
+    const identificador = document.getElementById("identificador").value.trim() || ("ID-" + Date.now().toString().slice(-4));
+
+    if (editIndex === null) {
+        const jaExiste = apostas.some(a => a.identificador === identificador);
+        if (jaExiste) { showToast('❌ Identificador já existe! Use outro.', 'error'); return; }
+    }
+
+    const aposta = {
+        casa: getRadioValue('rg-casa'),
+        identificador,
+        dataHora: document.getElementById("dataHora").value || new Date().toISOString().slice(0,16),
+        tipster: document.getElementById("tipster").value,
+        tipo: document.getElementById("tipo").value,
+        status, stake, oddTotal, recebido, lucro,
+        unidades: stake > 0 ? lucro / stake : 0,
+        roi: stake > 0 ? (lucro / stake) * 100 : 0,
+        bonus,
+        observacao,
+        cashOutValor: status === "Cash Out" ? cashOutValor : null,
+        eventos: listaEventos
+    };
+
+    if (editIndex !== null) {
+        aposta.id = apostas[editIndex].id; // preserva o vínculo com a linha já existente no Supabase
+        const ok = await atualizarApostaDB(aposta);
+        if (!ok) return;
+        apostas[editIndex] = aposta;
+        editIndex = null;
+        document.getElementById("btnSalvar").innerHTML = "💾 Salvar Aposta";
+        document.getElementById("btnCancelarEdicao").style.display = "none";
+        showToast(`✅ Aposta ${identificador} atualizada!`, 'success');
+    } else {
+        const ok = await inserirApostaDB(aposta);
+        if (!ok) return;
+        apostas.push(aposta);
+        showToast(`✅ Aposta ${identificador} salva!`, 'success');
+    }
+
+    ordenarApostasPorData();
+    aplicarFiltros();
+    renderSaldos();
+    limparFormulario();
+}
+
+/* ==================== EDITAR / DELETAR ==================== */
+function editar(idx) {
+    editIndex = idx;
+    const a = apostas[idx];
+    // Restaurar radio groups: casa e status
+    renderRadioGroup('rg-casa', 'casa', a.casa);
+    document.querySelectorAll('#rg-status input[type="radio"]').forEach(r => { r.checked = (r.value === a.status); });
+    // Restaurar selects: tipster e tipo
+    document.getElementById("tipster").value = a.tipster;
+    document.getElementById("tipo").value = a.tipo;
+    document.getElementById("identificador").value = a.identificador;
+    document.getElementById("dataHora").value = (a.dataHora || "").slice(0,16);
+    document.getElementById("stake").value = a.stake;
+    document.getElementById("bonus").value = a.bonus || '';
+    document.getElementById("observacao").value = a.observacao || '';
+    atualizarVisibilidadeCampoCashOut();
+    if (document.getElementById("cashOutValor")) document.getElementById("cashOutValor").value = a.cashOutValor || '';
+    document.getElementById("eventos").innerHTML = "";
+    a.eventos.forEach(ev => {
+        addEvento();
+        const divs = document.getElementById("eventos").children;
+        const e = divs[divs.length - 1];
+        const selEsporte = e.querySelector(".esporteEvento");
+        selEsporte.value = ev.esporte;
+        // Reconstrói as opções de Liga e Mercado para o esporte real do evento
+        // (definir .value diretamente não dispara o onchange, então isso precisa
+        // ser chamado manualmente — sem isso, liga e mercado ficavam com as opções
+        // do primeiro esporte da lista, e os valores salvos não batiam com nenhuma
+        // opção disponível, aparecendo em branco silenciosamente).
+        atualizarLigasDoEvento(selEsporte);
+        e.querySelector(".ligaEvento").value = ev.liga;
+        e.querySelector(".evento").value = ev.evento;
+        // Restaurar mercados (checkboxes)
+        const mercadosEv = (ev.mercado || '').split(', ').filter(Boolean);
+        const merDiv = e.querySelector(".mercado");
+        if (merDiv) merDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = mercadosEv.includes(cb.value); });
+        e.querySelector(".selecao").value = ev.selecao || '';
+        e.querySelector(".odd").value = ev.odd;
+    });
+    document.getElementById("btnSalvar").innerHTML = "✏️ Atualizar Aposta";
+    document.getElementById("btnCancelarEdicao").style.display = "block";
+    calcular();
+
+    // Mobile: ir para aba cadastro
+    irPara('cadastro', document.querySelector('.tab-btn[data-secao="cadastro"]'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderBadgeStatus(status) {
+    const map = {
+        'Ganhou':        '<span class="badge badge-green">✅ Ganhou</span>',
+        'Perdeu':        '<span class="badge badge-red">❌ Perdeu</span>',
+        'Aberto':        '<span class="badge badge-orange">⏳ Aberto</span>',
+        'Ganho Parcial': '<span class="badge badge-blue">🔼 Ganho Parcial</span>',
+        'Perda Parcial': '<span class="badge badge-purple">🔽 Perda Parcial</span>',
+        'Cash Out':      '<span class="badge badge-gray">💸 Cash Out</span>',
+        'Anulada':       '<span class="badge badge-gray">🚫 Anulada</span>'
+    };
+    return map[status] || '<span class="badge badge-orange">⏳ Aberto</span>';
+}
+
+async function marcarStatusAposta(i, novoStatus) {
+    const a = apostas[i];
+    const stake    = parseFloat2(a.stake);
+    const oddTotal = parseFloat2(a.oddTotal);
+    let cashOutValor = a.cashOutValor || null;
+    if (novoStatus === "Cash Out") {
+        const valor = prompt(`Valor recebido no Cash Out da aposta ${a.identificador} (stake R$ ${formatarMoeda(stake)}):`, '');
+        if (valor === null) return; // cancelado
+        cashOutValor = parseFloat2(valor);
+        if (cashOutValor <= 0) { showToast('⚠️ Valor de Cash Out inválido.', 'error'); return; }
+    }
+    a.status = novoStatus;
+    a.cashOutValor = novoStatus === "Cash Out" ? cashOutValor : null;
+    const { retornado, lucro } = calcularRetornoLucro(novoStatus, stake, oddTotal, a.bonus || 0, cashOutValor);
+    a.recebido = retornado;
+    a.lucro    = lucro;
+    a.roi      = stake > 0 ? (lucro / stake) * 100 : 0;
+    a.unidades = stake > 0 ? lucro / stake : 0;
+
+    // ── Atualizar DOM imediatamente (antes do await) para resposta visual instantânea ──
+    const filtIdx = apostasFiltradasAtuais.findIndex(x => x.identificador === a.identificador);
+    if (filtIdx !== -1) {
+        apostasFiltradasAtuais[filtIdx] = a;
+        const rows = document.getElementById('tbody').querySelectorAll('tr');
+        if (rows[filtIdx]) {
+            const lucroColor  = a.lucro > 0 ? '#15803d' : (a.lucro < 0 ? '#b91c1c' : 'inherit');
+            const cells = rows[filtIdx].querySelectorAll('td');
+            cells[7].innerHTML  = renderBadgeStatus(a.status);
+            cells[9].innerHTML  = formatarMoeda(a.lucro);
+            cells[9].style.color = lucroColor;
+            cells[10].textContent = formatarDecimal(parseFloat(a.roi)) + '%';
+        }
+        // Atualizar só o resumo (leve — sem re-renderizar a tabela inteira)
+        renderResumo(apostasFiltradasAtuais);
+    } else {
+        aplicarFiltros();
+    }
+
+    // Feedback visual imediato — toast antes do await
+    const emojiMap = { 'Ganhou':'✅', 'Perdeu':'❌', 'Ganho Parcial':'🔼', 'Perda Parcial':'🔽', 'Cash Out':'💸', 'Anulada':'🚫', 'Aberto':'⏳' };
+    const tipo = (novoStatus === 'Ganhou' || novoStatus === 'Ganho Parcial') ? 'success' : (novoStatus === 'Perdeu' || novoStatus === 'Perda Parcial') ? 'error' : 'success';
+    showToast(`${emojiMap[novoStatus] || ''} ${a.identificador} marcado como ${novoStatus}`, tipo);
+
+    // Persistência no banco (após atualizar UI — não bloqueia a confirmação visual)
+    await atualizarStatusApostaDB(a);
+
+    // renderSaldos é pesado com muitas apostas; adiar para não travar a thread após o await
+    setTimeout(() => renderSaldos(), 0);
+}
+
+async function deletar(idx) {
+    const id = apostas[idx].identificador;
+    const apostaId = apostas[idx].id;
+    if (confirm(`Excluir aposta ${id}?`)) {
+        apostas.splice(idx, 1);
+        await excluirApostaDB(apostaId);
+        aplicarFiltros();
+        renderSaldos();
+        showToast(`🗑️ Aposta ${id} excluída`, 'info');
+    }
+}
+
+function limparFormulario() {
+    document.getElementById("identificador").value = "";
+    document.getElementById("stake").value = "";
+    document.getElementById("bonus").value = "";
+    document.getElementById("observacao").value = "";
+    if (document.getElementById("cashOutValor")) document.getElementById("cashOutValor").value = "";
+    // Preencher com data/hora atual (formato ISO para datetime-local)
+    (function() {
+        const now = new Date();
+        const pad = n => String(n).padStart(2,'0');
+        document.getElementById("dataHora").value =
+            `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    })();
+    // Casa: sem pré-seleção (usuário escolhe)
+    renderRadioGroup('rg-casa', 'casa', null);
+    // Status: mantém "Aberto" como padrão (campo obrigatório com valor padrão faz sentido aqui)
+    document.querySelectorAll('#rg-status input[type="radio"]').forEach(r => { r.checked = (r.value === 'Aberto'); });
+    atualizarVisibilidadeCampoCashOut();
+    // Tipster e tipo: volta para opção vazia (selectedIndex 0 = "— Tipster —" / "— Tipo —")
+    ['tipster','tipo'].forEach(field => {
+        const sel = document.getElementById(field);
+        if (sel) sel.value = '';
+    });
+    document.getElementById("eventos").innerHTML = "";
+    editIndex = null;
+    document.getElementById("btnSalvar").innerHTML = "💾 Salvar Aposta";
+    document.getElementById("btnCancelarEdicao").style.display = "none";
+    addEvento();
+    calcular();
+}
+
+/* ==================== ORDENAR & FILTRAR ==================== */
+function ordenarApostasPorData() {
+    apostas.sort((a,b) => new Date(a.dataHora) - new Date(b.dataHora));
+}
+
+function aplicarFiltros() {
+    const gv = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const fCasa    = gv("fCasa");
+    const fTipster = gv("fTipster");
+    const fTipo    = gv("fTipo");
+    const fEsporte = gv("fEsporte");
+    const fLiga    = gv("fLiga");
+    const fMercado = gv("fMercado");
+    const fStatus  = gv("fStatus");
+    const fDataI   = gv("fDataInicial");
+    const fDataF   = gv("fDataFinal");
+    const busca    = gv("campoBusca").toLowerCase().trim();
+
+    apostasFiltradasAtuais = apostas.filter(a => {
+        if (fCasa && a.casa !== fCasa) return false;
+        if (fTipster && a.tipster !== fTipster) return false;
+        if (fTipo && a.tipo !== fTipo) return false;
+        if (fStatus && a.status !== fStatus) return false;
+        if (fDataI && a.dataHora.substring(0,10) < fDataI) return false;
+        if (fDataF && a.dataHora.substring(0,10) > fDataF) return false;
+        if (fEsporte && !a.eventos.some(e => e.esporte === fEsporte)) return false;
+        if (fLiga && !a.eventos.some(e => e.liga === fLiga)) return false;
+        if (fMercado && !a.eventos.some(e => (e.mercado||'').split(',').map(m=>m.trim()).includes(fMercado))) return false;
+        if (busca) {
+            const temId = a.identificador.toLowerCase().includes(busca);
+            const temEv = a.eventos.some(e => e.evento.toLowerCase().includes(busca));
+            if (!temId && !temEv) return false;
+        }
+        return true;
+    });
+
+    apostasFiltradasAtuais.sort((a,b) => (a.dataHora > b.dataHora ? 1 : a.dataHora < b.dataHora ? -1 : 0));
+    renderTabela(apostasFiltradasAtuais);
+}
+
+function limparFiltros() {
+    ["campoBusca","fDataInicial","fDataFinal"].forEach(id => document.getElementById(id).value = "");
+    ["fCasa","fTipster","fTipo","fEsporte","fLiga","fMercado","fStatus"].forEach(id => document.getElementById(id).value = "");
+    aplicarFiltros();
+    showToast('Filtros removidos', 'info');
+}
+
+/* ==================== RENDER TABELA ==================== */
+function formatarMoeda(v) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function formatarDecimal(v) { return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }); }
+
+// Formata uma ODD com precisão dinâmica: sempre ao menos 2 casas decimais,
+// mas estende até "max" casas quando necessário para representar o valor
+// exatamente (essencial em acumuladores, onde o produto de várias odds com
+// 2 casas cada pode exigir mais casas para não perder precisão no cálculo).
+function formatarOdd(v, min = 2, max = 4) {
+    if (!isFinite(v)) return (0).toFixed(min);
+    const fator = Math.pow(10, max);
+    // Arredonda em "max" casas primeiro para eliminar ruído de ponto flutuante
+    // (ex: 1.85 * 1.92 = 3.5519999999999996 deve virar 3.552, não 3.551999...)
+    const arredondado = Math.round(v * fator) / fator;
+    let [intPart, decPart = ''] = arredondado.toFixed(max).split('.');
+    decPart = decPart.replace(/0+$/, '');
+    if (decPart.length < min) decPart = decPart.padEnd(min, '0');
+    return intPart + '.' + decPart;
+}
+function formatarData(s) {
+    if (!s) return '';
+    // Aceita "aaaa-mm-ddThh:mm" ou "aaaa-mm-dd hh:mm"
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`;
+    // Aceita também só "aaaa-mm-dd" (sem horário, usado nas transações de Saldos)
+    const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m2) return `${m2[3]}/${m2[2]}/${m2[1]}`;
+    return s;
+}
+
+function renderResumo(dados) {
+    const resumoCard   = document.getElementById('resumoFiltro');
+    const resumoGrid   = document.getElementById('resumoFiltroGrid');
+    const globalWrap   = document.getElementById('resumoGlobal');
+    const globalGrid   = document.getElementById('resumoGlobalGrid');
+
+    if (!dados.length) {
+        if (resumoCard)  resumoCard.style.display  = 'none';
+        if (globalWrap)  globalWrap.style.display  = 'none';
+        return;
+    }
+
+    let tStakeF=0, tLucroF=0, ganhasF=0, perdidasF=0, abertasF=0, outrasF=0, unidadesF=0;
+    for (let i=0; i<dados.length; i++) {
+        const a = dados[i];
+        tStakeF  += a.stake    || 0;
+        tLucroF  += a.lucro    || 0;
+        unidadesF+= a.unidades || 0;
+        if (a.status==='Ganhou') ganhasF++;
+        else if (a.status==='Perdeu') perdidasF++;
+        else if (a.status==='Aberto') abertasF++;
+        else outrasF++; // Ganho Parcial, Perda Parcial, Cash Out, Anulada
+    }
+    const finF    = ganhasF + perdidasF;
+    const acertoF = finF > 0 ? (ganhasF/finF)*100 : 0;
+    const roiF    = tStakeF > 0 ? (tLucroF/tStakeF)*100 : 0;
+    const outrasLabel = outrasF > 0 ? ` <small style="opacity:.8;font-size:11px;" title="Ganho Parcial, Perda Parcial, Cash Out ou Anulada">+${outrasF} enc.</small>` : '';
+
+    const html = [
+        `<div class="summary-card"><h3>Entradas</h3><div class="value">${dados.length}</div></div>`,
+        `<div class="summary-card green"><h3>✅ Ganhas</h3><div class="value">${ganhasF}</div></div>`,
+        `<div class="summary-card red"><h3>❌ Perdidas</h3><div class="value">${perdidasF}</div></div>`,
+        `<div class="summary-card orange"><h3>⏳ Abertas</h3><div class="value">${abertasF}${outrasLabel}</div></div>`,
+        `<div class="summary-card" style="background:linear-gradient(135deg,#4338ca,#818cf8)"><h3>Stake Total</h3><div class="value">${formatarMoeda(tStakeF)}</div></div>`,
+        `<div class="summary-card" style="background:linear-gradient(135deg,${tLucroF>=0?'#15803d,#22c55e':'#b91c1c,#ef4444'})"><h3>Lucro</h3><div class="value">${formatarMoeda(tLucroF)}</div></div>`,
+        `<div class="summary-card" style="background:linear-gradient(135deg,${unidadesF>=0?'#0e7490,#06b6d4':'#b45309,#f59e0b'})"><h3>Unidades</h3><div class="value">${formatarDecimal(unidadesF)}u</div></div>`,
+        `<div class="summary-card orange"><h3>ROI</h3><div class="value">${formatarDecimal(roiF)}%</div></div>`,
+        `<div class="summary-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><h3>% Acerto</h3><div class="value">${formatarDecimal(acertoF)}%</div></div>`
+    ].join('');
+
+    // Painel da tela Lista (mantido para compatibilidade)
+    if (resumoGrid) resumoGrid.innerHTML = html;
+    if (resumoCard) resumoCard.style.display = 'block';
+
+    // Painel global fixo no topo (todas as telas)
+    if (globalGrid)  globalGrid.innerHTML  = html;
+    if (globalWrap)  globalWrap.style.display = 'block';
+}
+
+function renderTabela(dados) {
+    const tbody = document.getElementById("tbody");
+    renderResumo(dados);
+
+    // ── Montar mapa índice uma única vez ──
+    const idxMap = new Map();
+    for (let i=0; i<apostas.length; i++) idxMap.set(apostas[i].identificador, i);
+
+    // ── Gerar todas as linhas em array e inserir de uma vez ──
+    const rows = new Array(dados.length);
+    for (let r=0; r<dados.length; r++) {
+        const a   = dados[r];
+        const idx = idxMap.has(a.identificador) ? idxMap.get(a.identificador) : -1;
+        const lucroColor  = a.lucro > 0 ? '#15803d' : (a.lucro < 0 ? '#b91c1c' : 'inherit');
+        const statusBadge = renderBadgeStatus(a.status);
+        const obsHtml = a.observacao ? `<br><small style="color:var(--text-secondary);" title="Observação">📝 ${escapeHtml(a.observacao)}</small>` : '';
+        const bonusHtml = a.bonus ? `<br><small style="color:var(--text-secondary);" title="Bônus aplicado">🎁 ${formatarMoeda(a.bonus)}</small>` : '';
+        const evs = a.eventos;
+        const evHtml = evs.map((e,i) =>
+            `<strong>${i+1}.</strong> ${e.evento} <small>(${e.esporte} ${e.liga})</small><br>`+
+            `<small>└ ${e.mercado}: ${e.selecao} @${formatarOdd(parseFloat(e.odd))}</small>`
+        ).join('<br>');
+        rows[r] = `<tr>`+
+            `<td>${formatarData(a.dataHora)}</td>`+
+            `<td><strong>${a.casa}</strong></td>`+
+            `<td><small>${a.identificador}</small></td>`+
+            `<td>${a.tipster||'-'}</td>`+
+            `<td>${a.tipo}</td>`+
+            `<td>${evHtml}</td>`+
+            `<td><strong>${formatarOdd(parseFloat(a.oddTotal))}</strong></td>`+
+            `<td>${statusBadge}${obsHtml}${bonusHtml}</td>`+
+            `<td>${formatarMoeda(a.stake)}</td>`+
+            `<td style="font-weight:700;color:${lucroColor}">${formatarMoeda(a.lucro)}</td>`+
+            `<td>${formatarDecimal(parseFloat(a.roi))}%</td>`+
+            `<td><div style="display:flex;gap:4px;flex-wrap:wrap;">`+
+                `<button class="btn-xs btn-success" onclick="marcarStatusAposta(${idx},'Ganhou')" aria-label="Marcar como ganha">✓</button>`+
+                `<button class="btn-xs btn-danger" onclick="marcarStatusAposta(${idx},'Perdeu')" aria-label="Marcar como perdida">✗</button>`+
+                `<select class="btn-xs" style="padding:2px 4px;" aria-label="Outros status" onchange="if(this.value){marcarStatusAposta(${idx},this.value);} this.selectedIndex=0;">`+
+                    `<option value="">⋯</option>`+
+                    `<option value="Ganho Parcial">🔼 Ganho Parcial</option>`+
+                    `<option value="Perda Parcial">🔽 Perda Parcial</option>`+
+                    `<option value="Cash Out">💸 Cash Out</option>`+
+                    `<option value="Anulada">🚫 Anulada</option>`+
+                    `<option value="Aberto">⏳ Aberto</option>`+
+                `</select>`+
+                `<button class="btn-xs btn-primary" onclick="editar(${idx})" aria-label="Editar aposta">✏️</button>`+
+                `<button class="btn-xs btn-danger" onclick="deletar(${idx})" aria-label="Excluir aposta" style="background:#ef4444;">🗑️</button>`+
+            `</div></td>`+
+        `</tr>`;
+    }
+    tbody.innerHTML = rows.join('');
+}
+
+/* ==================== SALDOS POR CASA ==================== */
+function calcularSaldosPorCasa() {
+    const porCasa = {};
+    function pegar(casa) {
+        if (!casa) return null;
+        if (!porCasa[casa]) porCasa[casa] = { casa, depositado: 0, retirado: 0, stakeApostado: 0, recebidoGanho: 0 };
+        return porCasa[casa];
+    }
+    apostas.forEach(a => {
+        const c = pegar(a.casa);
+        if (!c) return;
+        c.stakeApostado += parseFloat2(a.stake);
+        if (a.status === 'Ganhou') c.recebidoGanho += parseFloat2(a.recebido);
+    });
+    transacoes.forEach(t => {
+        const c = pegar(t.casa);
+        if (!c) return;
+        if (t.tipo === 'Depósito') c.depositado += parseFloat2(t.valor);
+        else if (t.tipo === 'Retirada') c.retirado += parseFloat2(t.valor);
+    });
+    return Object.values(porCasa).map(c => ({
+        ...c,
+        resultadoApostas: c.recebidoGanho - c.stakeApostado,
+        saldoAtual: c.depositado - c.retirado - c.stakeApostado + c.recebidoGanho
+    })).sort((a,b) => a.casa.localeCompare(b.casa));
+}
+
+function renderSaldos() {
+    const grid = document.getElementById('saldosGrid');
+    if (!grid) return;
+    const saldos = calcularSaldosPorCasa();
+    if (saldos.length === 0) {
+        grid.innerHTML = `<div class="summary-card"><h3>Sem dados</h3><div class="value" style="font-size:14px;">Lance um depósito ou registre uma aposta</div></div>`;
+    } else {
+        grid.innerHTML = saldos.map(s => `
+            <div class="summary-card" style="background:linear-gradient(135deg,${s.saldoAtual>=0?'#15803d,#22c55e':'#b91c1c,#ef4444'})">
+                <h3>${s.casa}</h3>
+                <div class="value">${formatarMoeda(s.saldoAtual)}</div>
+                <div style="font-size:11px;opacity:.9;margin-top:4px;line-height:1.6;">
+                    Depósitos: ${formatarMoeda(s.depositado)}<br>
+                    Retiradas: ${formatarMoeda(s.retirado)}<br>
+                    Resultado apostas: ${formatarMoeda(s.resultadoApostas)}
+                </div>
+            </div>`).join('');
+    }
+
+    const tbody = document.getElementById('tbodyTransacoes');
+    if (!tbody) return;
+    const ordenadas = transacoes.slice().sort((a,b) => b.data.localeCompare(a.data));
+    if (ordenadas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);">Nenhum lançamento ainda</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = ordenadas.map(t => {
+        const idxReal = transacoes.indexOf(t);
+        return `<tr>
+            <td>${formatarData(t.data)}</td>
+            <td>${t.casa}</td>
+            <td>${t.tipo === 'Depósito' ? '🟢 Depósito' : '🔴 Retirada'}</td>
+            <td>${formatarMoeda(t.valor)}</td>
+            <td>${t.observacao || '-'}</td>
+            <td><button class="btn-sm btn-danger" onclick="excluirTransacao(${idxReal})" aria-label="Excluir lançamento de ${t.tipo} de ${formatarMoeda(t.valor)} em ${t.casa}">🗑️</button></td>
+        </tr>`;
+    }).join('');
+}
+
+async function salvarTransacao() {
+    const casa = document.getElementById('transCasa').value;
+    const tipo = getRadioValue('rg-transTipo');
+    const valor = parseFloat2(document.getElementById('transValor').value);
+    const data = document.getElementById('transData').value || new Date().toISOString().slice(0,10);
+    const observacao = document.getElementById('transObs').value.trim();
+
+    if (!casa) { showToast('⚠️ Selecione uma casa', 'error'); return; }
+    if (valor <= 0) { showToast('⚠️ Digite um valor válido', 'error'); return; }
+
+    const t = { casa, tipo, valor, data, observacao };
+    const ok = await inserirTransacaoDB(t);
+    if (!ok) return;
+    transacoes.push(t);
+
+    document.getElementById('transValor').value = '';
+    document.getElementById('transObs').value = '';
+    renderSaldos();
+    showToast(`✅ ${tipo} de ${formatarMoeda(valor)} lançado em ${casa}`, 'success');
+}
+
+async function excluirTransacao(idx) {
+    const t = transacoes[idx];
+    if (!t) return;
+    if (!confirm(`Excluir ${t.tipo.toLowerCase()} de ${formatarMoeda(t.valor)} em ${t.casa}?`)) return;
+    transacoes.splice(idx, 1);
+    await excluirTransacaoDB(t.id);
+    renderSaldos();
+    showToast('🗑️ Lançamento excluído', 'info');
+}
+
+/* ==================== CONFIGURAÇÕES (gerenciar listas) ==================== */
+const CAMPOS_CONFIG = ['casa','tipster','tipo','esporte','liga','mercado'];
+
+function renderConfiguracoes() {
+    renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
+    renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');
+
+    CAMPOS_CONFIG.forEach(campo => {
+        if (campo === 'liga' || campo === 'mercado') return; // já tratados acima
+        const container = document.getElementById('chips-' + campo);
+        if (!container) return;
+        const valores = defaults[campo] || [];
+        if (valores.length === 0) {
+            container.innerHTML = `<span style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);">Nenhum valor cadastrado ainda</span>`;
+            return;
+        }
+        container.innerHTML = valores.map((v, i) => `
+            <span class="chip">
+                ${v}
+                <button type="button" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${v}">×</button>
+            </span>
+        `).join('');
+    });
+}
+
+// Função genérica usada tanto para Liga quanto para Mercado: popula o seletor de esporte
+// da tela de Configurações e renderiza os chips do campo, filtrados por esporte. Trata também
+// itens "órfãos" (cadastrados antes da vinculação por esporte), oferecendo um jeito de movê-los.
+function renderSeletorEsporteELista(campo, selectId, doEsporteFn, nomeExibicaoFn, comporFn, decomporFn, esporteIndefinido, fnMoverNome) {
+    const selEsporte = document.getElementById(selectId);
+    const temOrfao = (defaults[campo] || []).some(v => decomporFn(v).esporte === esporteIndefinido);
+    if (selEsporte) {
+        const curEsp = selEsporte.value;
+        let opcoesEsporte = defaults.esporte.map(v => `<option value="${v}">${v}</option>`).join('');
+        if (temOrfao) {
+            opcoesEsporte += `<option value="${esporteIndefinido}">⚠️ ${esporteIndefinido}</option>`;
+        }
+        selEsporte.innerHTML = opcoesEsporte;
+        const valoresValidos = defaults.esporte.concat(temOrfao ? [esporteIndefinido] : []);
+        if (valoresValidos.includes(curEsp)) selEsporte.value = curEsp;
+    }
+
+    const container = document.getElementById('chips-' + campo);
+    if (!container) return;
+    const esporteAtual = selEsporte ? selEsporte.value : (defaults.esporte[0] || '');
+    const valores = doEsporteFn(esporteAtual);
+    const ehOrfao = esporteAtual === esporteIndefinido;
+    const rotulo = campo === 'liga' ? 'liga' : 'mercado';
+
+    if (!esporteAtual) {
+        container.innerHTML = `<span style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);">Cadastre um esporte primeiro</span>`;
+        return;
+    }
+    if (valores.length === 0) {
+        container.innerHTML = `<span style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);">Nenhum(a) ${rotulo} cadastrado(a) para ${esporteAtual}</span>`;
+        return;
+    }
+    if (ehOrfao) {
+        container.innerHTML = `<div style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Estes itens foram cadastrados antes da vinculação por esporte. Escolha o esporte correto para cada um:</div>` +
+            valores.map(v => {
+                const i = defaults[campo].indexOf(v);
+                const nome = nomeExibicaoFn(v);
+                const selectMoverId = `mover-${campo}-${i}`;
+                return `
+                <div class="chip" style="display:flex;align-items:center;gap:6px;">
+                    <span>${nome}</span>
+                    <select id="${selectMoverId}" aria-label="Mover ${nome} para o esporte" style="font-size:12px;padding:2px 6px;width:auto;">
+                        <option value="">Mover para...</option>
+                        ${defaults.esporte.map(e => `<option value="${e}">${e}</option>`).join('')}
+                    </select>
+                    <button type="button" class="btn-xs btn-success" onclick="${fnMoverNome}(${i}, document.getElementById('${selectMoverId}').value)" aria-label="Confirmar movimentação de ${nome}">✓</button>
+                    <button type="button" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${nome}">×</button>
+                </div>`;
+            }).join('');
+        return;
+    }
+    container.innerHTML = valores.map(v => {
+        const i = defaults[campo].indexOf(v);
+        const nome = nomeExibicaoFn(v);
+        return `
+        <span class="chip">
+            ${nome}
+            <button type="button" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${nome}">×</button>
+        </span>`;
+    }).join('');
+}
+
+// Reatribui uma liga órfã (cadastrada antes da vinculação por esporte) ao esporte correto,
+// sem duplicar caso já exista uma liga com o mesmo nome naquele esporte.
+async function moverLigaParaEsporte(indice, novoEsporte) {
+    if (!novoEsporte) { showToast('⚠️ Escolha o esporte de destino', 'info'); return; }
+    const valorAntigo = defaults.liga[indice];
+    if (!valorAntigo) return;
+    const nome = ligaNomeExibicao(valorAntigo);
+    const r = buscarOuPrepararValor(ligasDoEsporte(novoEsporte).map(ligaNomeExibicao), nome);
+    await removerOpcaoDB('liga', valorAntigo);
+    if (r.duplicado) {
+        showToast(`⚠️ "${nome}" já existe em ${novoEsporte}. Removendo a entrada antiga duplicada...`, 'info');
+        defaults.liga.splice(indice, 1);
+    } else {
+        const novoValor = ligaCompor(novoEsporte, r.valor);
+        defaults.liga[indice] = novoValor;
+        await adicionarOpcaoDB('liga', novoValor);
+    }
+    updateDynamicSelects('liga');
+    fillFilters();
+    aplicarFiltros();
+    renderConfiguracoes();
+    showToast(`✅ "${nome}" movida para ${novoEsporte}`, 'success');
+}
+
+// Reatribui um mercado órfão (cadastrado antes da vinculação por esporte) ao esporte correto,
+// sem duplicar caso já exista um mercado com o mesmo nome naquele esporte.
+async function moverMercadoParaEsporte(indice, novoEsporte) {
+    if (!novoEsporte) { showToast('⚠️ Escolha o esporte de destino', 'info'); return; }
+    const valorAntigo = defaults.mercado[indice];
+    if (!valorAntigo) return;
+    const nome = mercadoNomeExibicao(valorAntigo);
+    const r = buscarOuPrepararValor(mercadosDoEsporte(novoEsporte).map(mercadoNomeExibicao), nome);
+    await removerOpcaoDB('mercado', valorAntigo);
+    if (r.duplicado) {
+        showToast(`⚠️ "${nome}" já existe em ${novoEsporte}. Removendo a entrada antiga duplicada...`, 'info');
+        defaults.mercado.splice(indice, 1);
+    } else {
+        const novoValor = mercadoCompor(novoEsporte, r.valor);
+        defaults.mercado[indice] = novoValor;
+        await adicionarOpcaoDB('mercado', novoValor);
+    }
+    updateDynamicSelects('mercado');
+    fillFilters();
+    aplicarFiltros();
+    renderConfiguracoes();
+    showToast(`✅ "${nome}" movido para ${novoEsporte}`, 'success');
+}
+
+async function adicionarOpcaoConfig(campo) {
+    const input = document.getElementById('config-add-' + campo);
+    if (!input) return;
+    const value = input.value;
+    if (!value || !value.trim()) return;
+
+    if (campo === 'liga') {
+        const selEsporte = document.getElementById('config-liga-esporte');
+        const esporte = selEsporte ? selEsporte.value : '';
+        if (!esporte) { showToast('⚠️ Cadastre um esporte primeiro', 'info'); return; }
+        const r = buscarOuPrepararValor(ligasDoEsporte(esporte).map(ligaNomeExibicao), value);
+        if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" em ${esporte}`, 'info'); return; }
+        const v = ligaCompor(esporte, r.valor);
+        defaults.liga.push(v);
+        await adicionarOpcaoDB('liga', v);
+        fillSelects();
+        updateDynamicSelects('liga');
+        input.value = '';
+        renderConfiguracoes();
+        showToast(`✅ "${r.valor}" adicionado em ${esporte}`, 'success');
+        return;
+    }
+
+    if (campo === 'mercado') {
+        const selEsporte = document.getElementById('config-mercado-esporte');
+        const esporte = selEsporte ? selEsporte.value : '';
+        if (!esporte) { showToast('⚠️ Cadastre um esporte primeiro', 'info'); return; }
+        const r = buscarOuPrepararValor(mercadosDoEsporte(esporte).map(mercadoNomeExibicao), value);
+        if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" em ${esporte}`, 'info'); return; }
+        const vMercCfg = mercadoCompor(esporte, r.valor);
+        defaults.mercado.push(vMercCfg);
+        await adicionarOpcaoDB('mercado', vMercCfg);
+        fillSelects();
+        updateDynamicSelects('mercado');
+        input.value = '';
+        renderConfiguracoes();
+        showToast(`✅ "${r.valor}" adicionado em ${esporte}`, 'success');
+        return;
+    }
+
+    const r = buscarOuPrepararValor(defaults[campo], value);
+    if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" na lista`, 'info'); return; }
+    const v = r.valor;
+    defaults[campo].push(v);
+    defaults[campo].sort((a,b)=>a.localeCompare(b));
+    await adicionarOpcaoDB(campo, v);
+    fillSelects();
+    if (['esporte','liga','mercado'].includes(campo)) updateDynamicSelects(campo);
+    input.value = '';
+    renderConfiguracoes();
+    showToast(`✅ "${v}" adicionado`, 'success');
+}
+
+async function removerOpcaoConfig(campo, indice) {
+    const valor = (defaults[campo] || [])[indice];
+    if (!valor) return;
+    const nomeExibicao = campo === 'liga' ? ligaNomeExibicao(valor) : (campo === 'mercado' ? mercadoNomeExibicao(valor) : valor);
+    if (!confirm(`Remover "${nomeExibicao}" da lista de ${campo}?`)) return;
+    defaults[campo] = defaults[campo].filter(x => x !== valor);
+    await removerOpcaoDB(campo, valor);
+    fillSelects();
+    if (['esporte','liga','mercado'].includes(campo)) updateDynamicSelects(campo);
+    renderConfiguracoes();
+    showToast(`✅ "${nomeExibicao}" removido`, 'success');
+}
+
+
+function renderDashboard(dados) { /* removido */ }
+
+/* ==================== MODAIS ==================== */
+function abrirModalRelatorios() { /* removido */ }
+function fecharModalRelatorios() { /* removido */ }
+function fecharRelatorios() { /* removido */ }
+function abrirModalSync() { /* removido */ }
+function fecharModalSync() { /* removido */ }
+function abrirModalColarCodigo() { /* removido */ }
+function fecharModalColar() { /* removido */ }
+
+// Fechar modal ao clicar fora
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove("open"); });
+});
+
+// Fechar modal com ESC
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+/* ==================== RELATÓRIOS ==================== */
+function gerarRelatorio() { /* removido */ }
+
+/* ==================== EXPORTAR / IMPORTAR ==================== */
+async function limparTodosDados() {
+    if (!confirm('⚠️ Isso vai apagar TODAS as apostas, lançamentos de saldo (depósitos/retiradas) e redefinir as opções para o padrão, tanto aqui quanto na nuvem. Tem certeza?')) return;
+    apostas = [];
+    transacoes = [];
+    // Resetar defaults para o estado inicial (sem tipsters, ligas etc.)
+    Object.assign(defaults, {
+        casa: ["Betano","Betfair","Superbet"].sort((a,b)=>a.localeCompare(b)),
+        tipster: [],
+        tipo: ["Ao Vivo","Pré Live"],
+        esporte: ["Basquete","Futebol","Tênis","Vôlei"].sort((a,b)=>a.localeCompare(b)),
+        liga: [],
+        mercado: ["Cartões","Chance Dupla","Empate","Gols","Handicap","Vencedor"].sort((a,b)=>a.localeCompare(b)),
+        selecao: []
+    });
+    const { error: eDel } = await sb.from('apostas').delete().not('id', 'is', null);
+    if (eDel) showToast('❌ Erro ao apagar apostas na nuvem: ' + eDel.message, 'error');
+    const { error: eDelTrans } = await sb.from('transacoes').delete().not('id', 'is', null);
+    if (eDelTrans) showToast('❌ Erro ao apagar lançamentos de saldo na nuvem: ' + eDelTrans.message, 'error');
+    const { error: eDelOp } = await sb.from('opcoes').delete().not('id', 'is', null);
+    if (eDelOp) showToast('❌ Erro ao apagar listas na nuvem: ' + eDelOp.message, 'error');
+    await semearOpcoesPadrao();
+    fillSelects();
+    renderRadioGroup('rg-casa', 'casa', null);
+    limparFormulario();
+    aplicarFiltros();
+    renderSaldos();
+    renderConfiguracoes();
+    irPara('cadastro', document.querySelector('.tab-btn[data-secao="cadastro"]'));
+    showToast('✅ Dados limpos. Sistema resetado.', 'success');
+}
+
+function gerarTimestamp() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+}
+
+function backupJSON() { /* removido - usar Excel */ }
+
+function importarArquivo(event) { /* removido - usar Excel */ }
+
+function importarConfiguracao(event) { /* removido - usar Excel */ }
+
+function exportarConfiguracao() { /* removido - usar Excel */ }
+
+function exportarTabelaGeralExcel() { exportarConjuntoDadosExcel(apostas, "Historico_Geral_Banca", true); }
+function exportarFiltrosExcel() {
+    if (!apostasFiltradasAtuais.length) { showToast('⚠️ Sem dados nos filtros ativos', 'error'); return; }
+    exportarConjuntoDadosExcel(apostasFiltradasAtuais, "Resultados_Filtrados", false);
+}
+
+function exportarConjuntoDadosExcel(lista, nome, incluirTransacoes) {
+    const rows = [];
+    lista.forEach(a => {
+        if (a.eventos && a.eventos.length > 0) {
+            a.eventos.forEach(e => {
+                rows.push({
+                    "Data Hora": formatarData(a.dataHora),
+                    "Casa": a.casa, "Identificador": a.identificador,
+                    "Tipster": a.tipster, "Tipo": a.tipo, "Status": a.status,
+                    "ODD Total": a.oddTotal, "Stake": a.stake,
+                    "Retornado": a.recebido, "Lucro": a.lucro,
+                    "Unidades": a.unidades, "ROI (%)": a.roi,
+                    "Bônus": a.bonus || 0,
+                    "Valor Cash Out": a.cashOutValor || '',
+                    "Observação": a.observacao || '',
+                    "Evento": e.evento, "Esporte": e.esporte,
+                    "Liga": e.liga, "Mercado": e.mercado,
+                    "Seleção": e.selecao, "ODD Evento": e.odd
+                });
+            });
+        }
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "Apostas");
+
+    if (incluirTransacoes) {
+        const rowsTrans = transacoes.map(t => ({
+            "Data": formatarData(t.data),
+            "Casa": t.casa,
+            "Tipo": t.tipo,
+            "Valor": t.valor,
+            "Observação": t.observacao || ''
+        }));
+        const wsTrans = XLSX.utils.json_to_sheet(rowsTrans);
+        XLSX.utils.book_append_sheet(wb, wsTrans, "Transações");
+    }
+
+    XLSX.writeFile(wb, `${nome}_${gerarTimestamp()}.xlsx`);
+    showToast(`📊 Excel exportado (${rows.length} linhas)`, 'success');
+}
+
+function exportarRelatorioExcel() { /* removido */ }
+
+function importarExcelCompleto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = ''; // liberar para re-selecionar mesmo arquivo
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(ws, {defval: ''});
+
+            // Aba de Transações (depósitos/retiradas) é opcional — planilhas exportadas antes
+            // dessa funcionalidade existir não vão ter essa aba, e isso é normal.
+            const temAbaTransacoes = wb.SheetNames.includes('Transações');
+            const jsonTransacoes = temAbaTransacoes
+                ? XLSX.utils.sheet_to_json(wb.Sheets['Transações'], {defval: ''})
+                : null;
+
+            if (!json || !json.length) {
+                showToast('❌ Planilha vazia ou sem dados', 'error');
+                return;
+            }
+
+            // Normaliza Data Hora para "aaaa-mm-ddThh:mm", aceitando três formatos possíveis
+            // que o Excel pode entregar pra mesma coluna, dependendo de como a célula foi
+            // formatada: texto (o normal, vindo do próprio export), número de série do Excel
+            // (quando a célula foi formatada como data) ou objeto Date (caso cellDates esteja ativo).
+            const normalizarDataHora = function(valor) {
+                const pad = n => String(n).padStart(2, '0');
+                if (valor === '' || valor === null || valor === undefined) return '';
+                if (typeof valor === 'number') {
+                    // Número de série do Excel -> data real (epoch do Excel: 1899-12-30)
+                    const d = new Date(Math.round((valor - 25569) * 86400 * 1000));
+                    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+                }
+                if (valor instanceof Date) {
+                    return `${valor.getFullYear()}-${pad(valor.getMonth()+1)}-${pad(valor.getDate())}T${pad(valor.getHours())}:${pad(valor.getMinutes())}`;
+                }
+                const str = valor.toString().trim();
+                // Formato brasileiro dd/mm/aaaa hh:mm (o que a exportação gera agora)
+                const mBr = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+                if (mBr) return `${mBr[3]}-${mBr[2]}-${mBr[1]}T${mBr[4]}:${mBr[5]}`;
+                // Formato brasileiro só com data, sem horário: dd/mm/aaaa
+                const mBrData = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                if (mBrData) return `${mBrData[3]}-${mBrData[2]}-${mBrData[1]}T00:00`;
+                // Formato ISO "aaaa-mm-dd hh:mm" ou "aaaa-mm-ddThh:mm" (planilhas antigas/manuais)
+                return str.replace(' ', 'T').slice(0, 16);
+            };
+
+            // Normalizar valor numérico (suporta R$ 1.234,56 e 1234.56)
+            const toNum = function(v) {
+                if (v === '' || v === null || v === undefined) return 0;
+                if (typeof v === 'number') return v;
+                var s = v.toString().replace(/R\$\s*/g, '').replace(/\s/g, '');
+                // formato BR: ponto como milhar, vírgula como decimal
+                if (/\d\.\d{3}/.test(s) && s.indexOf(',') !== -1) {
+                    s = s.replace(/\./g, '').replace(',', '.');
+                } else {
+                    s = s.replace(',', '.');
+                }
+                return parseFloat(s) || 0;
+            };
+
+            // Agrupar linhas por Identificador (cada evento = 1 linha no export)
+            var mapa = {};
+            var ordem = [];
+
+            json.forEach(function(row) {
+                var id = (row['Identificador'] || row['ID'] || '').toString().trim();
+                if (!id) return;
+                if (!mapa[id]) {
+                    var stake = toNum(row['Stake'] || row['Stake Total']);
+                    var lucro = toNum(row['Lucro']);
+                    mapa[id] = {
+                        dataHora:      normalizarDataHora(row['Data Hora'] || row['Data e Hora'] || ''),
+                        casa:          (row['Casa'] || '').toString().trim(),
+                        identificador: id,
+                        tipster:       (row['Tipster'] || '').toString().trim(),
+                        tipo:          (row['Tipo'] || '').toString().trim(),
+                        status:        (row['Status'] || row['Status Geral'] || 'Aberto').toString().trim(),
+                        oddTotal:      toNum(row['ODD Total']),
+                        stake:         stake,
+                        recebido:      toNum(row['Retornado'] || row['Recebido']),
+                        lucro:         lucro,
+                        unidades:      stake > 0 ? lucro / stake : 0,
+                        roi:           stake > 0 ? (lucro / stake) * 100 : 0,
+                        bonus:         toNum(row['Bônus'] || row['Bonus'] || 0),
+                        observacao:    (row['Observação'] || row['Observacao'] || '').toString().trim(),
+                        cashOutValor:  row['Valor Cash Out'] != null && row['Valor Cash Out'] !== '' ? toNum(row['Valor Cash Out']) : null,
+                        eventos:       []
+                    };
+                    ordem.push(id);
+                }
+                var a = mapa[id];
+                a.eventos.push({
+                    numero:  a.eventos.length + 1,
+                    esporte: (row['Esporte'] || '').toString().trim(),
+                    liga:    (row['Liga']    || '').toString().trim(),
+                    evento:  (row['Evento']  || '').toString().trim(),
+                    mercado: (row['Mercado'] || '').toString().trim(),
+                    selecao: (row['Seleção'] || row['Selecao'] || '').toString().trim(),
+                    odd:     toNum(row['ODD Evento'] || row['ODD'] || 1)
+                });
+            });
+
+            const novasApostas = ordem.map(function(id) { return mapa[id]; })
+                          .filter(function(a) { return a.eventos.length > 0; });
+
+            if (!novasApostas.length) {
+                showToast('❌ Nenhuma aposta válida encontrada', 'error');
+                return;
+            }
+
+            // Verifica se alguma Data Hora ficou fora do padrão "aaaa-mm-ddThh:mm" antes de
+            // enviar qualquer coisa para a nuvem — evita que um lote inteiro falhe no meio
+            // do caminho por causa de uma única célula de data formatada diferente das outras.
+            const padraoData = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+            const apostasComDataInvalida = novasApostas.filter(a => !padraoData.test(a.dataHora));
+            if (apostasComDataInvalida.length > 0) {
+                const exemplos = apostasComDataInvalida.slice(0, 5)
+                    .map(a => `${a.identificador} ("${a.dataHora}")`).join(', ');
+                showToast(`❌ ${apostasComDataInvalida.length} aposta(s) com Data Hora em formato inválido — corrija e tente de novo. Exemplo(s): ${exemplos}`, 'error', 15000);
+                return;
+            }
+
+            // Transações (depósitos/retiradas) — só processa se a aba existir na planilha
+            var novasTransacoes = [];
+            // Normaliza uma data simples (sem horário) para o formato aaaa-mm-dd
+            // usado internamente — aceita tanto o formato brasileiro dd/mm/aaaa
+            // (gerado pela exportação atual) quanto o ISO aaaa-mm-dd (planilhas antigas).
+            const normalizarDataSimples = function(valor) {
+                if (valor === '' || valor === null || valor === undefined) return '';
+                if (typeof valor === 'number') {
+                    const d = new Date(Math.round((valor - 25569) * 86400 * 1000));
+                    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+                }
+                const str = valor.toString().trim();
+                const mBr = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+                if (mBr) return `${mBr[3]}-${mBr[2]}-${mBr[1]}`;
+                return str.slice(0, 10);
+            };
+
+            if (jsonTransacoes) {
+                novasTransacoes = jsonTransacoes.map(function(row) {
+                    return {
+                        casa: (row['Casa'] || '').toString().trim(),
+                        tipo: (row['Tipo'] || '').toString().trim(),
+                        valor: toNum(row['Valor']),
+                        data: normalizarDataSimples(row['Data']),
+                        observacao: (row['Observação'] || row['Observacao'] || '').toString().trim()
+                    };
+                }).filter(function(t) { return t.casa && t.valor > 0 && (t.tipo === 'Depósito' || t.tipo === 'Retirada'); });
+            }
+
+            // Mesclar opções únicas nos defaults sem sobrescrever (ignorando maiúsculas/minúsculas e espaços extras)
+            //
+            // IMPORTANTE — otimização de performance:
+            // A versão anterior fazia, para cada evento da planilha, um
+            // `ci.liga.filter(...)` e um `ci.mercado.filter(...)` percorrendo
+            // a lista acumulada inteira, mais um `.find()` dentro de
+            // buscarOuPrepararValor. Com listas de centenas de ligas/mercados
+            // distintos e milhares de eventos (comum em planilhas grandes),
+            // isso se torna uma operação quadrática (ou peor, já que mercado
+            // ainda tem um split por vírgula) — na prática, milhões de
+            // comparações de string, travando o navegador por minutos sem
+            // gerar nenhum erro. A versão abaixo usa Maps indexados por
+            // esporte + chave normalizada, tornando cada verificação de
+            // duplicado uma operação O(1) em vez de O(n).
+            var ci = {
+                casa:    defaults.casa.slice(),
+                tipster: defaults.tipster.slice(),
+                tipo:    defaults.tipo.slice(),
+                esporte: defaults.esporte.slice(),
+                liga:    defaults.liga.slice(),
+                mercado: defaults.mercado.slice()
+            };
+
+            // Maps simples (sem esporte) para casa/tipster/tipo/esporte
+            function construirMapaSimples(lista) {
+                var m = new Map();
+                lista.forEach(function(v) { m.set(chaveNormalizada(v), v); });
+                return m;
+            }
+            var mapaCasa    = construirMapaSimples(ci.casa);
+            var mapaTipster = construirMapaSimples(ci.tipster);
+            var mapaTipo    = construirMapaSimples(ci.tipo);
+            var mapaEsporte = construirMapaSimples(ci.esporte);
+
+            // Rastreia SÓ os itens realmente novos (para gravar de forma incremental e segura
+            // no banco depois — nunca apagando e reconstruindo a lista inteira, o que já causou
+            // perda de ligas/mercados adicionados por outra aba/sessão enquanto esta ficou aberta
+            // com uma cópia desatualizada em memória).
+            var itensNovosImportacao = { casa: [], tipster: [], tipo: [], esporte: [], liga: [], mercado: [] };
+
+            function addComMapa(lista, mapa, valor, campoRastreio) {
+                if (!valor) return;
+                var v = String(valor).trim().replace(/\s+/g, ' ');
+                if (!v) return;
+                var chave = chaveNormalizada(v);
+                if (mapa.has(chave)) return; // já existe, não duplica
+                lista.push(v);
+                mapa.set(chave, v);
+                if (campoRastreio) itensNovosImportacao[campoRastreio].push(v);
+            }
+
+            // Maps de liga/mercado: chave composta "esporte||nomeNormalizado" -> valor já composto
+            var mapaLiga = new Map();
+            ci.liga.forEach(function(v) {
+                var d = ligaDecompor(v);
+                mapaLiga.set(d.esporte + '||' + chaveNormalizada(d.nome), v);
+            });
+            var mapaMercado = new Map();
+            ci.mercado.forEach(function(v) {
+                var d = mercadoDecompor(v);
+                mapaMercado.set(d.esporte + '||' + chaveNormalizada(d.nome), v);
+            });
+
+            novasApostas.forEach(function(a) {
+                addComMapa(ci.casa, mapaCasa, a.casa, 'casa');
+                addComMapa(ci.tipster, mapaTipster, a.tipster, 'tipster');
+                addComMapa(ci.tipo, mapaTipo, a.tipo, 'tipo');
+                (a.eventos || []).forEach(function(ev) {
+                    addComMapa(ci.esporte, mapaEsporte, ev.esporte, 'esporte');
+
+                    if (ev.liga && ev.esporte) {
+                        var nomeLiga = String(ev.liga).trim().replace(/\s+/g, ' ');
+                        if (nomeLiga) {
+                            var chaveLiga = ev.esporte + '||' + chaveNormalizada(nomeLiga);
+                            if (!mapaLiga.has(chaveLiga)) {
+                                var composto = ligaCompor(ev.esporte, nomeLiga);
+                                ci.liga.push(composto);
+                                mapaLiga.set(chaveLiga, composto);
+                                itensNovosImportacao.liga.push(composto);
+                            }
+                        }
+                    }
+
+                    if (ev.mercado && ev.esporte) {
+                        ev.mercado.split(',').forEach(function(m) {
+                            var nome = m.trim();
+                            if (!nome) return;
+                            var chaveMercado = ev.esporte + '||' + chaveNormalizada(nome);
+                            if (!mapaMercado.has(chaveMercado)) {
+                                var compostoM = mercadoCompor(ev.esporte, nome);
+                                ci.mercado.push(compostoM);
+                                mapaMercado.set(chaveMercado, compostoM);
+                                itensNovosImportacao.mercado.push(compostoM);
+                            }
+                        });
+                    }
+                });
+            });
+            Object.keys(ci).forEach(function(k) {
+                defaults[k] = ci[k].filter(Boolean).sort(function(a,b){ return a.localeCompare(b); });
+            });
+
+            // ── IMPORTAÇÃO ADITIVA COM ATUALIZAÇÃO (UPSERT) ──
+            // Cada aposta da planilha é comparada com as que já existem na
+            // nuvem usando o campo Identificador (único por aposta):
+            //   • Identificador NOVO  -> insere a aposta e seus eventos
+            //   • Identificador JÁ EXISTE -> atualiza a aposta (odd, unidades,
+            //     ROI, lucro etc.) com os valores da planilha e recria os
+            //     eventos, já que as odds individuais também podem ter mudado.
+            // Isso permite reimportar uma planilha corrigida (ex.: após um
+            // ajuste na fórmula de cálculo de odd/unidades/ROI) sem que as
+            // apostas existentes sejam ignoradas como duplicadas — e sem
+            // apagar todo o histórico, como era no modelo antigo.
+            const apostasPorIdentificador = {};
+            apostas.forEach(a => { apostasPorIdentificador[a.identificador] = a; });
+
+            const apostasNovas = [];
+            const apostasParaAtualizar = [];
+            novasApostas.forEach(a => {
+                const existente = apostasPorIdentificador[a.identificador];
+                if (existente) {
+                    a.id = existente.id; // reaproveita o id já existente na nuvem
+                    apostasParaAtualizar.push(a);
+                } else {
+                    apostasNovas.push(a);
+                }
+            });
+
+            if (apostasNovas.length === 0 && apostasParaAtualizar.length === 0 && (!jsonTransacoes || novasTransacoes.length === 0)) {
+                showToast(`ℹ️ Nenhuma aposta encontrada na planilha.`, 'info', 8000);
+                return;
+            }
+
+            showToast('⏳ Enviando para a nuvem, pode levar um instante...', 'info', 10000);
+
+            // Insere apenas as apostas novas (cabeçalho) em lotes e recupera os ids gerados
+            const linhasApostas = apostasNovas.map(apostaParaLinha);
+            const resApostas = linhasApostas.length > 0
+                ? await inserirEmLotes('apostas', linhasApostas, true)
+                : { error: null, inseridas: [] };
+            if (resApostas.error) {
+                showToast(`❌ Erro ao importar apostas (${resApostas.inseridas.length} de ${linhasApostas.length} enviadas antes do erro): ` + resApostas.error.message, 'error', 10000);
+                return;
+            }
+
+            const porIdentificador = {};
+            apostasNovas.forEach(a => { porIdentificador[a.identificador] = a; });
+            resApostas.inseridas.forEach(row => {
+                const a = porIdentificador[row.identificador];
+                if (a) a.id = row.id;
+            });
+
+            // Insere os eventos das apostas novas, em lotes
+            const linhasEventos = [];
+            apostasNovas.forEach(a => (a.eventos || []).forEach(ev => {
+                if (a.id) linhasEventos.push(eventoParaLinha(ev, a.id));
+            }));
+            if (linhasEventos.length > 0) {
+                const resEventos = await inserirEmLotes('eventos', linhasEventos, false);
+                if (resEventos.error) {
+                    showToast(`❌ Erro ao importar eventos (parte ficou sem enviar): ` + resEventos.error.message + ' — reimporte a planilha depois de resolver.', 'error', 12000);
+                    return;
+                }
+            }
+
+            // Confere se cada aposta nova recebeu seu id de fato (rede de segurança)
+            const apostasSemId = apostasNovas.filter(a => !a.id).length;
+            if (apostasSemId > 0) {
+                showToast(`⚠️ ${apostasSemId} aposta(s) não retornaram id após a inserção — reimporte a planilha para garantir consistência.`, 'error', 12000);
+            }
+
+            // Atualiza as apostas cujo Identificador já existia.
+            //
+            // IMPORTANTE — por que isso mudou:
+            // A versão anterior fazia isso uma aposta por vez, em sequência
+            // (await dentro de um for), com 2-3 chamadas de rede por aposta
+            // (UPDATE + DELETE eventos + INSERT eventos). Com uma reimportação
+            // de uma base grande — por exemplo, ao reimportar uma planilha
+            // corrigida onde a MAIORIA das apostas já existia — isso significa
+            // milhares de chamadas sequenciais, cada uma esperando a anterior
+            // terminar. Com ~150ms de latência típica por chamada, 1835
+            // apostas existentes podiam levar 10+ minutos só nesta etapa,
+            // dando a impressão de travamento (mesmo progredindo de verdade).
+            //
+            // Agora as atualizações rodam em grupos paralelos (concorrência
+            // controlada), e o toast é atualizado periodicamente para mostrar
+            // o progresso real — assim nunca mais parece travado.
+            const CONCORRENCIA_ATUALIZACAO = 8;
+            let falhasAtualizacao = 0;
+            let processadas = 0;
+
+            async function atualizarUmaAposta(a) {
+                const linha = apostaParaLinha(a);
+                const { error: errUpd } = await sb.from('apostas').update(linha).eq('id', a.id);
+                if (errUpd) { falhasAtualizacao++; return; }
+
+                // Recria os eventos: remove os antigos e insere os novos da planilha,
+                // já que as odds individuais por evento também podem ter sido corrigidas.
+                await sb.from('eventos').delete().eq('aposta_id', a.id);
+                const linhasEv = (a.eventos || []).map(ev => eventoParaLinha(ev, a.id));
+                if (linhasEv.length > 0) {
+                    const resEv = await inserirEmLotes('eventos', linhasEv, false);
+                    if (resEv.error) falhasAtualizacao++;
+                }
+            }
+
+            for (let i = 0; i < apostasParaAtualizar.length; i += CONCORRENCIA_ATUALIZACAO) {
+                const grupo = apostasParaAtualizar.slice(i, i + CONCORRENCIA_ATUALIZACAO);
+                await Promise.all(grupo.map(atualizarUmaAposta));
+                processadas += grupo.length;
+                if (apostasParaAtualizar.length > CONCORRENCIA_ATUALIZACAO) {
+                    showToast(`⏳ Atualizando apostas existentes... ${processadas}/${apostasParaAtualizar.length}`, 'info', 6000);
+                }
+            }
+            if (falhasAtualizacao > 0) {
+                showToast(`⚠️ ${falhasAtualizacao} aposta(s) existente(s) não foram atualizadas corretamente — reimporte a planilha para tentar novamente.`, 'error', 12000);
+            }
+
+            // Transações: também aditivo. Compara por assinatura (casa+tipo+valor+data+observação)
+            // contra as transações já carregadas, e envia só as que ainda não existem.
+            let transacoesNovas = [];
+            let transacoesJaExistiam = 0;
+            if (jsonTransacoes) {
+                const assinaturaTransacao = t =>
+                    [t.casa, t.tipo, Number(t.valor).toFixed(2), t.data, (t.observacao || '').trim().toLowerCase()].join('|');
+                const assinaturasExistentes = new Set(transacoes.map(assinaturaTransacao));
+                transacoesNovas = novasTransacoes.filter(t => !assinaturasExistentes.has(assinaturaTransacao(t)));
+                transacoesJaExistiam = novasTransacoes.length - transacoesNovas.length;
+
+                if (transacoesNovas.length > 0) {
+                    const linhasTransacoes = transacoesNovas.map(transacaoParaLinha);
+                    const resTrans = await inserirEmLotes('transacoes', linhasTransacoes, false);
+                    if (resTrans.error) {
+                        showToast('❌ Erro ao importar transações: ' + resTrans.error.message, 'error', 10000);
+                    } else {
+                        transacoes = transacoes.concat(transacoesNovas);
+                    }
+                }
+            }
+
+            // Grava no banco APENAS os itens realmente novos, um de cada vez — nunca apaga
+            // e reconstrói a lista inteira (isso já causou perda de ligas/mercados que existiam
+            // no banco mas não estavam na cópia em memória desta aba no momento da importação).
+            const gravacoesImportacao = [];
+            Object.keys(itensNovosImportacao).forEach(campo => {
+                itensNovosImportacao[campo].forEach(valor => {
+                    gravacoesImportacao.push(adicionarOpcaoDB(campo, valor));
+                });
+            });
+            await Promise.all(gravacoesImportacao);
+
+            // Atualiza o array local: substitui as apostas atualizadas pela
+            // versão nova (com os mesmos ids) e concatena as recém-inseridas.
+            apostasParaAtualizar.forEach(a => {
+                const idx = apostas.findIndex(x => x.id === a.id);
+                if (idx !== -1) apostas[idx] = a;
+            });
+            apostas = apostas.concat(apostasNovas);
+            fillSelects();
+            renderRadioGroup('rg-casa', 'casa', null);
+            ordenarApostasPorData();
+            aplicarFiltros();
+            renderSaldos();
+            renderConfiguracoes();
+
+            const partesAposta = [];
+            if (apostasNovas.length > 0) partesAposta.push(`${apostasNovas.length} nova(s)`);
+            if (apostasParaAtualizar.length > 0) partesAposta.push(`${apostasParaAtualizar.length} atualizada(s)`);
+            const avisoApostas = partesAposta.length > 0
+                ? partesAposta.join(', ') + ' aposta(s)'
+                : 'Nenhuma aposta nova ou alterada';
+            const avisoTrans = jsonTransacoes
+                ? (transacoesJaExistiam > 0
+                    ? `, ${transacoesNovas.length} lançamento(s) de saldo novo(s) (${transacoesJaExistiam} já existia(m))`
+                    : `, ${transacoesNovas.length} lançamento(s) de saldo`)
+                : '';
+            showToast('✅ ' + avisoApostas + avisoTrans + ' e enviados para a nuvem!', 'success', 8000);
+
+        } catch(err) {
+            showToast('❌ Erro ao importar: ' + err.message, 'error');
+            console.error('importarExcelCompleto erro:', err);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+/* ==================== SINCRONIZAÇÃO ==================== */
+function comprimirDados() { /* removido */ }
+
+function gerarQRSync() { /* removido */ }
+
+function copiarCodigoSync() { /* removido */ }
+
+function copiarFallback(texto) { /* removido */ }
+
+function importarCodigoSync() { /* removido */ }
+
+/* ==================== DADOS DEMO ==================== */
+function criarDadosDemonstrativos() {
+    // Sem dados de demonstração — sistema inicia limpo
+}
+</script>
+<input type="file" id="importExcelFile" style="display:none" onchange="importarExcelCompleto(event)" accept=".xlsx,.xls">
+</body>
+</html>
