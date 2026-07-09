@@ -1505,18 +1505,6 @@ function showToast(msg, type = 'info', duration = 3500) {
     anunciar(msg);
 }
 
-// Mostra um aviso visível (toast) informando qual provedor de IA leu o bilhete.
-// 'gemini' = 1ª tentativa (grátis); 'anthropic' = fallback (pago, Gemini falhou).
-function avisarProvedorIA(provedor) {
-    if (provedor === 'gemini') {
-        showToast('🔎 Leitura feita via Gemini.', 'info', 3000);
-    } else if (provedor === 'anthropic') {
-        showToast('🔎 Leitura feita via Anthropic (fallback — Gemini falhou).', 'info', 4500);
-    } else {
-        showToast('🔎 Leitura concluída (provedor não informado: ' + provedor + ').', 'info', 3000);
-    }
-}
-
 function anunciar(msg) {
     const el = document.getElementById('avisoSalvar');
     if (el) { el.textContent = ''; requestAnimationFrame(() => { el.textContent = msg; }); }
@@ -2328,7 +2316,6 @@ async function processarFotoBilhete(event) {
             dados.confiancaGeral.identificador = 0.95; // alta confiança — veio do nome do arquivo
         }
 
-        avisarProvedorIA(dados._provedor);
         preencherFormularioComExtracao(dados, 'foto');
     } finally {
         mostrarOverlayExtracao(false);
@@ -2391,7 +2378,6 @@ async function processarTextoBilhete() {
         const dados = await resposta.json();
         if (!resposta.ok) throw new Error(dados.error || 'Erro ao processar o texto.');
 
-        avisarProvedorIA(dados._provedor);
         preencherFormularioComExtracao(dados, 'texto');
     } catch (err) {
         showToast('❌ Não foi possível ler o bilhete: ' + err.message, 'error', 9000);
