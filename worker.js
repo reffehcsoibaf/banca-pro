@@ -94,12 +94,12 @@ FUTEBOL:
 "Empate Anula" → quando o bilhete diz: Empate Anula Aposta, Draw No Bet, EAA
 "Equipe Com Mais Escanteios" → quando o bilhete diz: Mais Escanteios, Equipe com Mais Cantos
 "Equipe Com Mais Finalizações" → quando o bilhete diz: Mais Finalizações, Equipe com Mais Chutes
-"Escanteios" → quando o bilhete diz: Total de Escanteios, Cantos, Total de Cantos
+"Escanteios" → quando o bilhete diz: Total de Escanteios, Cantos, Total de Cantos — APENAS o total da PARTIDA (ambos os times), SEM nome de time antes. Se vier como "<Time> - Total de Escanteios", veja a regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME abaixo.
 "Faixa de gols" → quando o bilhete diz: Intervalo de Gols, Faixa de Resultado em Gols
 "Faltas" → quando o bilhete diz: Total de Faltas, Faltas Cometidas
-"Finalizações" → quando o bilhete diz: Total de Finalizações, Total de Chutes, Chutes Totais, Finalizações Totais, Chutes (Betano), Total de Finalizações (Superbet)
+"Finalizações" → quando o bilhete diz: Total de Finalizações, Total de Chutes, Chutes Totais, Finalizações Totais, Chutes (Betano), Total de Finalizações (Superbet) — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Total de Finalizações", veja a regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME abaixo.
 "Ganhar qualquer um dos Tempos" → quando o bilhete diz: Ganhar Algum Tempo, Vencer Pelo Menos Um Tempo
-"Gols" → quando o bilhete diz: Total de Gols, Total de Gols Mais/Menos (Betano), Total de Gols (Superbet), Mais/Menos Gols, Over/Under Gols
+"Gols" → quando o bilhete diz: Total de Gols, Total de Gols Mais/Menos (Betano), Total de Gols (Superbet), Mais/Menos Gols, Over/Under Gols — APENAS quando for o total de gols da PARTIDA (ambos os times somados), SEM nome de time antes. Se vier no formato "<Time> - Total de Gols", NÃO é este mercado — veja a regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME abaixo.
 "Handicap" → quando o bilhete diz: Handicap Europeu, Handicap de Resultado
 "Handicap Asiático" → quando o bilhete diz: Asian Handicap, AH
 "Handicap de chutes no gol" → quando o bilhete diz: Handicap de Chutes, Handicap de Finalizações ao Gol
@@ -151,6 +151,11 @@ E-FOOTBALL:
 "Resultado Final" → (mesmo que futebol)
 
 REGRA IMPORTANTE: Se o mercado do bilhete não tiver correspondência clara nesta lista, use o nome do mercado como aparece no bilhete — mas nesse caso use confianca baixa (abaixo de 0.5) para esse evento, indicando que é um mercado não mapeado.
+
+Regra especial — GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME (não confundir com o total da partida):
+- Quando o mercado aparecer no formato "<Nome do Time> - <Estatística>" (ex.: "França - Total de Gols", "Inglaterra - Total de Escanteios", "Atletic Escaldes - Total de Finalizações"), isso é a estatística DAQUELE TIME especificamente — NÃO é o total da partida (que somaria os dois times). São mercados diferentes, mesmo que o texto pareça parecido.
+- Esse formato ainda NÃO tem um mercado equivalente na lista cadastrada (a lista de hoje só cobre o total da partida para Gols/Escanteios/Finalizações). Portanto, para esse formato específico "<Time> - <Estatística>", use o nome do mercado como aparece no bilhete e confiança baixa (abaixo de 0.5) — isso faz o item cair como sugestão de mercado novo, para que o usuário confirme o nome definitivo antes de virar mercado cadastrado.
+- Em TODOS os casos desse formato, inclua o nome do time no campo "selecao", nunca deixe essa informação de fora. Ex.: se o bilhete mostra "Mais de 0.5" logo acima de "França - Total de Gols", a seleção correta é "França - Mais de 0.5" (ou "Mais de 0.5 (França)"), nunca apenas "Mais de 0.5" sozinho — sem o time, a aposta perde o sentido.
 
 Regra especial — CRIADOR DE APOSTAS / MÚLTIPLAS CONDIÇÕES NO MESMO CONFRONTO:
 - Quando várias condições pertencem ao MESMO confronto (mesmos times, mesma data/hora de jogo), consolide em UM ÚNICO evento (um único item no array "eventos"), mas o campo "mercado" depende de cada condição já ter ou não um mercado reconhecido na lista de MAPEAMENTO DE MERCADOS:
@@ -254,7 +259,7 @@ ODDS TOTAIS1.84APOSTA2,00R$
 """
 → casa: Superbet, identificador: "890I-QD3MXC", dataHora: "2026-07-01T09:56", stake: 2.0, status: "Aberto"
 → 2 eventos (cada confronto é um evento separado):
-  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra x RD do Congo", mercado "Classificar, Escanteios" (ambos reconhecidos na lista, por isso NÃO usa "Criador de Apostas" aqui), selecao "Classificar + Escanteios Mais de 4.5 Inglaterra", odd 1.35
+  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra x RD do Congo", mercado "Criador de Apostas" (pois "Se Classificar" é reconhecido como "Classificar", mas "Inglaterra - Total de Escanteios" é escanteios POR TIME — ver regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME — e ainda não tem mercado cadastrado equivalente; como nem todas as condições são reconhecidas, usa-se "Criador de Apostas" para o confronto todo), selecao "Classificar + Inglaterra - Mais de 4.5" (nome do time preservado), odd 1.35
   Evento 2: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "EUA x Bósnia e Herzegovina", mercado "Intervalo", selecao "1", odd 1.37
 → Nota: "1º Tempo - Finalizações 1X2" na Superbet corresponde ao mercado "Intervalo" na lista cadastrada.
 
