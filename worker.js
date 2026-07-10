@@ -81,32 +81,41 @@ FUTEBOL:
 "Ambas equipes Marcam" → quando o bilhete diz: Ambas Marcam, BTTS, Ambos Marcam
 "Arremessos Laterais" → quando o bilhete diz: Laterais, Total de Arremessos Laterais
 "Campeão" → quando o bilhete diz: Vencedor do Torneio, Campeão do Torneio
-"Cartões" → quando o bilhete diz: Total de Cartões, Cartões Amarelos, Cartões Totais
+"Cartões" → quando o bilhete diz: Total de Cartões, Cartões Amarelos, Cartões Totais — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Total de Cartões", veja a regra ESTATÍSTICAS POR TIME abaixo.
 "Chance Dupla" → quando o bilhete diz: Dupla Hipótese, Double Chance
 "Chance Dupla & Total de Gols" → quando o bilhete diz: Chance Dupla e Gols, Double Chance e Total de Gols
-"Chutes no gol" → quando o bilhete diz: Chutes, Finalizações ao Gol, Remates no Gol
+"Chutes no gol" → quando o bilhete diz: Chutes, Finalizações ao Gol, Remates no Gol — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Chutes no Gol", veja a regra ESTATÍSTICAS POR TIME abaixo.
 "Chutes no gol do jogador" → quando o bilhete diz: Chutes no Alvo do Jogador, Finalizações ao Gol do Jogador, Jogador - Chutes no Gol
 "Classificar" → quando o bilhete diz: Se Classificar, Avançar, Classificação
 "Criador de Apostas" → quando o bilhete diz: CRIAR APOSTA, Bet Builder, Aposta Personalizada, Combinada (criador de apostas de um único confronto)
-"Defesas" → quando o bilhete diz: Total de Defesas, Defesas do Goleiro
-"Desarmes" → quando o bilhete diz: Total de Desarmes, Tackles
+"Defesas" → quando o bilhete diz: Total de Defesas, Defesas do Goleiro — APENAS o total da PARTIDA (ambos os goleiros), SEM nome de time antes. Se vier como "<Time> - Total de Defesas", veja a regra ESTATÍSTICAS POR TIME abaixo.
+"Desarmes" → quando o bilhete diz: Total de Desarmes, Tackles — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Total de Desarmes", veja a regra ESTATÍSTICAS POR TIME abaixo.
 "Empate" → quando o bilhete diz: Empate Puro (apenas empate como mercado isolado)
 "Empate Anula" → quando o bilhete diz: Empate Anula Aposta, Draw No Bet, EAA
 "Equipe Com Mais Escanteios" → quando o bilhete diz: Mais Escanteios, Equipe com Mais Cantos
 "Equipe Com Mais Finalizações" → quando o bilhete diz: Mais Finalizações, Equipe com Mais Chutes
-"Escanteios" → quando o bilhete diz: Total de Escanteios, Cantos, Total de Cantos — APENAS o total da PARTIDA (ambos os times), SEM nome de time antes. Se vier como "<Time> - Total de Escanteios", veja a regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME abaixo.
+"Escanteios" → quando o bilhete diz: Total de Escanteios, Cantos, Total de Cantos — APENAS o total da PARTIDA (ambos os times), SEM nome de time antes. Se vier como "<Time> - Total de Escanteios", veja a regra ESTATÍSTICAS POR TIME abaixo.
 "Faixa de gols" → quando o bilhete diz: Intervalo de Gols, Faixa de Resultado em Gols
-"Faltas" → quando o bilhete diz: Total de Faltas, Faltas Cometidas
-"Finalizações" → quando o bilhete diz: Total de Finalizações, Total de Chutes, Chutes Totais, Finalizações Totais, Chutes (Betano), Total de Finalizações (Superbet) — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Total de Finalizações", veja a regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME abaixo.
+"Gols da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Gols" (estatística do time específico, não da partida)
+"Escanteios da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Escanteios" (estatística do time específico, não da partida)
+"Finalizações da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Finalizações" ou "<Nome do Time> - Total de Chutes" (estatística do time específico, não da partida)
+"Chutes no Gol da Equipe" → quando o bilhete diz: "<Nome do Time> - Chutes no Gol" ou "<Nome do Time> - Finalizações ao Gol" (estatística do time específico, não da partida)
+"Cartões da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Cartões" (estatística do time específico, não da partida)
+"Faltas da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Faltas" (estatística do time específico, não da partida)
+"Defesas da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Defesas" (estatística do time específico, não da partida)
+"Desarmes da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Desarmes" (estatística do time específico, não da partida)
+"Faltas" → quando o bilhete diz: Total de Faltas, Faltas Cometidas — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Total de Faltas", veja a regra ESTATÍSTICAS POR TIME abaixo.
+"Finalizações" → quando o bilhete diz: Total de Finalizações, Total de Chutes, Chutes Totais, Finalizações Totais, Chutes (Betano), Total de Finalizações (Superbet) — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Total de Finalizações", veja a regra ESTATÍSTICAS POR TIME abaixo.
 "Ganhar qualquer um dos Tempos" → quando o bilhete diz: Ganhar Algum Tempo, Vencer Pelo Menos Um Tempo
-"Gols" → quando o bilhete diz: Total de Gols, Total de Gols Mais/Menos (Betano), Total de Gols (Superbet), Mais/Menos Gols, Over/Under Gols — APENAS quando for o total de gols da PARTIDA (ambos os times somados), SEM nome de time antes. Se vier no formato "<Time> - Total de Gols", NÃO é este mercado — veja a regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME abaixo.
+"Gols" → quando o bilhete diz: Total de Gols, Total de Gols Mais/Menos (Betano), Total de Gols (Superbet), Mais/Menos Gols, Over/Under Gols — APENAS quando for o total de gols da PARTIDA (ambos os times somados), SEM nome de time antes. Se vier no formato "<Time> - Total de Gols", NÃO é este mercado — veja a regra ESTATÍSTICAS POR TIME abaixo.
 "Handicap" → quando o bilhete diz: Handicap Europeu, Handicap de Resultado
 "Handicap Asiático" → quando o bilhete diz: Asian Handicap, AH
 "Handicap de chutes no gol" → quando o bilhete diz: Handicap de Chutes, Handicap de Finalizações ao Gol
 "Handicap de escanteios" → quando o bilhete diz: Handicap de Cantos, Handicap de Escanteios
 "Handicap de Finalizações" → quando o bilhete diz: Handicap de Finalizações, Handicap Finalizações
 "Handicap de tiros de meta" → quando o bilhete diz: Handicap de Tiros de Meta, Handicap de Chutes de Meta
-"Impedimentos" → quando o bilhete diz: Total de Impedimentos, Offsides
+"Impedimentos" → quando o bilhete diz: Total de Impedimentos, Offsides — APENAS o total da PARTIDA, SEM nome de time antes. Se vier como "<Time> - Total de Impedimentos", veja a regra ESTATÍSTICAS POR TIME abaixo.
+"Impedimentos da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Impedimentos" (estatística do time específico, não da partida)
 "Intervalo" → quando o bilhete diz: Resultado no Intervalo, Placar ao Intervalo, 1º Tempo
 "Jogador" → quando o bilhete diz: Marcador, Jogador a Marcar, Assistência do Jogador, Estatística de Jogador
 "Placar" → quando o bilhete diz: Placar Exato, Resultado Exato
@@ -152,10 +161,10 @@ E-FOOTBALL:
 
 REGRA IMPORTANTE: Se o mercado do bilhete não tiver correspondência clara nesta lista, use o nome do mercado como aparece no bilhete — mas nesse caso use confianca baixa (abaixo de 0.5) para esse evento, indicando que é um mercado não mapeado.
 
-Regra especial — GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME (não confundir com o total da partida):
-- Quando o mercado aparecer no formato "<Nome do Time> - <Estatística>" (ex.: "França - Total de Gols", "Inglaterra - Total de Escanteios", "Atletic Escaldes - Total de Finalizações"), isso é a estatística DAQUELE TIME especificamente — NÃO é o total da partida (que somaria os dois times). São mercados diferentes, mesmo que o texto pareça parecido.
-- Esse formato ainda NÃO tem um mercado equivalente na lista cadastrada (a lista de hoje só cobre o total da partida para Gols/Escanteios/Finalizações). Portanto, para esse formato específico "<Time> - <Estatística>", use o nome do mercado como aparece no bilhete e confiança baixa (abaixo de 0.5) — isso faz o item cair como sugestão de mercado novo, para que o usuário confirme o nome definitivo antes de virar mercado cadastrado.
-- Em TODOS os casos desse formato, inclua o nome do time no campo "selecao", nunca deixe essa informação de fora. Ex.: se o bilhete mostra "Mais de 0.5" logo acima de "França - Total de Gols", a seleção correta é "França - Mais de 0.5" (ou "Mais de 0.5 (França)"), nunca apenas "Mais de 0.5" sozinho — sem o time, a aposta perde o sentido.
+Regra especial — ESTATÍSTICAS POR TIME (não confundir com o total da partida):
+- Quando o mercado aparecer no formato "<Nome do Time> - <Estatística>" (ex.: "França - Total de Gols", "Inglaterra - Total de Escanteios", "Atletic Escaldes - Total de Finalizações", "Real Madrid - Total de Cartões", "Boca Juniors - Total de Faltas", "River Plate - Total de Defesas", "Barcelona - Total de Desarmes", "Liverpool - Chutes no Gol", "Napoli - Total de Impedimentos"), isso é a estatística DAQUELE TIME especificamente — NÃO é o total da partida (que somaria os dois times). São mercados diferentes, mesmo que o texto pareça parecido.
+- Use o mercado fixo correspondente "<Estatística> da Equipe" (Gols da Equipe, Escanteios da Equipe, Finalizações da Equipe, Chutes no Gol da Equipe, Cartões da Equipe, Faltas da Equipe, Defesas da Equipe, Desarmes da Equipe ou Impedimentos da Equipe — todos já cadastrados, veja a tabela FUTEBOL acima) — NÃO trate como mercado novo/não mapeado, e não crie um mercado diferente para cada time (ex.: não use "Gols da França" e "Gols da Argentina" como mercados distintos; ambos são "Gols da Equipe").
+- SEMPRE inclua o nome do time no campo "selecao", nunca deixe essa informação de fora — é o que diferencia uma ocorrência da outra dentro do mesmo mercado fixo. Ex.: bilhete mostra "Mais de 1.5" logo acima de "França - Total de Gols" → mercado "Gols da Equipe", selecao "França - Mais de 1.5". Outro evento com "Mais de 0.5" acima de "Argentina - Total de Gols" → mercado "Gols da Equipe", selecao "Argentina - Mais de 0.5". Mesma lógica para as demais estatísticas por time.
 
 Regra especial — CRIADOR DE APOSTAS / MÚLTIPLAS CONDIÇÕES NO MESMO CONFRONTO:
 - Quando várias condições pertencem ao MESMO confronto (mesmos times, mesma data/hora de jogo), consolide em UM ÚNICO evento (um único item no array "eventos"), mas o campo "mercado" depende de cada condição já ter ou não um mercado reconhecido na lista de MAPEAMENTO DE MERCADOS:
@@ -259,7 +268,7 @@ ODDS TOTAIS1.84APOSTA2,00R$
 """
 → casa: Superbet, identificador: "890I-QD3MXC", dataHora: "2026-07-01T09:56", stake: 2.0, status: "Aberto"
 → 2 eventos (cada confronto é um evento separado):
-  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra x RD do Congo", mercado "Criador de Apostas" (pois "Se Classificar" é reconhecido como "Classificar", mas "Inglaterra - Total de Escanteios" é escanteios POR TIME — ver regra GOLS/ESCANTEIOS/FINALIZAÇÕES POR TIME — e ainda não tem mercado cadastrado equivalente; como nem todas as condições são reconhecidas, usa-se "Criador de Apostas" para o confronto todo), selecao "Classificar + Inglaterra - Mais de 4.5" (nome do time preservado), odd 1.35
+  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra x RD do Congo", mercado "Classificar, Escanteios da Equipe" (ambos reconhecidos — "Se Classificar" → "Classificar", "Inglaterra - Total de Escanteios" → "Escanteios da Equipe" — por isso NÃO usa "Criador de Apostas" aqui), selecao "Classificar + Inglaterra - Mais de 4.5" (nome do time preservado), odd 1.35
   Evento 2: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "EUA x Bósnia e Herzegovina", mercado "Intervalo", selecao "1", odd 1.37
 → Nota: "1º Tempo - Finalizações 1X2" na Superbet corresponde ao mercado "Intervalo" na lista cadastrada.
 
