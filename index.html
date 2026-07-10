@@ -2604,12 +2604,19 @@ function reaplicarItemNoFormulario(item, valorFinal) {
             }
         }
 
-        if (item.field === 'mercado' && ev.esporte === item.esporte && ev.mercado === item.valor) {
+        if (item.field === 'mercado' && ev.esporte === item.esporte &&
+            (ev.mercado || '').split(',').map(m => m.trim()).includes(item.valor)) {
             const merDiv = bloco.querySelector('.mercado');
             if (merDiv) {
+                // Reconstrói as opções mas preserva os mercados já marcados nesse
+                // evento antes de adicionar o recém-aprovado (evita desmarcar
+                // outros mercados que já estavam certos nessa mesma lista).
+                const jaMarcados = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
                 merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v => `<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
-                const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === valorFinal);
-                if (cb) { cb.checked = true; marcarCampoComoNovo(merDiv); }
+                Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
+                    if (jaMarcados.includes(cb.value) || cb.value === valorFinal) cb.checked = true;
+                });
+                marcarCampoComoNovo(merDiv);
             }
         }
     });
@@ -2660,8 +2667,14 @@ function preencherFormularioComExtracao(dados, origem) {
         }
         if (ev.mercado && ev.esporte) {
             const mercadosExibicao = mercadosDoEsporte(ev.esporte).map(mercadoNomeExibicao);
-            const r = buscarOuPrepararValor(mercadosExibicao, ev.mercado);
-            if (!r.duplicado) itensNovos.push({ field: 'mercado', valor: r.valor, esporte: ev.esporte });
+            // ev.mercado pode vir como lista separada por vírgula quando o bilhete
+            // combina vários mercados já reconhecidos no mesmo evento (ex.: "Gols, Jogador").
+            // Cada um precisa ser checado individualmente contra as listas — nunca a
+            // string inteira de uma vez, senão ela nunca vai "bater" com nada.
+            ev.mercado.split(',').map(m => m.trim()).filter(Boolean).forEach(nomeMercado => {
+                const r = buscarOuPrepararValor(mercadosExibicao, nomeMercado);
+                if (!r.duplicado) itensNovos.push({ field: 'mercado', valor: r.valor, esporte: ev.esporte });
+            });
         }
     });
 
@@ -2745,15 +2758,21 @@ function preencherFormularioComExtracao(dados, origem) {
 
             // Mercado
             if (ev.mercado && ev.esporte) {
-                const r = buscarOuPrepararValor(mercadosDoEsporte(ev.esporte).map(mercadoNomeExibicao), ev.mercado);
+                const mercadosExibicao = mercadosDoEsporte(ev.esporte).map(mercadoNomeExibicao);
+                const nomesMercado = ev.mercado.split(',').map(m => m.trim()).filter(Boolean);
                 const merDiv = bloco.querySelector('.mercado');
                 merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v=>`<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
-                const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor);
-                if (cb) {
-                    cb.checked = true;
-                } else if (itensNovos.some(i => i.field === 'mercado' && i.valor === r.valor && i.esporte === ev.esporte)) {
-                    marcarCampoBaixaConfianca(merDiv);
-                }
+                let algumPendente = false;
+                nomesMercado.forEach(nomeMercado => {
+                    const r = buscarOuPrepararValor(mercadosExibicao, nomeMercado);
+                    const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor);
+                    if (cb) {
+                        cb.checked = true;
+                    } else if (itensNovos.some(i => i.field === 'mercado' && i.valor === r.valor && i.esporte === ev.esporte)) {
+                        algumPendente = true;
+                    }
+                });
+                if (algumPendente) marcarCampoBaixaConfianca(merDiv);
             }
 
             // Seleção e Odd
