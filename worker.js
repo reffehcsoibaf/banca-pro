@@ -93,6 +93,7 @@ FUTEBOL:
 "Empate" → quando o bilhete diz: Empate Puro (apenas empate como mercado isolado)
 "Empate Anula" → quando o bilhete diz: Empate Anula Aposta, Draw No Bet, EAA
 "Equipe Com Mais Escanteios" → quando o bilhete diz: Mais Escanteios, Equipe com Mais Cantos
+"Equipe Com Mais Chutes no Gol" → quando o bilhete diz: Mais Chutes no Gol, Equipe com Mais Chutes ao Gol, Equipe Com Mais Chutes no Gol (1X2) — diferente de "Equipe Com Mais Finalizações" (finalizações totais x chutes especificamente no gol/no alvo são estatísticas diferentes)
 "Equipe Com Mais Finalizações" → quando o bilhete diz: Mais Finalizações, Equipe com Mais Chutes
 "Escanteios" → quando o bilhete diz: Total de Escanteios, Cantos, Total de Cantos — APENAS o total da PARTIDA (ambos os times), SEM nome de time antes. Se vier como "<Time> - Total de Escanteios", veja a regra ESTATÍSTICAS POR TIME abaixo.
 "Faixa de gols" → quando o bilhete diz: Intervalo de Gols, Faixa de Resultado em Gols
@@ -161,12 +162,19 @@ E-FOOTBALL:
 
 REGRA IMPORTANTE: Se o mercado do bilhete não tiver correspondência clara nesta lista, use o nome do mercado como aparece no bilhete — mas nesse caso use confianca baixa (abaixo de 0.5) para esse evento, indicando que é um mercado não mapeado.
 
+Regra especial — TIME REFERENCIADO POR NÚMERO (1 OU 2) EM VEZ DO NOME:
+- Em mercados de escolha entre os dois times do confronto (ex.: "Classificar", "Resultado", "Resultado Final", "Vencedor", "Chance Dupla" quando aparecem como opção simples, "Equipe Com Mais X (1X2)"), a Superbet às vezes mostra apenas o número "1" ou "2" como seleção, em vez do nome do time.
+- "1" = o PRIMEIRO time listado no confronto (o que aparece em cima/primeiro). "2" = o SEGUNDO time listado (embaixo/depois). Ex.: confronto "Espanha / Bélgica" com condição "1 → Se Classificar": Espanha é o primeiro time listado, então a seleção correta é "Espanha" (mercado "Classificar").
+- Ao montar o campo "selecao", troque o número pelo nome real do time — nunca deixe "1" ou "2" sozinho no campo seleção.
+- Essa substituição vale SÓ para mercados de escolha entre times. Se um número solto aparecer perto de um mercado de jogador, total de gols/escanteios/cartões etc. (que não são "escolha de time"), NÃO interprete esse número como referência a um time — ele não faz parte da seleção nesses casos.
+
 Regra especial — ESTATÍSTICAS POR TIME (não confundir com o total da partida):
 - Quando o mercado aparecer no formato "<Nome do Time> - <Estatística>" (ex.: "França - Total de Gols", "Inglaterra - Total de Escanteios", "Atletic Escaldes - Total de Finalizações", "Real Madrid - Total de Cartões", "Boca Juniors - Total de Faltas", "River Plate - Total de Defesas", "Barcelona - Total de Desarmes", "Liverpool - Chutes no Gol", "Napoli - Total de Impedimentos"), isso é a estatística DAQUELE TIME especificamente — NÃO é o total da partida (que somaria os dois times). São mercados diferentes, mesmo que o texto pareça parecido.
 - Use o mercado fixo correspondente "<Estatística> da Equipe" (Gols da Equipe, Escanteios da Equipe, Finalizações da Equipe, Chutes no Gol da Equipe, Cartões da Equipe, Faltas da Equipe, Defesas da Equipe, Desarmes da Equipe ou Impedimentos da Equipe — todos já cadastrados, veja a tabela FUTEBOL acima) — NÃO trate como mercado novo/não mapeado, e não crie um mercado diferente para cada time (ex.: não use "Gols da França" e "Gols da Argentina" como mercados distintos; ambos são "Gols da Equipe").
 - SEMPRE inclua o nome do time no campo "selecao", nunca deixe essa informação de fora — é o que diferencia uma ocorrência da outra dentro do mesmo mercado fixo. Ex.: bilhete mostra "Mais de 1.5" logo acima de "França - Total de Gols" → mercado "Gols da Equipe", selecao "França - Mais de 1.5". Outro evento com "Mais de 0.5" acima de "Argentina - Total de Gols" → mercado "Gols da Equipe", selecao "Argentina - Mais de 0.5". Mesma lógica para as demais estatísticas por time.
 
 Regra especial — CRIADOR DE APOSTAS / MÚLTIPLAS CONDIÇÕES NO MESMO CONFRONTO:
+- IMPORTANTE: o rótulo "CRIAR APOSTA" (ou "CRIADOR DE APOSTAS", "Bet Builder") que aparece no bilhete é só o nome da FUNCIONALIDADE do aplicativo usada para montar a aposta — ele NÃO significa automaticamente que o campo "mercado" de saída deve ser "Criador de Apostas". Verifique cuidadosamente CADA condição individual contra a tabela de MAPEAMENTO DE MERCADOS (incluindo os mercados "da Equipe" e os de escolha por número 1/2) antes de decidir. Na maioria dos bilhetes, as condições já têm mercado reconhecido — não pule direto para "Criador de Apostas" só porque viu esse rótulo na tela.
 - Quando várias condições pertencem ao MESMO confronto (mesmos times, mesma data/hora de jogo), consolide em UM ÚNICO evento (um único item no array "eventos"), mas o campo "mercado" depende de cada condição já ter ou não um mercado reconhecido na lista de MAPEAMENTO DE MERCADOS:
   1. PRIMEIRO tente mapear o mercado de CADA condição individualmente pela tabela de MAPEAMENTO DE MERCADOS (ex.: "Total de Gols" → "Gols", "Total de Escanteios" → "Escanteios").
   2. Se TODAS as condições do confronto tiverem mercado reconhecido: "mercado" = os nomes reconhecidos, na ordem do bilhete, separados por ", " (ex.: "Gols, Escanteios"). NÃO use "Criador de Apostas" nesse caso — o Banca Pro já permite marcar múltiplos mercados no mesmo evento, então prefira sempre os nomes reais dos mercados quando eles existem na lista.
