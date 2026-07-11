@@ -4,6 +4,15 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.4.0 — 11/07/2026
+
+### Acessibilidade
+- Novo arquivo `changelog.html`: o histórico de versões agora também existe como página web,
+  com títulos estruturados (H1/H2/H3) navegáveis por leitor de tela — alternativa ao
+  `CHANGELOG.md`, que só é confortável de ler em editores de texto simples como o Bloco de Notas.
+- Link "🗒️ Versões" adicionado no cabeçalho do app (ao lado de "📖 Guia") e também na tela de
+  login, apontando para essa nova página.
+
 ## v1.3.0 — 11/07/2026
 
 ### Leitor de Bilhete (IA)

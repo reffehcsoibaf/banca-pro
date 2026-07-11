@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banca Pro — Histórico de Versões</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink:        #1a1a2e;
+    --ink-light:  #3d3d5c;
+    --ink-muted:  #7a7a9a;
+    --surface:    #ffffff;
+    --surface-2:  #f4f4f8;
+    --surface-3:  #eaeaf2;
+    --accent:     #2563eb;
+    --border:     #d1d1e0;
+    --radius:     6px;
+    --font-body:  Georgia, 'Times New Roman', serif;
+    --font-ui:    'Segoe UI', system-ui, sans-serif;
+    --font-code:  'Courier New', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e8e8f4; --ink-light: #b8b8d4; --ink-muted: #7a7a9a;
+      --surface: #12121e; --surface-2: #1a1a2e; --surface-3: #22223a;
+      --accent: #60a5fa; --border: #2e2e4a;
+    }
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--ink);
+    background: var(--surface);
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  .skip-link {
+    position: absolute; top: -100px; left: 1rem;
+    background: var(--accent); color: #fff;
+    padding: 8px 16px; border-radius: var(--radius);
+    font-family: var(--font-ui); font-size: 14px; z-index: 9999;
+  }
+  .skip-link:focus { top: 1rem; }
+
+  .voltar {
+    display: inline-block;
+    font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+    color: var(--accent); text-decoration: none; margin-bottom: 1.5rem;
+  }
+  .voltar:hover, .voltar:focus { text-decoration: underline; }
+
+  h1 {
+    font-family: var(--font-ui); font-size: 1.8rem; font-weight: 800;
+    letter-spacing: -.5px; margin-bottom: .35rem;
+  }
+  .lead {
+    font-family: var(--font-ui); font-size: 14px; color: var(--ink-muted);
+    margin-bottom: 2.5rem; line-height: 1.6;
+  }
+
+  h2 {
+    font-family: var(--font-ui); font-size: 1.2rem; font-weight: 700;
+    color: var(--ink); margin: 2.5rem 0 .25rem;
+    padding-top: .25rem; scroll-margin-top: 1rem;
+  }
+  .versao-data { font-family: var(--font-ui); font-size: 12.5px; color: var(--ink-muted); margin-bottom: 1rem; }
+
+  h3 {
+    font-family: var(--font-ui); font-size: 1rem; font-weight: 700;
+    color: var(--accent); margin: 1.25rem 0 .5rem;
+  }
+
+  p { margin-bottom: 1rem; font-size: 15px; }
+
+  ul { padding-left: 1.4rem; margin-bottom: 1rem; }
+  li { margin-bottom: .6rem; font-size: 15px; line-height: 1.7; }
+  li ul { margin-top: .4rem; margin-bottom: .4rem; }
+
+  code {
+    font-family: var(--font-code); font-size: .9em;
+    background: var(--surface-3); padding: 1px 5px; border-radius: 4px;
+  }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+
+  .nota {
+    font-family: var(--font-ui); font-size: 13.5px; color: var(--ink-muted);
+    border-left: 3px solid var(--border); padding-left: 1rem; margin: 1.25rem 0;
+    font-style: italic;
+  }
+
+  .rodape-guia {
+    font-family: var(--font-ui); font-size: 13px; color: var(--ink-muted);
+    margin-top: 3rem;
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+<a href="index.html" class="voltar">← Voltar para o Banca Pro</a>
+
+<main id="conteudo">
+  <h1>Histórico de Versões</h1>
+  <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
+
+  <h2 id="v1-4-0">v1.4.0</h2>
+  <p class="versao-data">11/07/2026</p>
+  <h3>Acessibilidade</h3>
+  <ul>
+    <li>Esta página (<code>changelog.html</code>) foi criada: o histórico de versões agora também existe como página web, com títulos estruturados navegáveis por leitor de tela — alternativa ao arquivo <code>CHANGELOG.md</code>, que só é confortável de ler em editores de texto simples como o Bloco de Notas.</li>
+    <li>Link "🗒️ Versões" adicionado no cabeçalho do app (ao lado de "📖 Guia") e também na tela de login, apontando para esta página.</li>
+  </ul>
+
+  <h2 id="v1-3-0">v1.3.0</h2>
+  <p class="versao-data">11/07/2026</p>
+  <h3>Leitor de Bilhete (IA)</h3>
+  <ul>
+    <li>O campo Tipo (Ao Vivo / Pré Live) agora é preenchido automaticamente pela IA ao ler um bilhete por foto ou texto. A detecção usa sinais como cronômetro de partida em andamento (ex.: "14'", "1°T"), placar parcial visível ou rótulos explícitos de "AO VIVO"/"LIVE". Quando nenhum sinal desses aparece, o campo é preenchido como "Pré Live" por padrão. Continua totalmente editável antes de salvar, como qualquer outro campo preenchido pela extração.</li>
+  </ul>
+
+  <h2 id="v1-2-0">v1.2.0</h2>
+  <p class="versao-data">11/07/2026</p>
+  <h3>Leitor de Bilhete (IA)</h3>
+  <ul>
+    <li>Rótulo "DICAS DE APOSTA" (Superbet) agora é reconhecido e ignorado como texto de interface, igual já acontecia com "CRIAR APOSTA" — não é mais confundido com dado da aposta.</li>
+    <li>Novo reconhecimento do mercado "Cada Equipe Mais de X &lt;Estatística&gt;" (ex.: cartões, gols, escanteios, faltas, finalizações, chutes no gol, desarmes, impedimentos, defesas): a IA agora identifica corretamente esse formato — que pergunta se ambos os times superam individualmente um valor de referência — e preenche o mercado correto com a seleção descrevendo a condição completa (ex.: mercado "Cartões", seleção "Mais de 0.5 cartões para cada equipe - Sim").</li>
+  </ul>
+
+  <h2 id="v1-1-0">v1.1.0</h2>
+  <p class="versao-data">11/07/2026</p>
+  <h3>Leitor de Bilhete (IA)</h3>
+  <ul>
+    <li>Nova regra para condições restritas a uma etapa da partida (1º/2º Tempo no futebol; quarto específico ou metade do jogo no basquete):
+      <ul>
+        <li>Futebol: a estatística (Finalizações, Escanteios, Gols, Cartões, Faltas, Chutes no Gol, Impedimentos, Desarmes, Defesas etc.) recebe o sufixo <code>HT</code> (1º Tempo) ou <code>2T</code> (2º Tempo) na seleção, e o mercado "Intervalo" passa a ser marcado junto com o mercado da estatística.</li>
+        <li>Basquete: quando a condição é de um quarto específico (Pontos, Assistências, Rebotes, Cestas de 3 Pontos etc.), a seleção recebe o sufixo <code>Q1</code>/<code>Q2</code>/<code>Q3</code>/<code>Q4</code> e o mercado "Quarto" passa a ser marcado junto. Quando é referente a uma metade do jogo (não um quarto específico), usa o mesmo sufixo <code>HT</code>/<code>2T</code> do futebol, sem marcar mercado extra.</li>
+        <li>A regra combina normalmente com estatísticas por jogador ou por equipe, marcando todos os mercados aplicáveis ao mesmo tempo.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2 id="v1-0-0">v1.0.0</h2>
+  <p class="versao-data">10/07/2026</p>
+  <p>Primeira versão com número de versão rastreado. Este marco reúne o que já estava em produção até esta data, com base no que foi acompanhado nas conversas mais recentes:</p>
+
+  <h3>Navegação</h3>
+  <ul>
+    <li>App reorganizado em abas no topo — Cadastro, Filtros, Lista, Saldos e Configurações — funcionando igual em desktop e celular (antes só o celular tinha navegação por abas, com uma barra fixa embaixo da tela; o desktop mostrava tudo empilhado). A barra inferior do celular foi removida.</li>
+    <li>Navegação por teclado nas abas (setas ←→, Home/End) e anúncio da aba selecionada para leitor de tela.</li>
+  </ul>
+
+  <h3>Leitor de Bilhete (IA)</h3>
+  <ul>
+    <li>Leitura automática de bilhetes de aposta via foto/print ou texto colado, pré-preenchendo o formulário de cadastro (casa, data/hora, stake, status, eventos com esporte/liga/mercado/seleção/odd).</li>
+    <li>Estratégia de provedor: tenta Google Gemini primeiro (gratuito), com fallback automático para Anthropic Claude se o Gemini falhar.</li>
+    <li>Mapeamento de mercados e sugestão de opções que ainda não existem nas listas do Banca Pro, exibidas como chips clicáveis para adicionar rapidamente.</li>
+  </ul>
+
+  <h3>Infraestrutura</h3>
+  <ul>
+    <li>Hospedado em Cloudflare Workers (arquivos estáticos + rota <code>/api/ler-bilhete</code>).</li>
+    <li>Chaves de API (Gemini, Anthropic) nunca ficam no navegador — vivem só como variáveis de ambiente no Cloudflare.</li>
+  </ul>
+
+  <p class="nota">Nota: como o rastreamento de versão começa nesta versão, este primeiro registro é um resumo do estado atual, não um histórico completo de tudo que já foi feito desde o início do projeto. A partir daqui, toda mudança relevante entra como uma entrada nova.</p>
+
+  <hr>
+
+  <h2 id="como-usar">Como este histórico é mantido</h2>
+  <p>A cada mudança relevante entregue, uma nova versão é adicionada no topo desta página, seguindo o padrão <code>vX.Y.Z</code>:</p>
+  <ul>
+    <li><strong>X (major)</strong> — mudança estrutural grande ou que quebra algo do funcionamento anterior.</li>
+    <li><strong>Y (minor)</strong> — novo recurso.</li>
+    <li><strong>Z (patch)</strong> — correção de bug ou ajuste pequeno.</li>
+  </ul>
+  <p class="rodape-guia">O rodapé do Banca Pro é atualizado junto, na mesma entrega, para sempre bater com o número mostrado aqui.</p>
+</main>
+
+</body>
+</html>
