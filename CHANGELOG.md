@@ -4,6 +4,21 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.1.0 — 11/07/2026
+
+### Leitor de Bilhete (IA)
+- Nova regra para condições restritas a uma etapa da partida (1º/2º Tempo no futebol; quarto
+  específico ou metade do jogo no basquete):
+  - Futebol: a estatística (Finalizações, Escanteios, Gols, Cartões, Faltas, Chutes no Gol,
+    Impedimentos, Desarmes, Defesas etc.) recebe o sufixo `HT` (1º Tempo) ou `2T` (2º Tempo) na
+    seleção, e o mercado "Intervalo" passa a ser marcado junto com o mercado da estatística.
+  - Basquete: quando a condição é de um quarto específico (Pontos, Assistências, Rebotes, Cestas
+    de 3 Pontos etc.), a seleção recebe o sufixo `Q1`/`Q2`/`Q3`/`Q4` e o mercado "Quarto" passa a
+    ser marcado junto. Quando é referente a uma metade do jogo (não um quarto específico), usa o
+    mesmo sufixo `HT`/`2T` do futebol, sem marcar mercado extra.
+  - A regra combina normalmente com estatísticas por jogador ou por equipe, marcando todos os
+    mercados aplicáveis ao mesmo tempo.
+
 ## v1.0.0 — 10/07/2026
 
 Primeira versão com número de versão rastreado. Este marco reúne o que já estava em produção até
