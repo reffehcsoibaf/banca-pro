@@ -4,6 +4,26 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.3.0 — 11/07/2026
+
+### Leitor de Bilhete (IA)
+- O campo Tipo (Ao Vivo / Pré Live) agora é preenchido automaticamente pela IA ao ler um bilhete
+  por foto ou texto. A detecção usa sinais como cronômetro de partida em andamento (ex.: "14'",
+  "1°T"), placar parcial visível ou rótulos explícitos de "AO VIVO"/"LIVE". Quando nenhum sinal
+  desses aparece, o campo é preenchido como "Pré Live" por padrão. Continua totalmente editável
+  antes de salvar, como qualquer outro campo preenchido pela extração.
+
+## v1.2.0 — 11/07/2026
+
+### Leitor de Bilhete (IA)
+- Rótulo "DICAS DE APOSTA" (Superbet) agora é reconhecido e ignorado como texto de interface,
+  igual já acontecia com "CRIAR APOSTA" — não é mais confundido com dado da aposta.
+- Novo reconhecimento do mercado "Cada Equipe Mais de X <Estatística>" (ex.: cartões, gols,
+  escanteios, faltas, finalizações, chutes no gol, desarmes, impedimentos, defesas): a IA agora
+  identifica corretamente esse formato — que pergunta se AMBOS os times superam individualmente
+  um valor de referência — e preenche o mercado correto com a seleção descrevendo a condição
+  completa (ex.: mercado "Cartões", seleção "Mais de 0.5 cartões para cada equipe - Sim").
+
 ## v1.1.0 — 11/07/2026
 
 ### Leitor de Bilhete (IA)

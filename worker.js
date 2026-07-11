@@ -21,6 +21,7 @@ const SCHEMA_JSON = `
   "casa": "string ou null (nome da casa de apostas, ex: Betano, Superbet, Betfair)",
   "identificador": "string ou null (número/código do bilhete, se visível)",
   "dataHora": "string no formato AAAA-MM-DDTHH:MM ou null (ver regra DATA DE REGISTRO abaixo)",
+  "tipo": "uma destas strings: Ao Vivo, Pré Live (ver regra TIPO DA APOSTA abaixo)",
   "stake": "number ou null (valor apostado, só o número, sem moeda)",
   "status": "uma destas strings ou null: Aberto, Ganhou, Perdeu, Ganho Parcial, Perda Parcial, Cash Out, Anulada",
   "observacao": "string ou null (placar final ou resultado, se visível)",
@@ -40,6 +41,7 @@ const SCHEMA_JSON = `
     "casa": "number entre 0 e 1",
     "identificador": "number entre 0 e 1",
     "dataHora": "number entre 0 e 1",
+    "tipo": "number entre 0 e 1",
     "stake": "number entre 0 e 1",
     "status": "number entre 0 e 1"
   }
@@ -173,6 +175,13 @@ Regra especial — ESTATÍSTICAS POR TIME (não confundir com o total da partida
 - Use o mercado fixo correspondente "<Estatística> da Equipe" (Gols da Equipe, Escanteios da Equipe, Finalizações da Equipe, Chutes no Gol da Equipe, Cartões da Equipe, Faltas da Equipe, Defesas da Equipe, Desarmes da Equipe ou Impedimentos da Equipe — todos já cadastrados, veja a tabela FUTEBOL acima) — NÃO trate como mercado novo/não mapeado, e não crie um mercado diferente para cada time (ex.: não use "Gols da França" e "Gols da Argentina" como mercados distintos; ambos são "Gols da Equipe").
 - SEMPRE inclua o nome do time no campo "selecao", nunca deixe essa informação de fora — é o que diferencia uma ocorrência da outra dentro do mesmo mercado fixo. Ex.: bilhete mostra "Mais de 1.5" logo acima de "França - Total de Gols" → mercado "Gols da Equipe", selecao "França - Mais de 1.5". Outro evento com "Mais de 0.5" acima de "Argentina - Total de Gols" → mercado "Gols da Equipe", selecao "Argentina - Mais de 0.5". Mesma lógica para as demais estatísticas por time.
 
+Regra especial — MERCADO "CADA EQUIPE" (condição combinada para as duas equipes ao mesmo tempo):
+- Alguns mercados no formato "Cada Equipe Mais de X <Estatística>" (ex.: "Cada Equipe Mais de X Cartões", "Cada Equipe Mais de X Escanteios", "Cada Equipe Mais de X Gols", "Cada Equipe Mais de X Faltas") perguntam se AMBOS os times, cada um individualmente, vão superar um mesmo valor — é diferente do mercado "<Estatística> da Equipe" (que trata de UM time específico) e diferente do mercado "<Estatística>" total da partida (soma dos dois times).
+- No bilhete, esse mercado aparece com o valor de referência e o resultado apostado em linhas separadas, ex.: "Mais de 0.5 - Sim" logo acima de "Cada Equipe Mais de X Cartões" — nesse caso "0.5" é o valor de referência e "Sim" é a seleção escolhida (também pode aparecer "Não").
+- Use o mesmo mercado base já mapeado na tabela (ex.: "Cartões", "Gols", "Escanteios", "Faltas", "Finalizações", "Chutes no gol", "Desarmes", "Impedimentos", "Defesas") — NÃO crie um mercado novo chamado "Cada Equipe" nem trate como "Criador de Apostas" só por causa desse formato.
+- Monte a seleção descrevendo a condição por completo, no formato "Mais de {valor} <estatística no plural, minúsculo> para cada equipe - {Sim ou Não}". Ex.: valor "0.5", resultado "Sim", estatística "Cartões" → mercado "Cartões", selecao "Mais de 0.5 cartões para cada equipe - Sim". Outro exemplo: "Cada Equipe Mais de X Escanteios" com "Mais de 3.5 - Não" → mercado "Escanteios", selecao "Mais de 3.5 escanteios para cada equipe - Não".
+- Essa regra vale igualmente para qualquer estatística do combo mencionado nas regras de ESTATÍSTICAS POR TIME acima (gols, escanteios, finalizações, chutes no gol, cartões, faltas, defesas, desarmes, impedimentos) sempre que o bilhete usar o formato "Cada Equipe" em vez de nomear um time específico.
+
 Regra especial — CONDIÇÃO RESTRITA A UMA ETAPA DA PARTIDA (1º/2º Tempo no futebol, Quartos/Metades no basquete):
 - Estatísticas de partida, de equipe ou de jogador (Finalizações, Impedimentos, Desarmes, Escanteios, Gols, Faltas, Chutes no Gol, Cartões, Defesas, Pontos, Assistências, Rebotes, Cestas de 3 Pontos etc.) às vezes vêm restritas a uma etapa específica do jogo, em vez de valerem pela partida inteira. Isso aparece no bilhete como um prefixo indicando a etapa antes do nome da estatística, ex.: "1º Tempo - Finalizações", "2º Tempo - Escanteios", "3º Quarto - Pontos", "1º Quarto - Assistências do Jogador".
 - Em TODOS os casos abaixo, o mercado da estatística em si continua sendo o nome já mapeado normalmente pela tabela acima (ex.: "Finalizações", "Escanteios", "Gols da Equipe", "Pontos", "Assistências", "Rebotes") — a etapa NÃO renomeia nem substitui esse mercado.
@@ -188,7 +197,7 @@ Regra especial — CONDIÇÃO RESTRITA A UMA ETAPA DA PARTIDA (1º/2º Tempo no 
 - Essa regra de etapa combina normalmente com a regra de ESTATÍSTICAS POR TIME acima: se a condição também tiver nome de time/jogador junto com a etapa (ex.: "1º Tempo - Inglaterra - Total de Finalizações"), inclua o nome do time/jogador E o sufixo de etapa na seleção, na ordem "Time/Jogador - Valor Etapa", e marque todos os mercados aplicáveis (estatística correspondente + Intervalo/Quarto). Ex.: mercado "Finalizações da Equipe, Intervalo", selecao "Inglaterra - Menos de 5.5 HT".
 
 Regra especial — CRIADOR DE APOSTAS / MÚLTIPLAS CONDIÇÕES NO MESMO CONFRONTO:
-- IMPORTANTE: o rótulo "CRIAR APOSTA" (ou "CRIADOR DE APOSTAS", "Bet Builder") que aparece no bilhete é só o nome da FUNCIONALIDADE do aplicativo usada para montar a aposta — ele NÃO significa automaticamente que o campo "mercado" de saída deve ser "Criador de Apostas". Verifique cuidadosamente CADA condição individual contra a tabela de MAPEAMENTO DE MERCADOS (incluindo os mercados "da Equipe" e os de escolha por número 1/2) antes de decidir. Na maioria dos bilhetes, as condições já têm mercado reconhecido — não pule direto para "Criador de Apostas" só porque viu esse rótulo na tela.
+- IMPORTANTE: os rótulos "CRIAR APOSTA" (ou "CRIADOR DE APOSTAS", "Bet Builder") e "DICAS DE APOSTA" que aparecem no bilhete são apenas nomes de FUNCIONALIDADES ou seções do aplicativo usadas para montar/sugerir a aposta — eles NÃO significam automaticamente que o campo "mercado" de saída deve ser "Criador de Apostas", nem fazem parte de nenhum dado da aposta. Ignore esses rótulos como texto de interface. Verifique cuidadosamente CADA condição individual contra a tabela de MAPEAMENTO DE MERCADOS (incluindo os mercados "da Equipe", "Cada Equipe" e os de escolha por número 1/2) antes de decidir. Na maioria dos bilhetes, as condições já têm mercado reconhecido — não pule direto para "Criador de Apostas" só porque viu um desses rótulos na tela.
 - Quando várias condições pertencem ao MESMO confronto (mesmos times, mesma data/hora de jogo), consolide em UM ÚNICO evento (um único item no array "eventos"), mas o campo "mercado" depende de cada condição já ter ou não um mercado reconhecido na lista de MAPEAMENTO DE MERCADOS:
   1. PRIMEIRO tente mapear o mercado de CADA condição individualmente pela tabela de MAPEAMENTO DE MERCADOS (ex.: "Total de Gols" → "Gols", "Total de Escanteios" → "Escanteios").
   2. Se TODAS as condições do confronto tiverem mercado reconhecido: "mercado" = os nomes reconhecidos, na ordem do bilhete, separados por ", " (ex.: "Gols, Escanteios"). NÃO use "Criador de Apostas" nesse caso — o Banca Pro já permite marcar múltiplos mercados no mesmo evento, então prefira sempre os nomes reais dos mercados quando eles existem na lista.
@@ -208,6 +217,12 @@ Regra especial — SUPERBET NO APP MÓVEL (tela "Cupom de Aposta"):
 - Apostas de jogador aparecem no formato "Sobrenome, Nome - Mais de X" (ex.: "Messi, Lionel - Mais de 0.5"). Inverta para "Nome Sobrenome" ao compor a seleção final (ex.: "Lionel Messi - Mais de 0.5"), mantendo o mercado da linha de baixo (ex.: "Jogador - Chutes no Gol").
 - Pequenos ícones ao lado de alguma condição (ex.: escudo colorido) são apenas indicadores visuais da casa (ex.: aposta protegida) — ignore-os, não fazem parte do texto da seleção.
 - O cartão de resumo (identificador + data + odds totais + valor apostado) normalmente fica mais abaixo na tela, depois de todos os eventos — veja a regra de DATA DE REGISTRO e IDENTIFICADOR acima para o formato específico desse cartão.
+
+Regra especial — TIPO DA APOSTA (Ao Vivo ou Pré Live):
+- Se o bilhete mostrar qualquer sinal de que a aposta foi feita com a partida já em andamento — cronômetro rodando (ex.: "14'", "45+2'", "1°T 00", "2°T"), indicação de tempo/quarto/set atual do jogo, placar parcial sendo exibido junto ao confronto, ou rótulos explícitos como "AO VIVO", "LIVE", "IN-PLAY" — defina "tipo" como "Ao Vivo" e "confiancaGeral.tipo" alta (0.85 a 1.0).
+- Se não houver nenhum desses sinais (o bilhete mostra apenas a data/hora futura do jogo, sem cronômetro nem placar em andamento visível), defina "tipo" como "Pré Live" e "confiancaGeral.tipo" alta (0.8 a 1.0) — é o padrão mais comum quando não há indicação em contrário.
+- Se o bilhete for ambíguo (não fica claro se o jogo já começou ou não), defina "tipo" como "Pré Live" mas com "confiancaGeral.tipo" baixa (abaixo de 0.5), para sinalizar que precisa de revisão manual.
+- Cuidado para não confundir a data/hora do JOGO (que pode estar no futuro em relação ao momento da aposta, mesmo em bilhetes ao vivo antigos já resolvidos) com o cronômetro de partida em andamento — o cronômetro (minutos, "T" de tempo/quarto) é o sinal confiável de que era ao vivo no momento da aposta.
 
 Regras gerais:
 - Se não conseguir identificar um campo com segurança, use null e dê confiança baixa — não invente valores.

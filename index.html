@@ -1270,7 +1270,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.1.0 · 11/07/2026
+  Banca Pro · v1.3.0 · 11/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2729,6 +2729,15 @@ function preencherFormularioComExtracao(dados, origem) {
             if (radio) {
                 radio.checked = true;
                 if ((conf.status ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('rg-status')); camposParaRevisar.push('Status'); }
+            }
+        }
+
+        // ---- Tipo (Ao Vivo / Pré Live) ----
+        if (dados.tipo) {
+            const selTipo = document.getElementById('tipo');
+            if (selTipo && defaults.tipo.includes(dados.tipo)) {
+                selTipo.value = dados.tipo;
+                if ((conf.tipo ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(selTipo); camposParaRevisar.push('Tipo'); }
             }
         }
 
