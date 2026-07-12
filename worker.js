@@ -73,8 +73,18 @@ Regra especial — STATUS (não confundir opção de Cashout com status Cash Out
 - Da mesma forma, valores como "Valor do Cashout" e "Lucro" exibidos junto ao botão são apenas uma simulação do que seria pago SE o usuário optasse por sacar agora — não indicam o resultado real da aposta.
 
 Regra especial — LIGA:
-- Se a liga estiver escrita explicitamente no bilhete (como na Superbet), copie-a exatamente e use confiancaLiga alta (0.85-1.0).
-- Se a liga não estiver escrita, tente inferir pelo seu conhecimento sobre os times e a data do jogo. Use confiancaLiga baixa (0.3-0.5) para indicar que foi inferida. Se não tiver confiança mínima, deixe liga como null e confiancaLiga próxima de 0.
+- Se a liga estiver escrita explicitamente no bilhete (como na Superbet), copie-a exatamente e use confiancaLiga alta (0.85-1.0) — mesmo que o nome escrito seja um nome comercial de patrocínio.
+- Se a liga NÃO estiver escrita no bilhete (comum na Betano, que normalmente só mostra os nomes dos times): SEMPRE tente inferir pelo seu conhecimento dos times, do país e da data do jogo, antes de considerar null. Só deixe liga como null se genuinamente não reconhecer os times o suficiente para arriscar nem o país. Use confiancaLiga baixa (0.3-0.5) nesses casos de inferência, já que não é leitura direta do bilhete.
+- Ao inferir (ou seja, quando o bilhete não escreveu a liga), use SEMPRE o nome oficial/internacional da divisão nacional, no formato "País - Divisão" — NUNCA o nome comercial/de patrocínio da temporada (esses mudam a cada contrato e não devem ser usados como referência). Exemplos do formato esperado:
+  • Brasil, 1ª divisão → "Brasil - Série A" (não "Brasileirão", nem nomes de patrocinador)
+  • Itália, 1ª divisão → "Itália - Série A" (não "Serie A TIM" ou variações comerciais)
+  • Inglaterra, 1ª divisão → "Inglaterra - Premier League" (nome já é o oficial, sem patrocinador — não usar nomes de patrocínio que a competição já teve)
+  • Espanha, 1ª divisão → "Espanha - La Liga" (não usar nome de patrocinador atual)
+  • Alemanha, 1ª divisão → "Alemanha - Bundesliga"
+  • França, 1ª divisão → "França - Ligue 1"
+  • Segundas divisões seguem o mesmo padrão: "Brasil - Série B", "Inglaterra - Championship", "Itália - Serie B", etc.
+  • Copas nacionais e continentais usam o nome oficial do torneio, sem prefixo de país quando o torneio já é internacional por natureza (ex.: "Copa Libertadores", "Copa do Mundo 2026", "Champions League") — o prefixo "País - " vale só para ligas nacionais de pontos corridos/mata-mata interno.
+- Essa regra de nome oficial (sem patrocínio) vale tanto para inferência quanto como preferência geral: se o bilhete escrever um nome comercial óbvio de patrocínio (ex.: variações com nome de marca patrocinadora do campeonato), normalize para o nome oficial acima em vez de copiar literalmente — a exatidão do que está escrito no bilhete importa menos aqui do que manter a lista de ligas do Banca Pro estável ao longo das temporadas.
 
 Regra especial — MAPEAMENTO DE MERCADOS:
 O sistema já tem os seguintes mercados cadastrados. Quando o bilhete mostrar um mercado, use SEMPRE o nome correspondente desta lista — não invente nomes novos nem use o nome exato do bilhete se houver um equivalente aqui.
@@ -276,7 +286,7 @@ GanhosR$0,00
 """
 → casa: Betano, identificador: "6416780725", dataHora: "2024-10-26T11:29", stake: 3.07, status: "Perdeu"
 → 5 eventos: Grêmio vs Atlético-GO (mercado: "Resultado Final", selecao: "Grêmio", odd: 1.62), Palmeiras vs Fortaleza (mercado: "Resultado Final", selecao: "Palmeiras", odd: 1.40), Flamengo vs Juventude-RS (mercado: "Resultado Final", selecao: "Flamengo", odd: 1.38), Atlético-MG vs Internacional (mercado: "Handicap", selecao: "Internacional +1", odd: 1.33), Bragantino vs Botafogo-RJ (mercado: "Handicap", selecao: "Botafogo-RJ +1", odd: 1.31)
-→ liga: null para todos (Betano não mostra a liga no texto, mas tente inferir pelos times se possível, com confiancaLiga baixa)
+→ liga: a Betano não mostra a liga no texto, mas TODOS esses times são times brasileiros de futebol, então infira "Brasil - Série A" para todos (nome oficial, não "Brasileirão"), com confiancaLiga 0.4 (inferência, não leitura direta do bilhete). Esse é o comportamento esperado sempre que a Betano não escrever a liga: nunca deixe liga como null só porque não achou o texto — primeiro tente inferir pelos times.
 
 EXEMPLO 2 — Superbet, criador de apostas (múltiplas condições no mesmo confronto):
 """
