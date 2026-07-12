@@ -4,18 +4,13 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
-## v1.4.1 — 12/07/2026
+## v1.5.0 — 12/07/2026
 
-### Leitor de Bilhete (IA)
-- Corrigido: a Liga deixou de ser inferida em bilhetes de texto colado da Betano (que não escreve
-  a liga no texto). A causa era um exemplo de treinamento dentro do próprio prompt que mostrava
-  `liga: null` como resposta "correta" para esse caso — o modelo estava seguindo esse exemplo
-  concreto em vez da regra escrita. O exemplo foi corrigido para demonstrar a inferência esperada.
-- A inferência de liga agora usa preferencialmente o **nome oficial/internacional** da divisão
-  nacional, no formato "País - Divisão" (ex.: "Brasil - Série A", "Itália - Série A", "Inglaterra
-  - Premier League"), em vez de nomes comerciais de patrocínio, que mudam a cada temporada
-  conforme o contrato do campeonato. Copas e torneios já internacionais por natureza (Copa
-  Libertadores, Copa do Mundo, Champions League) continuam sem o prefixo de país.
+### Acessibilidade
+- Novos atalhos de teclado globais para trocar de aba de qualquer lugar da tela, sem precisar
+  navegar até a barra de abas primeiro: `Alt+1` (Cadastro), `Alt+2` (Filtros), `Alt+3` (Lista),
+  `Alt+4` (Saldos), `Alt+5` (Configurações). Funcionam mesmo com o foco dentro de um campo de
+  formulário. Documentados na tabela de atalhos do `wiki.html`.
 
 ## v1.4.0 — 11/07/2026
 

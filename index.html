@@ -876,11 +876,11 @@
 
     <!-- ===== NAVEGAÇÃO POR ABAS ===== -->
     <div class="tabs-nav" role="tablist" aria-label="Seções do Banca Pro" id="tabs-nav" onkeydown="navegarAbasTeclado(event)">
-        <button type="button" role="tab" class="tab-btn active" data-secao="cadastro" id="tab-btn-cadastro" aria-selected="true" aria-controls="sec-cadastro" tabindex="0" onclick="irPara('cadastro', this)"><span aria-hidden="true">📝</span> Cadastro</button>
-        <button type="button" role="tab" class="tab-btn" data-secao="filtros" id="tab-btn-filtros" aria-selected="false" aria-controls="sec-filtros" tabindex="-1" onclick="irPara('filtros', this)"><span aria-hidden="true">🔍</span> Filtros</button>
-        <button type="button" role="tab" class="tab-btn" data-secao="lista" id="tab-btn-lista" aria-selected="false" aria-controls="sec-lista" tabindex="-1" onclick="irPara('lista', this)"><span aria-hidden="true">📋</span> Lista</button>
-        <button type="button" role="tab" class="tab-btn" data-secao="saldos" id="tab-btn-saldos" aria-selected="false" aria-controls="sec-saldos" tabindex="-1" onclick="irPara('saldos', this)"><span aria-hidden="true">💰</span> Saldos</button>
-        <button type="button" role="tab" class="tab-btn" data-secao="config" id="tab-btn-config" aria-selected="false" aria-controls="sec-config" tabindex="-1" onclick="irPara('config', this)"><span aria-hidden="true">⚙️</span> Configurações</button>
+        <button type="button" role="tab" class="tab-btn active" data-secao="cadastro" id="tab-btn-cadastro" aria-selected="true" aria-controls="sec-cadastro" tabindex="0" aria-keyshortcuts="Alt+1" onclick="irPara('cadastro', this)"><span aria-hidden="true">📝</span> Cadastro</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="filtros" id="tab-btn-filtros" aria-selected="false" aria-controls="sec-filtros" tabindex="-1" aria-keyshortcuts="Alt+2" onclick="irPara('filtros', this)"><span aria-hidden="true">🔍</span> Filtros</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="lista" id="tab-btn-lista" aria-selected="false" aria-controls="sec-lista" tabindex="-1" aria-keyshortcuts="Alt+3" onclick="irPara('lista', this)"><span aria-hidden="true">📋</span> Lista</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="saldos" id="tab-btn-saldos" aria-selected="false" aria-controls="sec-saldos" tabindex="-1" aria-keyshortcuts="Alt+4" onclick="irPara('saldos', this)"><span aria-hidden="true">💰</span> Saldos</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="config" id="tab-btn-config" aria-selected="false" aria-controls="sec-config" tabindex="-1" aria-keyshortcuts="Alt+5" onclick="irPara('config', this)"><span aria-hidden="true">⚙️</span> Configurações</button>
     </div>
 
     <!-- ===== SEÇÃO: CADASTRO ===== -->
@@ -1274,7 +1274,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.4.1 · 12/07/2026
+  Banca Pro · v1.5.0 · 12/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1489,6 +1489,17 @@ function irPara(secao, btn) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     anunciar('Aba ' + (ROTULO_ABA_BANCA[secao] || secao) + ' selecionada.');
 }
+
+// ---- Atalho global Alt+1..5 para trocar de aba de qualquer lugar da tela ----
+document.addEventListener('keydown', function(e) {
+    if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    const mapa = { '1': 'cadastro', '2': 'filtros', '3': 'lista', '4': 'saldos', '5': 'config' };
+    const secao = mapa[e.key];
+    if (!secao) return;
+    e.preventDefault();
+    const btn = document.querySelector('.tab-btn[data-secao="' + secao + '"]');
+    if (btn) irPara(secao, btn);
+});
 
 function navegarAbasTeclado(e) {
     if (!['ArrowRight','ArrowLeft','Home','End'].includes(e.key)) return;
