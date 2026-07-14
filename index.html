@@ -1291,7 +1291,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.6.0 · 14/07/2026
+  Banca Pro · v1.6.1 · 14/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -3366,16 +3366,22 @@ function renderPaginacao(totalItens, totalPaginas, inicio, fim) {
 
     container.innerHTML = `
         <span style="font-size:13px;color:var(--text-secondary);">Mostrando ${inicio + 1}–${fim} de ${totalItens}</span>
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn-sm btn-outline" id="btnPrimeiraPagina" ${paginaAtualLista <= 1 ? 'disabled' : ''} aria-label="Primeira página">⏮ Primeira</button>
             <button type="button" class="btn-sm btn-outline" id="btnPaginaAnterior" ${paginaAtualLista <= 1 ? 'disabled' : ''} aria-label="Página anterior">← Anterior</button>
             <span style="font-size:13px;">Página ${paginaAtualLista} de ${totalPaginas}</span>
             <button type="button" class="btn-sm btn-outline" id="btnPaginaProxima" ${paginaAtualLista >= totalPaginas ? 'disabled' : ''} aria-label="Próxima página">Próxima →</button>
+            <button type="button" class="btn-sm btn-outline" id="btnUltimaPagina" ${paginaAtualLista >= totalPaginas ? 'disabled' : ''} aria-label="Última página">Última ⏭</button>
         </div>`;
 
+    const btnPrimeira = document.getElementById('btnPrimeiraPagina');
     const btnAnt = document.getElementById('btnPaginaAnterior');
     const btnProx = document.getElementById('btnPaginaProxima');
+    const btnUltima = document.getElementById('btnUltimaPagina');
+    if (btnPrimeira) btnPrimeira.addEventListener('click', () => irParaPaginaLista(1));
     if (btnAnt) btnAnt.addEventListener('click', () => irParaPaginaLista(paginaAtualLista - 1));
     if (btnProx) btnProx.addEventListener('click', () => irParaPaginaLista(paginaAtualLista + 1));
+    if (btnUltima) btnUltima.addEventListener('click', () => irParaPaginaLista(totalPaginas));
 }
 
 function irParaPaginaLista(novaPagina) {

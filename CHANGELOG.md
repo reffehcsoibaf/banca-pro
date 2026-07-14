@@ -4,6 +4,13 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.6.1 — 14/07/2026
+
+### Desempenho e Acessibilidade
+- Paginação da aba **Lista**: adicionados os botões "⏮ Primeira" e "Última ⏭", ao lado
+  de "← Anterior" e "Próxima →", permitindo saltar direto para o início ou o fim da
+  lista filtrada sem precisar clicar várias vezes em "Próxima".
+
 ## v1.6.0 — 14/07/2026
 
 ### Desempenho e Acessibilidade
