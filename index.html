@@ -1264,6 +1264,16 @@
         </div>
 
         <div class="card">
+            <h2>🔄 Aplicativo</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Se o app parecer travado, sem responder ou com dados desatualizados — especialmente quando instalado na tela inicial do celular, onde não existe barra de endereço para atualizar — use o botão abaixo. Também é possível puxar a tela para baixo estando no topo de qualquer aba.
+            </p>
+            <button class="btn btn-outline" onclick="recarregarApp()" aria-label="Recarregar o aplicativo" style="width:auto;">
+                🔄 Recarregar Aplicativo
+            </button>
+        </div>
+
+        <div class="card">
             <h2>💾 Dados</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Backup completo (apostas e lançamentos de saldo) e reset do sistema.
@@ -1291,7 +1301,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.6.1 · 14/07/2026
+  Banca Pro · v1.7.0 · 14/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1489,6 +1499,77 @@ function loadTheme() {
     });
 }
 function toggleTheme() { /* removido — tema segue preferência do sistema */ }
+
+/* ==================== RECARREGAR APLICATIVO ====================
+   Útil principalmente quando o app é adicionado à tela inicial do celular
+   (modo "standalone"), onde não existe barra de endereço nem F5 para
+   forçar uma atualização manual. Duas formas de acionar:
+   1. Botão "🔄 Recarregar Aplicativo" em Configurações (sempre funciona,
+      inclusive por teclado/leitor de tela).
+   2. Gesto de puxar a tela para baixo estando no topo da página. */
+function recarregarApp() {
+    window.location.reload();
+}
+
+(function configurarPullToRefresh() {
+    const LIMIAR_PX = 70; // distância mínima de puxão para disparar a atualização
+
+    let indicador = null;
+    let startY = null;
+    let puxando = false;
+    let prontoPraSoltar = false;
+
+    function criarIndicador() {
+        if (indicador) return indicador;
+        indicador = document.createElement('div');
+        indicador.id = 'pullToRefreshIndicador';
+        indicador.setAttribute('aria-hidden', 'true'); // decorativo; o recarregamento em si é anunciado por anunciar()
+        indicador.style.cssText = `
+            position: fixed; top: 0; left: 50%; transform: translate(-50%, -100%);
+            background: var(--primary); color: #fff; font-family: var(--font);
+            font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 0 0 12px 12px;
+            box-shadow: var(--shadow); z-index: 5000; transition: transform .15s ease;
+            display: flex; align-items: center; gap: 6px; pointer-events: none;`;
+        indicador.textContent = '↓ Puxe para atualizar';
+        document.body.appendChild(indicador);
+        return indicador;
+    }
+
+    document.addEventListener('touchstart', (e) => {
+        // Só inicia o gesto se a página já estiver no topo (scroll zero) —
+        // evita conflito com o scroll normal de listas e tabelas.
+        if (window.scrollY > 0 || e.touches.length !== 1) { startY = null; return; }
+        startY = e.touches[0].clientY;
+        puxando = false;
+        prontoPraSoltar = false;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (startY === null || window.scrollY > 0) return;
+        const diff = e.touches[0].clientY - startY;
+        if (diff <= 0) return;
+        puxando = true;
+        const el = criarIndicador();
+        const distancia = Math.min(diff, LIMIAR_PX + 30);
+        el.style.transform = `translate(-50%, ${distancia - 40}px)`;
+        prontoPraSoltar = diff >= LIMIAR_PX;
+        el.textContent = prontoPraSoltar ? '↻ Solte para atualizar' : '↓ Puxe para atualizar';
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+        if (!puxando) { startY = null; return; }
+        if (prontoPraSoltar) {
+            if (indicador) indicador.textContent = '↻ Atualizando...';
+            anunciar('Atualizando o aplicativo...');
+            setTimeout(() => window.location.reload(), 150);
+        } else if (indicador) {
+            indicador.style.transform = 'translate(-50%, -100%)';
+        }
+        startY = null;
+        puxando = false;
+        prontoPraSoltar = false;
+    }, { passive: true });
+})();
 
 /* ==================== NAVEGAÇÃO (Abas) ==================== */
 const ABAS_BANCA = ['cadastro', 'filtros', 'lista', 'saldos', 'config'];

@@ -4,6 +4,17 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.7.0 — 14/07/2026
+
+### Acessibilidade
+- Novo botão **"🔄 Recarregar Aplicativo"** em Configurações. Resolve a falta de F5/barra de
+  endereço quando o Banca Pro é adicionado à tela inicial do celular (modo app/standalone),
+  onde antes não havia forma simples de forçar uma atualização da página.
+- Novo gesto de **puxar para atualizar** (pull-to-refresh): estando no topo de qualquer aba,
+  puxar a tela para baixo mostra um indicador ("Puxe para atualizar" → "Solte para atualizar")
+  e recarrega o app ao soltar. Só ativa quando a página já está com rolagem no topo, para não
+  interferir na rolagem normal de listas e tabelas.
+
 ## v1.6.1 — 14/07/2026
 
 ### Desempenho e Acessibilidade
