@@ -253,6 +253,7 @@
   <div class="nav-section">
     <div class="nav-section-title">Configurações</div>
     <a href="#configuracoes" class="nav-link">Gerenciar Dados e Listas</a>
+    <a href="#config-preferencias-lista" class="nav-link nav-link-sub">Preferências da Lista</a>
     <a href="#exportar" class="nav-link nav-link-sub">Exportar Excel</a>
     <a href="#importar" class="nav-link nav-link-sub">Importar Excel</a>
     <a href="#limpar-dados" class="nav-link nav-link-sub">Limpar Dados</a>
@@ -619,6 +620,15 @@
     <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, ODD, Status, Stake, Lucro, ROI e Ações.</p>
     <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>.</p>
 
+    <h3 id="paginacao-lista">Paginação</h3>
+    <p>A tabela é exibida em páginas, não inteira de uma vez — isso mantém a navegação rápida mesmo com uma base grande de apostas. Abaixo da tabela aparecem:</p>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li>O texto <strong>"Mostrando X–Y de Z"</strong>, indicando o intervalo exibido dentro do total filtrado.</li>
+      <li>Os botões <span class="btn-demo outline">← Anterior</span> e <span class="btn-demo outline">Próxima →</span>, junto com "Página X de Y".</li>
+    </ul>
+    <p>O resumo estatístico (veja seção seguinte) sempre considera <strong>todas</strong> as apostas filtradas, não só as da página atual. Aplicar um novo filtro ou busca sempre volta para a primeira página; marcar o resultado de uma aposta (Ganhou/Perdeu etc.) mantém você na página em que estava.</p>
+    <p>A quantidade de apostas por página é ajustável em <a href="#config-preferencias-lista">Configurações → Preferências da Lista</a>.</p>
+
     <h3 id="acoes">Ações disponíveis</h3>
     <table class="field-table" aria-label="Botões de ação da lista">
       <thead><tr><th>Botão</th><th>Ação</th></tr></thead>
@@ -683,6 +693,9 @@
   <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
     <h2 id="h-configuracoes">⚙️ Configurações</h2>
     <p>A seção Configurações centraliza o gerenciamento das listas de opções e as operações globais de dados: exportar, importar e limpar.</p>
+
+    <h3 id="config-preferencias-lista">📋 Preferências da Lista</h3>
+    <p>Define quantas apostas aparecem por página na aba Lista: 25, 50, 100 ou 200. Um número menor deixa a navegação mais rápida em bases grandes; um número maior mostra mais de uma vez, com menos cliques em "Próxima". Essa preferência fica salva apenas neste dispositivo/navegador — não é sincronizada com a nuvem nem com outros aparelhos.</p>
 
     <h3 id="exportar">📊 Exportar Excel</h3>
     <p>Gera um arquivo <code>.xlsx</code> com <strong>todas</strong> as apostas cadastradas (aba <em>Apostas</em>) e todos os lançamentos de saldo (aba <em>Transações</em>). O nome do arquivo inclui data e hora no formato <code>aaaa-mm-dd_hh-mm-ss</code>. Use regularmente como backup.</p>

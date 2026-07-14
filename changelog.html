@@ -114,6 +114,15 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-6-0">v1.6.0</h2>
+  <p class="versao-data">14/07/2026</p>
+  <h3>Desempenho e Acessibilidade</h3>
+  <ul>
+    <li>A aba <strong>Lista</strong> agora é paginada: em vez de renderizar todas as apostas filtradas de uma vez, exibe um número configurável por página, com botões "← Anterior" / "Próxima →" e indicação "Mostrando X–Y de Z" / "Página X de Y". Isso resolve a lentidão sentida ao abrir a aba com uma base grande de apostas — com centenas ou milhares de linhas, o navegador (e principalmente o NVDA, ao reconstruir a árvore de acessibilidade da tabela) levava um tempo perceptível para ficar responsivo novamente.</li>
+    <li>Nova opção em <strong>Configurações → Preferências da Lista</strong>: "Apostas por página" (25 / 50 / 100 / 200). A escolha fica salva neste dispositivo/navegador (não é sincronizada entre aparelhos, já que é uma preferência de exibição, não um dado da conta).</li>
+    <li>Como efeito colateral positivo, marcar uma aposta como Ganhou/Perdeu/etc. na tabela ficou mais rápido: a tabela é redesenhada a cada ação, mas como só a página atual é exibida, o redesenho é praticamente instantâneo.</li>
+  </ul>
+
   <h2 id="v1-5-0">v1.5.0</h2>
   <p class="versao-data">12/07/2026</p>
   <h3>Acessibilidade</h3>

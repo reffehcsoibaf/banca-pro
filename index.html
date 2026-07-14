@@ -1110,6 +1110,7 @@
                     <tbody id="tbody"></tbody>
                 </table>
             </div>
+            <div id="paginacaoLista" role="navigation" aria-label="Paginação da lista de apostas" style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; flex-wrap:wrap; font-family:var(--font-ui);"></div>
         </div>
     </section>
 
@@ -1247,6 +1248,22 @@
         </div>
 
         <div class="card">
+            <h2>📋 Preferências da Lista</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Controla quantas apostas aparecem por página na aba Lista. Listas grandes carregam e navegam mais rápido com um número menor — a preferência fica salva neste dispositivo/navegador.
+            </p>
+            <div style="max-width:260px;">
+                <label for="config-itens-por-pagina">Apostas por página</label>
+                <select id="config-itens-por-pagina" onchange="alterarItensPorPagina(this.value)" aria-label="Quantidade de apostas exibidas por página na Lista">
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
             <h2>💾 Dados</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Backup completo (apostas e lançamentos de saldo) e reset do sistema.
@@ -1274,7 +1291,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.5.0 · 12/07/2026
+  Banca Pro · v1.6.0 · 14/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1302,6 +1319,13 @@ let editIndex = null;
 let relatorioAtualDados = [];
 let apostasFiltradasAtuais = [];
 let transacoes = [];
+
+// ---- Paginação da aba Lista ----
+// Preferência de quantidade por página fica salva no navegador (por dispositivo),
+// não no Supabase — é uma configuração de exibição local, não um dado da conta.
+const CHAVE_ITENS_POR_PAGINA = 'bancapro_itensPorPagina';
+let itensPorPagina = parseInt(localStorage.getItem(CHAVE_ITENS_POR_PAGINA), 10) || 50;
+let paginaAtualLista = 1;
 
 // ---- Ligas vinculadas a um esporte ----
 // Cada item de defaults.liga é armazenado como "Esporte::Nome da Liga" (string única,
@@ -3080,24 +3104,13 @@ async function marcarStatusAposta(i, novoStatus) {
     a.roi      = stake > 0 ? (lucro / stake) * 100 : 0;
     a.unidades = stake > 0 ? lucro / stake : 0;
 
-    // ── Atualizar DOM imediatamente (antes do await) para resposta visual instantânea ──
+    // ── Atualizar a lista filtrada em memória e re-renderizar ──
+    // Com a tabela paginada, isso é barato (só a página atual, no máximo algumas
+    // dezenas de linhas, é redesenhada — não a lista inteira). A página atual é
+    // preservada, diferente de aplicarFiltros() que sempre volta para a página 1.
     const filtIdx = apostasFiltradasAtuais.findIndex(x => x.identificador === a.identificador);
-    if (filtIdx !== -1) {
-        apostasFiltradasAtuais[filtIdx] = a;
-        const rows = document.getElementById('tbody').querySelectorAll('tr');
-        if (rows[filtIdx]) {
-            const lucroColor  = a.lucro > 0 ? '#15803d' : (a.lucro < 0 ? '#b91c1c' : 'inherit');
-            const cells = rows[filtIdx].querySelectorAll('td');
-            cells[7].innerHTML  = renderBadgeStatus(a.status);
-            cells[9].innerHTML  = formatarMoeda(a.lucro);
-            cells[9].style.color = lucroColor;
-            cells[10].textContent = formatarDecimal(parseFloat(a.roi)) + '%';
-        }
-        // Atualizar só o resumo (leve — sem re-renderizar a tabela inteira)
-        renderResumo(apostasFiltradasAtuais);
-    } else {
-        aplicarFiltros();
-    }
+    if (filtIdx !== -1) apostasFiltradasAtuais[filtIdx] = a;
+    renderTabela(apostasFiltradasAtuais);
 
     // Feedback visual imediato — toast antes do await
     const emojiMap = { 'Ganhou':'✅', 'Perdeu':'❌', 'Ganho Parcial':'🔼', 'Perda Parcial':'🔽', 'Cash Out':'💸', 'Anulada':'🚫', 'Aberto':'⏳' };
@@ -3191,6 +3204,7 @@ function aplicarFiltros() {
     });
 
     apostasFiltradasAtuais.sort((a,b) => (a.dataHora > b.dataHora ? 1 : a.dataHora < b.dataHora ? -1 : 0));
+    paginaAtualLista = 1; // novo filtro/busca sempre volta para a primeira página
     renderTabela(apostasFiltradasAtuais);
 }
 
@@ -3285,14 +3299,23 @@ function renderTabela(dados) {
     const tbody = document.getElementById("tbody");
     renderResumo(dados);
 
+    // ── Paginação: só a tabela é fatiada; o resumo acima usa "dados" inteiro ──
+    const totalItens = dados.length;
+    const totalPaginas = Math.max(1, Math.ceil(totalItens / itensPorPagina));
+    if (paginaAtualLista > totalPaginas) paginaAtualLista = totalPaginas;
+    if (paginaAtualLista < 1) paginaAtualLista = 1;
+    const inicio = totalItens === 0 ? 0 : (paginaAtualLista - 1) * itensPorPagina;
+    const fim = Math.min(inicio + itensPorPagina, totalItens);
+    const paginaDados = dados.slice(inicio, fim);
+
     // ── Montar mapa índice uma única vez ──
     const idxMap = new Map();
     for (let i=0; i<apostas.length; i++) idxMap.set(apostas[i].identificador, i);
 
-    // ── Gerar todas as linhas em array e inserir de uma vez ──
-    const rows = new Array(dados.length);
-    for (let r=0; r<dados.length; r++) {
-        const a   = dados[r];
+    // ── Gerar apenas as linhas da página atual ──
+    const rows = new Array(paginaDados.length);
+    for (let r=0; r<paginaDados.length; r++) {
+        const a   = paginaDados[r];
         const idx = idxMap.has(a.identificador) ? idxMap.get(a.identificador) : -1;
         const lucroColor  = a.lucro > 0 ? '#15803d' : (a.lucro < 0 ? '#b91c1c' : 'inherit');
         const statusBadge = renderBadgeStatus(a.status);
@@ -3332,6 +3355,44 @@ function renderTabela(dados) {
         `</tr>`;
     }
     tbody.innerHTML = rows.join('');
+    renderPaginacao(totalItens, totalPaginas, inicio, fim);
+}
+
+/* ==================== PAGINAÇÃO DA LISTA ==================== */
+function renderPaginacao(totalItens, totalPaginas, inicio, fim) {
+    const container = document.getElementById('paginacaoLista');
+    if (!container) return;
+    if (totalItens === 0) { container.innerHTML = ''; return; }
+
+    container.innerHTML = `
+        <span style="font-size:13px;color:var(--text-secondary);">Mostrando ${inicio + 1}–${fim} de ${totalItens}</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <button type="button" class="btn-sm btn-outline" id="btnPaginaAnterior" ${paginaAtualLista <= 1 ? 'disabled' : ''} aria-label="Página anterior">← Anterior</button>
+            <span style="font-size:13px;">Página ${paginaAtualLista} de ${totalPaginas}</span>
+            <button type="button" class="btn-sm btn-outline" id="btnPaginaProxima" ${paginaAtualLista >= totalPaginas ? 'disabled' : ''} aria-label="Próxima página">Próxima →</button>
+        </div>`;
+
+    const btnAnt = document.getElementById('btnPaginaAnterior');
+    const btnProx = document.getElementById('btnPaginaProxima');
+    if (btnAnt) btnAnt.addEventListener('click', () => irParaPaginaLista(paginaAtualLista - 1));
+    if (btnProx) btnProx.addEventListener('click', () => irParaPaginaLista(paginaAtualLista + 1));
+}
+
+function irParaPaginaLista(novaPagina) {
+    paginaAtualLista = novaPagina;
+    renderTabela(apostasFiltradasAtuais);
+    anunciar(`Página ${paginaAtualLista} exibida.`);
+    const secLista = document.getElementById('sec-lista');
+    if (secLista) secLista.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function alterarItensPorPagina(valor) {
+    const n = parseInt(valor, 10) || 50;
+    itensPorPagina = n;
+    localStorage.setItem(CHAVE_ITENS_POR_PAGINA, String(n));
+    paginaAtualLista = 1;
+    renderTabela(apostasFiltradasAtuais);
+    showToast(`✅ Agora mostrando ${n} apostas por página`, 'success');
 }
 
 /* ==================== SALDOS POR CASA ==================== */
@@ -3435,6 +3496,9 @@ async function excluirTransacao(idx) {
 const CAMPOS_CONFIG = ['casa','tipster','tipo','esporte','liga','mercado'];
 
 function renderConfiguracoes() {
+    const selItensPagina = document.getElementById('config-itens-por-pagina');
+    if (selItensPagina) selItensPagina.value = String(itensPorPagina);
+
     renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
     renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');
 

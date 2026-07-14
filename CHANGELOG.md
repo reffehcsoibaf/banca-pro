@@ -4,6 +4,24 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.6.0 — 14/07/2026
+
+### Desempenho e Acessibilidade
+- A aba **Lista** agora é paginada: em vez de renderizar todas as apostas filtradas de
+  uma vez, exibe um número configurável por página, com botões "← Anterior" / "Próxima →"
+  e indicação "Mostrando X–Y de Z" / "Página X de Y". Isso resolve a lentidão sentida ao
+  abrir a aba com uma base grande de apostas — com centenas ou milhares de linhas, o
+  navegador (e principalmente o NVDA, ao reconstruir a árvore de acessibilidade da
+  tabela) levava um tempo perceptível para ficar responsivo novamente.
+- Nova opção em **Configurações → Preferências da Lista**: "Apostas por página"
+  (25 / 50 / 100 / 200). A escolha fica salva neste dispositivo/navegador (não é
+  sincronizada entre aparelhos, já que é uma preferência de exibição, não um dado
+  da conta).
+- Como efeito colateral positivo, marcar uma aposta como Ganhou/Perdeu/etc. na tabela
+  ficou mais rápido: a tabela inteira é redesenhada a cada ação, mas como só a página
+  atual (no máximo algumas dezenas de linhas) é exibida, o redesenho é praticamente
+  instantâneo.
+
 ## v1.5.0 — 12/07/2026
 
 ### Acessibilidade
