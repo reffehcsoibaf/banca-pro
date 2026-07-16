@@ -4,6 +4,27 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.8.0 — 16/07/2026
+
+### Aba Lista
+- Removido o card de resumo ("Entradas", "Ganhas", "Perdidas", "Abertas", "Stake Total", "Lucro"
+  etc.) que aparecia duplicado no topo da aba Lista. Esses mesmos números já são exibidos no
+  painel fixo no topo da tela, visível em todas as abas — a versão de dentro da Lista era
+  redundante.
+- Removido o menu "⋯" (outros status) das ações rápidas de cada linha da tabela. Ficam apenas os
+  botões ✓ Ganhou e ✗ Perdeu. Os demais status (Ganho Parcial, Perda Parcial, Cash Out, Anulada
+  ou reabrir como Aberto) continuam disponíveis normalmente editando a aposta (botão ✏️).
+
+### Leitor de Bilhete (IA)
+- Nova regra para diferenciar o mercado **Faixa de gols** do mercado **Gols**: a Betano às vezes
+  rotula como "Total de Gols" um mercado cuja seleção é na verdade um intervalo no formato
+  "N-M" (ex.: "1-4", "2-5") — isso é sempre Faixa de gols, não Gols, mesmo com o rótulo "Total de
+  Gols" no bilhete. A IA agora identifica esse formato pelo hífen entre dois números e preenche o
+  mercado correto.
+- O mesmo vale por equipe: novo mercado **Faixa de gols da Equipe**, reconhecido quando o
+  formato é "<Time> - Total de Gols" com seleção em intervalo (ex.: "River Plate - 2-4"),
+  diferente de "Gols da Equipe" (que continua valendo para seleções "Mais de X.5"/"Menos de X.5").
+
 ## v1.7.0 — 14/07/2026
 
 ### Acessibilidade

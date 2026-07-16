@@ -114,6 +114,19 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-8-0">v1.8.0</h2>
+  <p class="versao-data">16/07/2026</p>
+  <h3>Aba Lista</h3>
+  <ul>
+    <li>Removido o card de resumo ("Entradas", "Ganhas", "Perdidas", "Abertas", "Stake Total", "Lucro" etc.) que aparecia duplicado no topo da aba Lista. Esses mesmos números já são exibidos no painel fixo no topo da tela, visível em todas as abas — a versão de dentro da Lista era redundante.</li>
+    <li>Removido o menu "⋯" (outros status) das ações rápidas de cada linha da tabela. Ficam apenas os botões ✓ Ganhou e ✗ Perdeu. Os demais status (Ganho Parcial, Perda Parcial, Cash Out, Anulada ou reabrir como Aberto) continuam disponíveis normalmente editando a aposta (botão ✏️).</li>
+  </ul>
+  <h3>Leitor de Bilhete (IA)</h3>
+  <ul>
+    <li>Nova regra para diferenciar o mercado <strong>Faixa de gols</strong> do mercado <strong>Gols</strong>: a Betano às vezes rotula como "Total de Gols" um mercado cuja seleção é na verdade um intervalo no formato "N-M" (ex.: "1-4", "2-5") — isso é sempre Faixa de gols, não Gols, mesmo com o rótulo "Total de Gols" no bilhete. A IA agora identifica esse formato pelo hífen entre dois números e preenche o mercado correto.</li>
+    <li>O mesmo vale por equipe: novo mercado <strong>Faixa de gols da Equipe</strong>, reconhecido quando o formato é "&lt;Time&gt; - Total de Gols" com seleção em intervalo (ex.: "River Plate - 2-4"), diferente de "Gols da Equipe" (que continua valendo para seleções "Mais de X.5"/"Menos de X.5").</li>
+  </ul>
+
   <h2 id="v1-7-0">v1.7.0</h2>
   <p class="versao-data">14/07/2026</p>
   <h3>Acessibilidade</h3>

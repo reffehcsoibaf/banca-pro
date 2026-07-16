@@ -1082,11 +1082,6 @@
 
     <!-- ===== SEÇÃO: LISTA ===== -->
     <section class="section" id="sec-lista" aria-label="Lista de apostas" role="tabpanel" aria-labelledby="tab-btn-lista">
-        <div id="resumoFiltro" class="card" style="display:none;">
-            <h2>📊 Resumo do Filtro</h2>
-            <div class="summary-grid" id="resumoFiltroGrid" style="grid-template-columns: repeat(auto-fit, minmax(130px,1fr));"></div>
-        </div>
-
         <div class="card">
             <h2>📋 Apostas</h2>
             <div class="table-wrap">
@@ -1301,7 +1296,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.7.0 · 14/07/2026
+  Banca Pro · v1.8.0 · 16/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -3328,13 +3323,10 @@ function formatarData(s) {
 }
 
 function renderResumo(dados) {
-    const resumoCard   = document.getElementById('resumoFiltro');
-    const resumoGrid   = document.getElementById('resumoFiltroGrid');
     const globalWrap   = document.getElementById('resumoGlobal');
     const globalGrid   = document.getElementById('resumoGlobalGrid');
 
     if (!dados.length) {
-        if (resumoCard)  resumoCard.style.display  = 'none';
         if (globalWrap)  globalWrap.style.display  = 'none';
         return;
     }
@@ -3366,10 +3358,6 @@ function renderResumo(dados) {
         `<div class="summary-card orange"><h3>ROI</h3><div class="value">${formatarDecimal(roiF)}%</div></div>`,
         `<div class="summary-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><h3>% Acerto</h3><div class="value">${formatarDecimal(acertoF)}%</div></div>`
     ].join('');
-
-    // Painel da tela Lista (mantido para compatibilidade)
-    if (resumoGrid) resumoGrid.innerHTML = html;
-    if (resumoCard) resumoCard.style.display = 'block';
 
     // Painel global fixo no topo (todas as telas)
     if (globalGrid)  globalGrid.innerHTML  = html;
@@ -3422,14 +3410,6 @@ function renderTabela(dados) {
             `<td><div style="display:flex;gap:4px;flex-wrap:wrap;">`+
                 `<button class="btn-xs btn-success" onclick="marcarStatusAposta(${idx},'Ganhou')" aria-label="Marcar como ganha">✓</button>`+
                 `<button class="btn-xs btn-danger" onclick="marcarStatusAposta(${idx},'Perdeu')" aria-label="Marcar como perdida">✗</button>`+
-                `<select class="btn-xs" style="padding:2px 4px;" aria-label="Outros status" onchange="if(this.value){marcarStatusAposta(${idx},this.value);} this.selectedIndex=0;">`+
-                    `<option value="">⋯</option>`+
-                    `<option value="Ganho Parcial">🔼 Ganho Parcial</option>`+
-                    `<option value="Perda Parcial">🔽 Perda Parcial</option>`+
-                    `<option value="Cash Out">💸 Cash Out</option>`+
-                    `<option value="Anulada">🚫 Anulada</option>`+
-                    `<option value="Aberto">⏳ Aberto</option>`+
-                `</select>`+
                 `<button class="btn-xs btn-primary" onclick="editar(${idx})" aria-label="Editar aposta">✏️</button>`+
                 `<button class="btn-xs btn-danger" onclick="deletar(${idx})" aria-label="Excluir aposta" style="background:#ef4444;">🗑️</button>`+
             `</div></td>`+
