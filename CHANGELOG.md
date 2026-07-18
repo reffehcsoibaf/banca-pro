@@ -4,6 +4,51 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.9.1 — 18/07/2026
+
+### Acessibilidade
+- Cada linha da tabela na aba Lista agora é focável por inteiro (não só os botões ✓/✗/✏️/🗑️
+  dentro dela). Um único `Tab` já "seleciona" a linha inteira como a "aposta em foco" para os
+  atalhos `Alt+G`/`Alt+P`/`Alt+E`/`Alt+X` — não é mais preciso entrar em um botão específico. Ao
+  mudar de linha, um aviso sonoro confirma qual aposta está em foco.
+- Novo atalho `Alt+L` (Localizar): abre uma caixa para digitar o Identificador (ou parte dele) da
+  aposta desejada. Funciona de qualquer aba — leva direto até a linha correspondente na aba Lista,
+  já em foco, pronta para os atalhos de ação. Se o texto digitado corresponder a mais de uma
+  aposta, o app pede um termo mais específico em vez de agir sobre a errada.
+
+## v1.9.0 — 18/07/2026
+
+### Navegação
+- Ordem das abas alterada: **Lista** agora vem em segundo lugar (antes de Filtros), e **Filtros**
+  passou para a terceira posição. Nova ordem: Cadastro, Lista, Filtros, Saldos, Configurações.
+  Os atalhos globais `Alt+2` e `Alt+3` foram atualizados de acordo (`Alt+2` = Lista, `Alt+3` =
+  Filtros).
+
+### Acessibilidade — novos atalhos de ação
+- `Alt+S`: salva a aposta do formulário de Cadastro (ou atualiza, se estiver em edição) — mesmo
+  efeito do botão "💾 Salvar Aposta"/"✏️ Atualizar Aposta". Só age com a aba Cadastro ativa.
+- `Alt+G` / `Alt+P`: marca a "aposta em foco" na aba Lista como Ganhou ou Perdeu.
+- `Alt+E`: abre a "aposta em foco" para edição (equivale ao botão ✏️).
+- `Alt+X`: exclui a "aposta em foco", com a mesma confirmação do botão 🗑️.
+- Conceito de "aposta em foco": é a linha da tabela cujo botão de ação (✓, ✗, ✏️ ou 🗑️) recebeu
+  foco do teclado por último. Não é preciso estar exatamente no botão da ação desejada — qualquer
+  botão daquela linha já a torna a aposta em foco para os quatro atalhos acima. Sem nenhuma linha
+  em foco, os atalhos avisam e não executam nada.
+
+### Desempenho e Acessibilidade
+- Preferência "Apostas por página" (Configurações → Preferências da Lista) ganhou duas novas
+  opções: **10** (bases pequenas ou telas mais lentas) e **Todas** (mostra a lista filtrada
+  inteira em uma página só, sem paginação). Continuam disponíveis 25, 50, 100 e 200.
+
+### Correções no Guia de Uso (wiki.html)
+- Removida a tag "v5" do título, que não correspondia à versão real do sistema.
+- Corrigida a descrição da aba Filtros: os filtros são aplicados em tempo real, mas o resultado só
+  aparece na aba Lista ao navegar até ela manualmente (botão "📋 Ver Apostas" ou atalho `Alt+2`) —
+  o texto anterior descrevia incorretamente uma navegação automática que nunca existiu.
+- Ordem das seções do guia (barra lateral e índice) atualizada para acompanhar a nova ordem das
+  abas do app.
+- Nova tabela de atalhos de ação e explicação do conceito de "aposta em foco".
+
 ## v1.8.0 — 16/07/2026
 
 ### Aba Lista

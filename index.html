@@ -877,8 +877,8 @@
     <!-- ===== NAVEGAÇÃO POR ABAS ===== -->
     <div class="tabs-nav" role="tablist" aria-label="Seções do Banca Pro" id="tabs-nav" onkeydown="navegarAbasTeclado(event)">
         <button type="button" role="tab" class="tab-btn active" data-secao="cadastro" id="tab-btn-cadastro" aria-selected="true" aria-controls="sec-cadastro" tabindex="0" aria-keyshortcuts="Alt+1" onclick="irPara('cadastro', this)"><span aria-hidden="true">📝</span> Cadastro</button>
-        <button type="button" role="tab" class="tab-btn" data-secao="filtros" id="tab-btn-filtros" aria-selected="false" aria-controls="sec-filtros" tabindex="-1" aria-keyshortcuts="Alt+2" onclick="irPara('filtros', this)"><span aria-hidden="true">🔍</span> Filtros</button>
-        <button type="button" role="tab" class="tab-btn" data-secao="lista" id="tab-btn-lista" aria-selected="false" aria-controls="sec-lista" tabindex="-1" aria-keyshortcuts="Alt+3" onclick="irPara('lista', this)"><span aria-hidden="true">📋</span> Lista</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="lista" id="tab-btn-lista" aria-selected="false" aria-controls="sec-lista" tabindex="-1" aria-keyshortcuts="Alt+2" onclick="irPara('lista', this)"><span aria-hidden="true">📋</span> Lista</button>
+        <button type="button" role="tab" class="tab-btn" data-secao="filtros" id="tab-btn-filtros" aria-selected="false" aria-controls="sec-filtros" tabindex="-1" aria-keyshortcuts="Alt+3" onclick="irPara('filtros', this)"><span aria-hidden="true">🔍</span> Filtros</button>
         <button type="button" role="tab" class="tab-btn" data-secao="saldos" id="tab-btn-saldos" aria-selected="false" aria-controls="sec-saldos" tabindex="-1" aria-keyshortcuts="Alt+4" onclick="irPara('saldos', this)"><span aria-hidden="true">💰</span> Saldos</button>
         <button type="button" role="tab" class="tab-btn" data-secao="config" id="tab-btn-config" aria-selected="false" aria-controls="sec-config" tabindex="-1" aria-keyshortcuts="Alt+5" onclick="irPara('config', this)"><span aria-hidden="true">⚙️</span> Configurações</button>
     </div>
@@ -1010,7 +1010,7 @@
             </div>
 
             <div class="btn-row">
-                <button class="btn btn-primary" id="btnSalvar" onclick="salvar()" style="max-width:220px;">
+                <button class="btn btn-primary" id="btnSalvar" onclick="salvar()" aria-keyshortcuts="Alt+S" style="max-width:220px;">
                     💾 Salvar Aposta
                 </button>
                 <button class="btn btn-outline" id="btnCancelarEdicao" onclick="limparFormulario()" style="display:none; max-width:180px;">
@@ -1020,6 +1020,35 @@
         </div>
     </section>
 
+
+    <!-- ===== SEÇÃO: LISTA ===== -->
+    <section class="section" id="sec-lista" aria-label="Lista de apostas" role="tabpanel" aria-labelledby="tab-btn-lista">
+        <div class="card">
+            <h2>📋 Apostas</h2>
+            <div class="table-wrap">
+                <table role="grid" aria-label="Tabela de apostas registradas">
+                    <thead>
+                        <tr>
+                            <th scope="col">Data</th>
+                            <th scope="col">Casa</th>
+                            <th scope="col">ID</th>
+                            <th scope="col">Tipster</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Eventos</th>
+                            <th scope="col">ODD</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Stake</th>
+                            <th scope="col">Lucro</th>
+                            <th scope="col">ROI</th>
+                            <th scope="col">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+            <div id="paginacaoLista" role="navigation" aria-label="Paginação da lista de apostas" style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; flex-wrap:wrap; font-family:var(--font-ui);"></div>
+        </div>
+    </section>
 
     <!-- ===== SEÇÃO: FILTROS ===== -->
     <section class="section" id="sec-filtros" aria-label="Filtros de apostas" role="tabpanel" aria-labelledby="tab-btn-filtros">
@@ -1077,35 +1106,6 @@
                 <button class="btn-sm btn-success" onclick="exportarFiltrosExcel()">📥 Exportar Filtro</button>
                 <button class="btn-sm btn-primary" onclick="irPara('lista', document.querySelector('.tab-btn[data-secao=&quot;lista&quot;]'))" aria-label="Ver lista de apostas filtradas">📋 Ver Apostas</button>
             </div>
-        </div>
-    </section>
-
-    <!-- ===== SEÇÃO: LISTA ===== -->
-    <section class="section" id="sec-lista" aria-label="Lista de apostas" role="tabpanel" aria-labelledby="tab-btn-lista">
-        <div class="card">
-            <h2>📋 Apostas</h2>
-            <div class="table-wrap">
-                <table role="grid" aria-label="Tabela de apostas registradas">
-                    <thead>
-                        <tr>
-                            <th scope="col">Data</th>
-                            <th scope="col">Casa</th>
-                            <th scope="col">ID</th>
-                            <th scope="col">Tipster</th>
-                            <th scope="col">Tipo</th>
-                            <th scope="col">Eventos</th>
-                            <th scope="col">ODD</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Stake</th>
-                            <th scope="col">Lucro</th>
-                            <th scope="col">ROI</th>
-                            <th scope="col">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbody"></tbody>
-                </table>
-            </div>
-            <div id="paginacaoLista" role="navigation" aria-label="Paginação da lista de apostas" style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; flex-wrap:wrap; font-family:var(--font-ui);"></div>
         </div>
     </section>
 
@@ -1250,10 +1250,12 @@
             <div style="max-width:260px;">
                 <label for="config-itens-por-pagina">Apostas por página</label>
                 <select id="config-itens-por-pagina" onchange="alterarItensPorPagina(this.value)" aria-label="Quantidade de apostas exibidas por página na Lista">
+                    <option value="10">10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
                     <option value="200">200</option>
+                    <option value="todas">Todas</option>
                 </select>
             </div>
         </div>
@@ -1296,7 +1298,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.8.0 · 16/07/2026
+  Banca Pro · v1.9.1 · 18/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1329,7 +1331,13 @@ let transacoes = [];
 // Preferência de quantidade por página fica salva no navegador (por dispositivo),
 // não no Supabase — é uma configuração de exibição local, não um dado da conta.
 const CHAVE_ITENS_POR_PAGINA = 'bancapro_itensPorPagina';
-let itensPorPagina = parseInt(localStorage.getItem(CHAVE_ITENS_POR_PAGINA), 10) || 50;
+function lerItensPorPaginaSalvo() {
+    const salvo = localStorage.getItem(CHAVE_ITENS_POR_PAGINA);
+    if (salvo === 'todas') return Infinity;
+    const n = parseInt(salvo, 10);
+    return (n && n > 0) ? n : 50;
+}
+let itensPorPagina = lerItensPorPaginaSalvo();
 let paginaAtualLista = 1;
 
 // ---- Ligas vinculadas a um esporte ----
@@ -1567,7 +1575,7 @@ function recarregarApp() {
 })();
 
 /* ==================== NAVEGAÇÃO (Abas) ==================== */
-const ABAS_BANCA = ['cadastro', 'filtros', 'lista', 'saldos', 'config'];
+const ABAS_BANCA = ['cadastro', 'lista', 'filtros', 'saldos', 'config'];
 const ROTULO_ABA_BANCA = {
     cadastro: 'Cadastro', filtros: 'Filtros', lista: 'Lista de Apostas',
     saldos: 'Saldos', config: 'Configurações'
@@ -1593,12 +1601,121 @@ function irPara(secao, btn) {
 // ---- Atalho global Alt+1..5 para trocar de aba de qualquer lugar da tela ----
 document.addEventListener('keydown', function(e) {
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
-    const mapa = { '1': 'cadastro', '2': 'filtros', '3': 'lista', '4': 'saldos', '5': 'config' };
+    const mapa = { '1': 'cadastro', '2': 'lista', '3': 'filtros', '4': 'saldos', '5': 'config' };
     const secao = mapa[e.key];
     if (!secao) return;
     e.preventDefault();
     const btn = document.querySelector('.tab-btn[data-secao="' + secao + '"]');
     if (btn) irPara(secao, btn);
+});
+
+// ---- "Aposta em foco" na aba Lista ----
+// Cada linha da tabela agora é focável por inteiro (tabindex="0"), então um único Tab
+// já "seleciona" a linha — não é preciso mais entrar em um botão específico. Os botões
+// ✓/✗/✏️/🗑️ continuam funcionando normalmente logo depois, se preferir clicar direto.
+// Sempre que o foco muda para uma linha diferente (a própria linha ou qualquer botão
+// dentro dela), essa passa a ser a "aposta em foco", e um aviso curto confirma qual é —
+// útil para ter certeza antes de usar um atalho de ação.
+let apostaFocadaIdx = null;
+document.addEventListener('focusin', function(e) {
+    const tr = e.target.closest && e.target.closest('#tbody tr');
+    if (!tr) return;
+    const idx = parseInt(tr.dataset.idx, 10);
+    const novoIdx = isNaN(idx) ? null : idx;
+    if (novoIdx !== apostaFocadaIdx) {
+        apostaFocadaIdx = novoIdx;
+        const a = apostas[apostaFocadaIdx];
+        if (a) anunciar(`Aposta em foco: ${a.identificador}, ${a.casa}, ${a.status}.`);
+    }
+});
+
+function obterApostaFocadaOuAvisar() {
+    if (apostaFocadaIdx === null || !apostas[apostaFocadaIdx]) {
+        showToast('⚠️ Nenhuma aposta em foco. Na aba Lista, dê Tab até a linha desejada (ou use Alt+L para localizar por Identificador) e use o atalho novamente.', 'info', 7000);
+        return null;
+    }
+    return apostaFocadaIdx;
+}
+
+// ---- Localizar aposta por Identificador (Alt+L) ----
+// Alternativa a navegar pela tabela: digite o Identificador (ou parte dele) e a aposta
+// correspondente vira a "aposta em foco" direto, pronta para os atalhos G/P/E/X — mesmo
+// sem ter passado pela tabela antes. A busca considera a lista atualmente filtrada
+// (aba Filtros), e leva você até a aba Lista com a linha em destaque e focada.
+function localizarApostaPorIdentificador() {
+    const termo = prompt('Digite o Identificador (ou parte dele) da aposta que deseja focar:');
+    if (termo === null) return; // cancelado
+    const busca = termo.trim().toLowerCase();
+    if (!busca) { showToast('⚠️ Digite algum texto para buscar.', 'info'); return; }
+
+    const base = apostasFiltradasAtuais.length ? apostasFiltradasAtuais : apostas;
+    const encontradas = base.filter(a => a.identificador.toLowerCase().includes(busca));
+
+    if (encontradas.length === 0) {
+        showToast(`⚠️ Nenhuma aposta encontrada com "${termo}" no Identificador.`, 'error', 6000);
+        return;
+    }
+    if (encontradas.length > 1) {
+        const exemplos = encontradas.slice(0, 8).map(a => a.identificador).join(', ');
+        showToast(`⚠️ ${encontradas.length} apostas encontradas — seja mais específico. Exemplos: ${exemplos}`, 'info', 9000);
+        return;
+    }
+
+    const alvo = encontradas[0];
+    const idxReal = apostas.findIndex(a => a.identificador === alvo.identificador);
+    if (idxReal === -1) { showToast('❌ Aposta não encontrada na base atual.', 'error'); return; }
+
+    // Garante que a aposta esteja visível na página atual da Lista antes de focar a linha
+    const idxNaListaFiltrada = apostasFiltradasAtuais.findIndex(a => a.identificador === alvo.identificador);
+    if (idxNaListaFiltrada !== -1 && itensPorPagina !== Infinity) {
+        paginaAtualLista = Math.floor(idxNaListaFiltrada / itensPorPagina) + 1;
+        renderTabela(apostasFiltradasAtuais);
+    }
+
+    irPara('lista', document.querySelector('.tab-btn[data-secao="lista"]'));
+    setTimeout(() => {
+        const tr = document.querySelector(`#tbody tr[data-idx="${idxReal}"]`);
+        if (tr) {
+            tr.focus();
+            tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            showToast('⚠️ A aposta está fora da página atual da Lista.', 'info');
+        }
+    }, 80);
+}
+
+// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Localizar ----
+document.addEventListener('keydown', function(e) {
+    if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    const tecla = e.key.toLowerCase();
+
+    if (tecla === 's') {
+        // Salvar (ou Atualizar, se já estiver editando) — só faz sentido na aba Cadastro
+        const abaCadastroAtiva = document.getElementById('sec-cadastro').classList.contains('active');
+        if (!abaCadastroAtiva) {
+            showToast('⚠️ Vá para a aba Cadastro (Alt+1) para salvar a aposta.', 'info');
+            return;
+        }
+        e.preventDefault();
+        salvar();
+        return;
+    }
+
+    if (tecla === 'l') {
+        e.preventDefault();
+        localizarApostaPorIdentificador();
+        return;
+    }
+
+    if (tecla === 'g' || tecla === 'p' || tecla === 'e' || tecla === 'x') {
+        const idx = obterApostaFocadaOuAvisar();
+        if (idx === null) return;
+        e.preventDefault();
+        if (tecla === 'g') marcarStatusAposta(idx, 'Ganhou');
+        else if (tecla === 'p') marcarStatusAposta(idx, 'Perdeu');
+        else if (tecla === 'e') editar(idx);
+        else if (tecla === 'x') deletar(idx);
+    }
 });
 
 function navegarAbasTeclado(e) {
@@ -3370,11 +3487,11 @@ function renderTabela(dados) {
 
     // ── Paginação: só a tabela é fatiada; o resumo acima usa "dados" inteiro ──
     const totalItens = dados.length;
-    const totalPaginas = Math.max(1, Math.ceil(totalItens / itensPorPagina));
+    const totalPaginas = itensPorPagina === Infinity ? 1 : Math.max(1, Math.ceil(totalItens / itensPorPagina));
     if (paginaAtualLista > totalPaginas) paginaAtualLista = totalPaginas;
     if (paginaAtualLista < 1) paginaAtualLista = 1;
-    const inicio = totalItens === 0 ? 0 : (paginaAtualLista - 1) * itensPorPagina;
-    const fim = Math.min(inicio + itensPorPagina, totalItens);
+    const inicio = totalItens === 0 ? 0 : (itensPorPagina === Infinity ? 0 : (paginaAtualLista - 1) * itensPorPagina);
+    const fim = itensPorPagina === Infinity ? totalItens : Math.min(inicio + itensPorPagina, totalItens);
     const paginaDados = dados.slice(inicio, fim);
 
     // ── Montar mapa índice uma única vez ──
@@ -3395,7 +3512,7 @@ function renderTabela(dados) {
             `<strong>${i+1}.</strong> ${e.evento} <small>(${e.esporte} ${e.liga})</small><br>`+
             `<small>└ ${e.mercado}: ${e.selecao} @${formatarOdd(parseFloat(e.odd))}</small>`
         ).join('<br>');
-        rows[r] = `<tr>`+
+        rows[r] = `<tr data-idx="${idx}" tabindex="0" aria-label="Aposta ${a.identificador}, ${a.casa}, ${a.status}. Atalhos: Alt+G ganhou, Alt+P perdeu, Alt+E editar, Alt+X excluir.">`+
             `<td>${formatarData(a.dataHora)}</td>`+
             `<td><strong>${a.casa}</strong></td>`+
             `<td><small>${a.identificador}</small></td>`+
@@ -3408,10 +3525,10 @@ function renderTabela(dados) {
             `<td style="font-weight:700;color:${lucroColor}">${formatarMoeda(a.lucro)}</td>`+
             `<td>${formatarDecimal(parseFloat(a.roi))}%</td>`+
             `<td><div style="display:flex;gap:4px;flex-wrap:wrap;">`+
-                `<button class="btn-xs btn-success" onclick="marcarStatusAposta(${idx},'Ganhou')" aria-label="Marcar como ganha">✓</button>`+
-                `<button class="btn-xs btn-danger" onclick="marcarStatusAposta(${idx},'Perdeu')" aria-label="Marcar como perdida">✗</button>`+
-                `<button class="btn-xs btn-primary" onclick="editar(${idx})" aria-label="Editar aposta">✏️</button>`+
-                `<button class="btn-xs btn-danger" onclick="deletar(${idx})" aria-label="Excluir aposta" style="background:#ef4444;">🗑️</button>`+
+                `<button class="btn-xs btn-success" onclick="marcarStatusAposta(${idx},'Ganhou')" aria-label="Marcar como ganha" aria-keyshortcuts="Alt+G">✓</button>`+
+                `<button class="btn-xs btn-danger" onclick="marcarStatusAposta(${idx},'Perdeu')" aria-label="Marcar como perdida" aria-keyshortcuts="Alt+P">✗</button>`+
+                `<button class="btn-xs btn-primary" onclick="editar(${idx})" aria-label="Editar aposta" aria-keyshortcuts="Alt+E">✏️</button>`+
+                `<button class="btn-xs btn-danger" onclick="deletar(${idx})" aria-label="Excluir aposta" aria-keyshortcuts="Alt+X" style="background:#ef4444;">🗑️</button>`+
             `</div></td>`+
         `</tr>`;
     }
@@ -3454,12 +3571,12 @@ function irParaPaginaLista(novaPagina) {
 }
 
 function alterarItensPorPagina(valor) {
-    const n = parseInt(valor, 10) || 50;
+    const n = valor === 'todas' ? Infinity : (parseInt(valor, 10) || 50);
     itensPorPagina = n;
-    localStorage.setItem(CHAVE_ITENS_POR_PAGINA, String(n));
+    localStorage.setItem(CHAVE_ITENS_POR_PAGINA, valor === 'todas' ? 'todas' : String(n));
     paginaAtualLista = 1;
     renderTabela(apostasFiltradasAtuais);
-    showToast(`✅ Agora mostrando ${n} apostas por página`, 'success');
+    showToast(n === Infinity ? '✅ Agora mostrando todas as apostas em uma página só' : `✅ Agora mostrando ${n} apostas por página`, 'success');
 }
 
 /* ==================== SALDOS POR CASA ==================== */
@@ -3564,7 +3681,7 @@ const CAMPOS_CONFIG = ['casa','tipster','tipo','esporte','liga','mercado'];
 
 function renderConfiguracoes() {
     const selItensPagina = document.getElementById('config-itens-por-pagina');
-    if (selItensPagina) selItensPagina.value = String(itensPorPagina);
+    if (selItensPagina) selItensPagina.value = itensPorPagina === Infinity ? 'todas' : String(itensPorPagina);
 
     renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
     renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');

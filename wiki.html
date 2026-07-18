@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.8.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.9.1</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -236,11 +236,11 @@
   </div>
 
   <div class="nav-section">
-    <div class="nav-section-title">Filtros e Lista</div>
-    <a href="#filtros" class="nav-link">Filtros</a>
+    <div class="nav-section-title">Lista e Filtros</div>
     <a href="#resumo-filtro" class="nav-link">Resumo Estatístico</a>
     <a href="#lista-apostas" class="nav-link">Lista de Apostas</a>
     <a href="#acoes" class="nav-link nav-link-sub">Ações disponíveis</a>
+    <a href="#filtros" class="nav-link">Filtros</a>
   </div>
 
   <div class="nav-section">
@@ -280,7 +280,7 @@
 
   <!-- TOPO -->
   <div id="topo" class="wiki-section">
-    <h1>Banca Pro <span class="tag">v5</span></h1>
+    <h1>Banca Pro</h1>
     <p class="lead">Guia completo de uso do sistema de gerenciamento de banca para apostas esportivas. Navegue pelo índice à esquerda ou use a busca para localizar qualquer tópico.</p>
     <div class="hero-toc" role="navigation" aria-label="Índice do guia">
       <div class="hero-toc-title">📋 Neste guia</div>
@@ -295,9 +295,9 @@
         <li><a href="#preencher-por-foto">Preencher por Foto (IA)</a></li>
         <li><a href="#listas-dinamicas">Listas Dinâmicas</a></li>
         <li><a href="#calculo-automatico">Cálculo Automático</a></li>
-        <li><a href="#filtros">Filtros</a></li>
         <li><a href="#resumo-filtro">Resumo Estatístico</a></li>
         <li><a href="#lista-apostas">Lista e Ações</a></li>
+        <li><a href="#filtros">Filtros</a></li>
         <li><a href="#saldos">Saldo por Casa</a></li>
         <li><a href="#configuracoes">Configurações</a></li>
         <li><a href="#estrutura-planilha">Estrutura da Planilha</a></li>
@@ -333,10 +333,10 @@
     <p>O sistema tem cinco seções, organizadas em <strong>abas</strong> no topo da tela. Apenas uma fica visível por vez, e você alterna entre elas clicando na aba desejada ou navegando com as setas ← e → do teclado (com o foco em uma aba).</p>
     <div class="cols-2">
       <div class="col-card"><h4>📝 Cadastro</h4>Formulário para registrar uma nova aposta ou editar uma existente. Ao salvar ou cancelar uma edição, o formulário é limpo automaticamente e a data/hora atual é preenchida.</div>
-      <div class="col-card"><h4>🔍 Filtros</h4>Painel de filtros com critérios de busca. Ao aplicar qualquer filtro, o sistema navega automaticamente para a aba Lista para mostrar o resultado.</div>
+      <div class="col-card"><h4>📋 Lista</h4>Resumo estatístico das apostas filtradas seguido da tabela completa com ações sobre cada linha.</div>
     </div>
     <div class="cols-2" style="margin-top:1rem;">
-      <div class="col-card"><h4>📋 Lista</h4>Resumo estatístico das apostas filtradas seguido da tabela completa com ações sobre cada linha.</div>
+      <div class="col-card"><h4>🔍 Filtros</h4>Painel de filtros com critérios de busca. Os filtros são aplicados em tempo real, mas a exibição do resultado fica na aba Lista — use o botão "📋 Ver Apostas" (ou o atalho Alt+2) para conferir as apostas filtradas.</div>
       <div class="col-card"><h4>💰 Saldos</h4>Saldo calculado por casa de aposta, formulário para lançar depósitos/retiradas, e o histórico desses lançamentos.</div>
     </div>
     <div class="cols-2" style="margin-top:1rem;">
@@ -570,30 +570,6 @@
     </div>
   </section>
 
-  <!-- FILTROS -->
-  <section id="filtros" class="wiki-section" aria-labelledby="h-filtros">
-    <h2 id="h-filtros">🔍 Filtros</h2>
-    <p>A seção Filtros permite localizar apostas por múltiplos critérios. Os filtros são aplicados em tempo real e ao confirmar, o sistema navega automaticamente para a seção Apostas.</p>
-    <table class="field-table" aria-label="Filtros disponíveis">
-      <thead><tr><th>Filtro</th><th>O que faz</th></tr></thead>
-      <tbody>
-        <tr><td class="field-name">Buscar ID ou Evento</td><td>Busca livre por texto no identificador ou nome do evento.</td></tr>
-        <tr><td class="field-name">Casa</td><td>Filtra por casa de apostas.</td></tr>
-        <tr><td class="field-name">Tipster</td><td>Filtra por tipster.</td></tr>
-        <tr><td class="field-name">Tipo</td><td>Filtra por tipo (Ao Vivo / Pré Live).</td></tr>
-        <tr><td class="field-name">Esporte</td><td>Filtra pelo esporte dos eventos.</td></tr>
-        <tr><td class="field-name">Liga</td><td>Filtra pela liga dos eventos.</td></tr>
-        <tr><td class="field-name">Mercado</td><td>Filtra pelo mercado apostado em qualquer evento da aposta (Vencedor, Gols, Cartões…). Considera todos os mercados marcados, mesmo quando o evento tem mais de um.</td></tr>
-        <tr><td class="field-name">Status</td><td>Filtra por estado: Aberto, Ganhou ou Perdeu.</td></tr>
-        <tr><td class="field-name">Data Inicial / Final</td><td>Define um intervalo de datas para as apostas exibidas.</td></tr>
-      </tbody>
-    </table>
-    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
-      <li><span class="btn-demo outline">✕ Limpar Filtros</span> — remove todos os filtros e exibe todas as apostas</li>
-      <li><span class="btn-demo success">📥 Exportar Filtro</span> — exporta para Excel apenas as apostas visíveis no filtro atual</li>
-    </ul>
-  </section>
-
   <!-- RESUMO -->
   <section id="resumo-filtro" class="wiki-section" aria-labelledby="h-resumo">
     <h2 id="h-resumo">📊 Resumo Estatístico</h2>
@@ -644,6 +620,10 @@
       <div class="callout-title">☁️ Tudo salva direto na nuvem</div>
       Qualquer ação acima — marcar resultado, editar ou excluir — é enviada para a nuvem no mesmo instante. Não existe um botão separado de "salvar tudo": cada alteração já vai sozinha.
     </div>
+    <div class="callout tip">
+      <div class="callout-title">⌨️ Atalhos para essas ações</div>
+      Todas essas ações também têm atalho de teclado: <kbd>Alt+G</kbd> (Ganhou), <kbd>Alt+P</kbd> (Perdeu), <kbd>Alt+E</kbd> (Editar) e <kbd>Alt+X</kbd> (Excluir), agindo sobre a "aposta em foco" — dê Tab até a linha desejada, ou use <kbd>Alt+L</kbd> para localizar direto pelo Identificador. Veja os detalhes em <a href="#atalhos">Atalhos de Teclado</a>.
+    </div>
 
     <h3>Editar uma aposta</h3>
     <ol class="steps">
@@ -652,6 +632,30 @@
       <li><span class="step-num">3</span>Faça as alterações e clique em <span class="btn-demo success">💾 Salvar Aposta</span>.</li>
       <li><span class="step-num">4</span>Ou clique em <span class="btn-demo outline">✕ Cancelar Edição</span> para descartar.</li>
     </ol>
+  </section>
+
+  <!-- FILTROS -->
+  <section id="filtros" class="wiki-section" aria-labelledby="h-filtros">
+    <h2 id="h-filtros">🔍 Filtros</h2>
+    <p>A seção Filtros permite localizar apostas por múltiplos critérios. Os filtros são aplicados em tempo real, mas a tabela filtrada só aparece na aba Lista — depois de ajustar os filtros, toque em "📋 Ver Apostas" (ou use o atalho Alt+2) para ver o resultado.</p>
+    <table class="field-table" aria-label="Filtros disponíveis">
+      <thead><tr><th>Filtro</th><th>O que faz</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Buscar ID ou Evento</td><td>Busca livre por texto no identificador ou nome do evento.</td></tr>
+        <tr><td class="field-name">Casa</td><td>Filtra por casa de apostas.</td></tr>
+        <tr><td class="field-name">Tipster</td><td>Filtra por tipster.</td></tr>
+        <tr><td class="field-name">Tipo</td><td>Filtra por tipo (Ao Vivo / Pré Live).</td></tr>
+        <tr><td class="field-name">Esporte</td><td>Filtra pelo esporte dos eventos.</td></tr>
+        <tr><td class="field-name">Liga</td><td>Filtra pela liga dos eventos.</td></tr>
+        <tr><td class="field-name">Mercado</td><td>Filtra pelo mercado apostado em qualquer evento da aposta (Vencedor, Gols, Cartões…). Considera todos os mercados marcados, mesmo quando o evento tem mais de um.</td></tr>
+        <tr><td class="field-name">Status</td><td>Filtra por estado: Aberto, Ganhou ou Perdeu.</td></tr>
+        <tr><td class="field-name">Data Inicial / Final</td><td>Define um intervalo de datas para as apostas exibidas.</td></tr>
+      </tbody>
+    </table>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li><span class="btn-demo outline">✕ Limpar Filtros</span> — remove todos os filtros e exibe todas as apostas</li>
+      <li><span class="btn-demo success">📥 Exportar Filtro</span> — exporta para Excel apenas as apostas visíveis no filtro atual</li>
+    </ul>
   </section>
 
   <!-- SALDOS -->
@@ -695,7 +699,7 @@
     <p>A seção Configurações centraliza o gerenciamento das listas de opções e as operações globais de dados: exportar, importar e limpar.</p>
 
     <h3 id="config-preferencias-lista">📋 Preferências da Lista</h3>
-    <p>Define quantas apostas aparecem por página na aba Lista: 25, 50, 100 ou 200. Um número menor deixa a navegação mais rápida em bases grandes; um número maior mostra mais de uma vez, com menos cliques em "Próxima". Essa preferência fica salva apenas neste dispositivo/navegador — não é sincronizada com a nuvem nem com outros aparelhos.</p>
+    <p>Define quantas apostas aparecem por página na aba Lista: 10, 25, 50, 100, 200 ou Todas. Um número menor deixa a navegação mais rápida em bases grandes; a opção "Todas" mostra a lista inteira filtrada em uma página só, sem paginação (pode deixar a navegação mais lenta em bases muito grandes). Essa preferência fica salva apenas neste dispositivo/navegador — não é sincronizada com a nuvem nem com outros aparelhos.</p>
 
     <h3 id="config-recarregar-app">🔄 Recarregar Aplicativo</h3>
     <p>Botão que força uma atualização completa da página, equivalente ao F5 do navegador. É especialmente útil quando o Banca Pro é adicionado à tela inicial do celular (modo "app"), já que nesse modo não existe barra de endereço nem tecla F5 disponível para atualizar manualmente.</p>
@@ -822,15 +826,30 @@
         <tr><td><kbd>Setas ↑↓</kbd></td><td>Navega entre opções de radio button (Casa, Status).</td></tr>
         <tr><td><kbd>Espaço</kbd></td><td>Marca ou desmarca uma caixa de verificação de Mercado.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>1</kbd></td><td>Vai direto para a aba Cadastro, de qualquer lugar da tela (não precisa estar com o foco na barra de abas).</td></tr>
-        <tr><td><kbd>Alt</kbd> + <kbd>2</kbd></td><td>Vai direto para a aba Filtros.</td></tr>
-        <tr><td><kbd>Alt</kbd> + <kbd>3</kbd></td><td>Vai direto para a aba Lista.</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>2</kbd></td><td>Vai direto para a aba Lista.</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>3</kbd></td><td>Vai direto para a aba Filtros.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>4</kbd></td><td>Vai direto para a aba Saldos.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>5</kbd></td><td>Vai direto para a aba Configurações.</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>S</kbd></td><td>Salva a aposta em edição no formulário de Cadastro (mesmo botão "💾 Salvar Aposta"; se você estiver editando uma aposta existente, funciona como "Atualizar Aposta"). Só funciona com a aba Cadastro ativa — em qualquer outra aba, um aviso pede para ir até lá primeiro (Alt+1).</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>L</kbd></td><td>Localizar aposta pelo Identificador: abre uma caixa para digitar o Identificador (ou parte dele) e leva direto até a linha correspondente na aba Lista, já em foco — funciona de qualquer aba, sem precisar navegar pela tabela.</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>G</kbd></td><td>Marca a "aposta em foco" (veja explicação abaixo) como Ganhou.</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>P</kbd></td><td>Marca a "aposta em foco" como Perdida.</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>E</kbd></td><td>Abre a "aposta em foco" para edição na aba Cadastro (equivale a clicar em ✏️).</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>X</kbd></td><td>Exclui a "aposta em foco", com a mesma confirmação do botão 🗑️.</td></tr>
       </tbody>
     </table>
     <div class="callout tip">
       <div class="callout-title">💡 Atalho global</div>
       Os atalhos Alt+1 a Alt+5 funcionam em qualquer momento, mesmo com o foco dentro de um campo de texto do formulário — não é necessário navegar até a barra de abas antes.
+    </div>
+    <div class="callout info">
+      <div class="callout-title">🎯 O que é a "aposta em foco"</div>
+      Os atalhos Alt+G, Alt+P, Alt+E e Alt+X agem sobre a "aposta em foco". Há duas formas de defini-la:
+      <ul style="margin:8px 0 0 1.2rem;">
+        <li><strong>Navegando pela tabela:</strong> cada linha inteira agora é um único ponto de foco — dê <kbd>Tab</kbd> até a linha desejada (um aviso confirma qual aposta ficou em foco) e use o atalho. Não é mais preciso entrar em nenhum botão específico.</li>
+        <li><strong>Atalho <kbd>Alt</kbd>+<kbd>L</kbd> (Localizar):</strong> abre uma caixa para digitar o Identificador (ou parte dele) da aposta. Funciona de qualquer aba, sem precisar navegar pela tabela — o app já leva você até a linha certa na aba Lista, focada e pronta para o atalho seguinte. Se mais de uma aposta corresponder ao texto digitado, o app pede um termo mais específico.</li>
+      </ul>
+      Se nenhuma aposta estiver em foco, o app avisa e nada é executado — não há risco de agir sobre a aposta errada por engano.
     </div>
   </section>
 

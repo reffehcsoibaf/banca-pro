@@ -114,6 +114,40 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-9-1">v1.9.1</h2>
+  <p class="versao-data">18/07/2026</p>
+  <h3>Acessibilidade</h3>
+  <ul>
+    <li>Cada linha da tabela na aba Lista agora é focável por inteiro (não só os botões ✓/✗/✏️/🗑️ dentro dela). Um único <code>Tab</code> já "seleciona" a linha inteira como a "aposta em foco" para os atalhos <code>Alt+G</code>/<code>Alt+P</code>/<code>Alt+E</code>/<code>Alt+X</code> — não é mais preciso entrar em um botão específico. Ao mudar de linha, um aviso sonoro confirma qual aposta está em foco.</li>
+    <li>Novo atalho <code>Alt+L</code> (Localizar): abre uma caixa para digitar o Identificador (ou parte dele) da aposta desejada. Funciona de qualquer aba — leva direto até a linha correspondente na aba Lista, já em foco, pronta para os atalhos de ação. Se o texto digitado corresponder a mais de uma aposta, o app pede um termo mais específico em vez de agir sobre a errada.</li>
+  </ul>
+
+  <h2 id="v1-9-0">v1.9.0</h2>
+  <p class="versao-data">18/07/2026</p>
+  <h3>Navegação</h3>
+  <ul>
+    <li>Ordem das abas alterada: <strong>Lista</strong> agora vem em segundo lugar (antes de Filtros), e <strong>Filtros</strong> passou para a terceira posição. Nova ordem: Cadastro, Lista, Filtros, Saldos, Configurações. Os atalhos globais <code>Alt+2</code> e <code>Alt+3</code> foram atualizados de acordo (<code>Alt+2</code> = Lista, <code>Alt+3</code> = Filtros).</li>
+  </ul>
+  <h3>Acessibilidade — novos atalhos de ação</h3>
+  <ul>
+    <li><code>Alt+S</code>: salva a aposta do formulário de Cadastro (ou atualiza, se estiver em edição) — mesmo efeito do botão "💾 Salvar Aposta"/"✏️ Atualizar Aposta". Só age com a aba Cadastro ativa.</li>
+    <li><code>Alt+G</code> / <code>Alt+P</code>: marca a "aposta em foco" na aba Lista como Ganhou ou Perdeu.</li>
+    <li><code>Alt+E</code>: abre a "aposta em foco" para edição (equivale ao botão ✏️).</li>
+    <li><code>Alt+X</code>: exclui a "aposta em foco", com a mesma confirmação do botão 🗑️.</li>
+    <li>Conceito de "aposta em foco": é a linha da tabela cujo botão de ação (✓, ✗, ✏️ ou 🗑️) recebeu foco do teclado por último. Não é preciso estar exatamente no botão da ação desejada — qualquer botão daquela linha já a torna a aposta em foco para os quatro atalhos acima. Sem nenhuma linha em foco, os atalhos avisam e não executam nada.</li>
+  </ul>
+  <h3>Desempenho e Acessibilidade</h3>
+  <ul>
+    <li>Preferência "Apostas por página" (Configurações → Preferências da Lista) ganhou duas novas opções: <strong>10</strong> (bases pequenas ou telas mais lentas) e <strong>Todas</strong> (mostra a lista filtrada inteira em uma página só, sem paginação). Continuam disponíveis 25, 50, 100 e 200.</li>
+  </ul>
+  <h3>Correções no Guia de Uso (wiki.html)</h3>
+  <ul>
+    <li>Removida a tag "v5" do título, que não correspondia à versão real do sistema.</li>
+    <li>Corrigida a descrição da aba Filtros: os filtros são aplicados em tempo real, mas o resultado só aparece na aba Lista ao navegar até ela manualmente (botão "📋 Ver Apostas" ou atalho <code>Alt+2</code>) — o texto anterior descrevia incorretamente uma navegação automática que nunca existiu.</li>
+    <li>Ordem das seções do guia (barra lateral e índice) atualizada para acompanhar a nova ordem das abas do app.</li>
+    <li>Nova tabela de atalhos de ação e explicação do conceito de "aposta em foco".</li>
+  </ul>
+
   <h2 id="v1-8-0">v1.8.0</h2>
   <p class="versao-data">16/07/2026</p>
   <h3>Aba Lista</h3>
