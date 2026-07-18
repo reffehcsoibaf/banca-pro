@@ -10,7 +10,9 @@ está publicada e comparar com o que está descrito aqui.
 - Cada linha da tabela na aba Lista agora é focável por inteiro (não só os botões ✓/✗/✏️/🗑️
   dentro dela). Um único `Tab` já "seleciona" a linha inteira como a "aposta em foco" para os
   atalhos `Alt+G`/`Alt+P`/`Alt+E`/`Alt+X` — não é mais preciso entrar em um botão específico. Ao
-  mudar de linha, um aviso sonoro confirma qual aposta está em foco.
+  mudar de linha, um aviso sonoro confirma qual aposta está em foco. Isso também vale para quem
+  navega pela tabela com o NVDA usando `Ctrl+Alt+Setas`: ao chegar na linha desejada, um `Enter`
+  (sozinho, como passo separado) já define a aposta em foco.
 - Novo atalho `Alt+L` (Localizar): abre uma caixa para digitar o Identificador (ou parte dele) da
   aposta desejada. Funciona de qualquer aba — leva direto até a linha correspondente na aba Lista,
   já em foco, pronta para os atalhos de ação. Se o texto digitado corresponder a mais de uma
