@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-10-0">v1.10.0</h2>
+  <p class="versao-data">19/07/2026</p>
+  <h3>Leitor de Bilhete (IA)</h3>
+  <ul>
+    <li>Novo botão "🔍 Analisar Aposta", ao lado de "Preencher por Foto" e "Preencher por Texto", na aba Cadastro. Envia os dados atualmente preenchidos no formulário (casa, stake, eventos, odds, saldo atual da casa quando disponível) para a IA e devolve uma análise objetiva de <strong>risco e contexto</strong> — nunca uma previsão de resultado do jogo.</li>
+    <li>A análise mostra um nível de risco (Baixo/Médio/Alto), um resumo em linguagem simples explicando a probabilidade implícita da ODD e o que está sendo apostado, e uma lista de alertas objetivos: acumuladores com muitos eventos, stake alto em relação ao saldo da casa, odds muito baixas ou muito altas, e inconsistências nos dados preenchidos.</li>
+    <li>Roda automaticamente logo após a IA terminar de preencher o formulário via foto ou texto (sem bloquear a tela), e também pode ser acionada manualmente a qualquer momento pelo botão, útil para conferir a análise depois de editar algum campo.</li>
+    <li>Nova rota <code>/api/analisar-aposta</code> no Worker, reaproveitando a mesma estratégia de provedor já usada no leitor de bilhete (Gemini primeiro, com fallback automático para Anthropic Claude).</li>
+  </ul>
+
   <h2 id="v1-9-1">v1.9.1</h2>
   <p class="versao-data">18/07/2026</p>
   <h3>Acessibilidade</h3>

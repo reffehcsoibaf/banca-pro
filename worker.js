@@ -336,14 +336,44 @@ Agora extraia os dados do texto do bilhete que será enviado a seguir, na mensag
 ${SCHEMA_JSON}
 ${REGRAS_COMUNS}`;
 
+// ---- SCHEMA e PROMPT PARA ANÁLISE DE RISCO DE APOSTA ----
+// Diferente do leitor de bilhete (que EXTRAI dados), esta rota recebe os
+// dados já preenchidos no formulário e devolve uma análise de RISCO e
+// CONTEXTO — nunca uma previsão de resultado do jogo.
+const SCHEMA_ANALISE = `
+{
+  "nivelRisco": "uma destas strings: Baixo, Médio, Alto",
+  "resumo": "string — 2 a 4 frases em linguagem simples explicando o que está sendo apostado, o que a ODD implica em termos de probabilidade (probabilidade implícita = 1/ODD) e o principal ponto de atenção",
+  "alertas": ["lista de strings curtas com pontos de atenção específicos e objetivos"]
+}`;
+
+const PROMPT_ANALISE_APOSTA = `Você é um assistente de análise de RISCO para apostas esportivas — você NÃO prevê resultado de jogos e nunca deve fingir que consegue fazer isso. Você vai receber os dados de uma aposta (em preenchimento ou já preenchida) no formato JSON, e deve devolver uma análise objetiva.
+
+REGRAS IMPORTANTES:
+- NUNCA diga ou insinue se a aposta "vai ganhar", "tem grande chance de ganhar" ou qualquer julgamento sobre o resultado real do jogo. Você não tem acesso a dados ao vivo (lesões, escalação, clima, forma recente) e fingir uma previsão seria enganoso e pode incentivar apostas ruins.
+- Foque em dois pontos, sempre: (1) explicar em linguagem simples o que está sendo apostado e o que a ODD informada implica em termos de probabilidade implícita (1 ÷ ODD, em %); e (2) apontar riscos objetivos e verificáveis a partir dos próprios dados recebidos:
+  • Acumuladores: quanto mais eventos, menor a chance combinada de todos ganharem juntos — mencione isso quando houver 3+ eventos.
+  • Se "saldoAtualCasa" foi informado e for maior que zero, calcule que percentual do saldo o "stake" representa; sinalize como atenção se passar de ~10-15% do saldo (gestão de banca básica).
+  • ODDs muito baixas (ex: abaixo de 1.20) → retorno pequeno para o risco assumido. ODDs muito altas (ex: acima de 5.00) → baixíssima probabilidade implícita.
+  • Campos vazios/zerados relevantes (ex: mercado ou seleção em branco, ODD Total que não bate com o produto das odds dos eventos informados).
+  • Bônus aplicado sem stake real (verifique se faz sentido).
+- Se souber algo factual e verificável sobre os times/competições envolvidos (ex: rebaixamento, fase de mata-mata) até seu conhecimento, pode citar como contexto, mas deixe claro que pode estar desatualizado — nunca apresente isso como palpite de resultado.
+- "nivelRisco": classifique com base em critérios objetivos acima (tamanho do acumulador, % da banca arriscado quando disponível, odds extremas) — nunca com base em achismo sobre quem vai ganhar o jogo.
+- Se os dados estiverem muito incompletos para uma análise útil, ainda assim responda com o que for possível e mencione a limitação dentro de "resumo".
+- Seja direto e conciso. Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases.
+
+Formato de saída:
+${SCHEMA_ANALISE}`;
+
 // ---- HANDLER PRINCIPAL (formato Cloudflare Workers) ----
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // Só tratamos aqui a rota da API. Qualquer outra URL (o próprio site,
+    // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    if (url.pathname !== '/api/ler-bilhete') {
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta'];
+    if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
 
@@ -365,27 +395,39 @@ export default {
     try { payload = await request.json(); }
     catch (e) { return new Response(JSON.stringify({ error: 'Corpo da requisição inválido.' }), { status: 400, headers }); }
 
-    const { imagemBase64, mediaType, textoBilhete } = payload || {};
+    let imagemBase64, mediaType, textoBilhete, systemInstrucoes;
 
-    if (!imagemBase64 && !textoBilhete) {
-      return new Response(
-        JSON.stringify({ error: 'Envie imagemBase64+mediaType (foto) ou textoBilhete (texto colado).' }),
-        { status: 400, headers }
-      );
-    }
-
-    let systemInstrucoes;
-    if (textoBilhete) {
-      systemInstrucoes = PROMPT_TEXTO;
+    if (url.pathname === '/api/analisar-aposta') {
+      // ---- Rota de análise de risco (não extrai dados, recebe dados já preenchidos) ----
+      const { aposta } = payload || {};
+      if (!aposta) {
+        return new Response(JSON.stringify({ error: 'Envie os dados da aposta no campo "aposta".' }), { status: 400, headers });
+      }
+      systemInstrucoes = PROMPT_ANALISE_APOSTA;
+      textoBilhete = JSON.stringify(aposta); // reaproveita o caminho de "texto" das funções de provedor abaixo
     } else {
-      const tiposAceitos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-      if (!tiposAceitos.includes(mediaType)) {
+      // ---- Rota original: leitor de bilhete por foto ou texto ----
+      ({ imagemBase64, mediaType, textoBilhete } = payload || {});
+
+      if (!imagemBase64 && !textoBilhete) {
         return new Response(
-          JSON.stringify({ error: 'Formato de imagem não suportado. Use JPEG, PNG, WEBP ou GIF.' }),
+          JSON.stringify({ error: 'Envie imagemBase64+mediaType (foto) ou textoBilhete (texto colado).' }),
           { status: 400, headers }
         );
       }
-      systemInstrucoes = PROMPT_IMAGEM;
+
+      if (textoBilhete) {
+        systemInstrucoes = PROMPT_TEXTO;
+      } else {
+        const tiposAceitos = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!tiposAceitos.includes(mediaType)) {
+          return new Response(
+            JSON.stringify({ error: 'Formato de imagem não suportado. Use JPEG, PNG, WEBP ou GIF.' }),
+            { status: 400, headers }
+          );
+        }
+        systemInstrucoes = PROMPT_IMAGEM;
+      }
     }
 
     // ---- 1ª TENTATIVA: GEMINI (grátis) ----

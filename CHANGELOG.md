@@ -4,6 +4,24 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.10.0 — 19/07/2026
+
+### Leitor de Bilhete (IA)
+- Novo botão **"🔍 Analisar Aposta"**, ao lado de "Preencher por Foto" e "Preencher por
+  Texto", na aba Cadastro. Envia os dados atualmente preenchidos no formulário (casa,
+  stake, eventos, odds, saldo atual da casa quando disponível) para a IA e devolve uma
+  análise objetiva de **risco e contexto** — nunca uma previsão de resultado do jogo.
+- A análise mostra um nível de risco (Baixo/Médio/Alto), um resumo em linguagem simples
+  explicando a probabilidade implícita da ODD e o que está sendo apostado, e uma lista de
+  alertas objetivos: acumuladores com muitos eventos, stake alto em relação ao saldo da
+  casa, odds muito baixas ou muito altas, e inconsistências nos dados preenchidos.
+- Roda automaticamente logo após a IA terminar de preencher o formulário via foto ou
+  texto (sem bloquear a tela), e também pode ser acionada manualmente a qualquer momento
+  pelo botão, útil para conferir a análise depois de editar algum campo.
+- Nova rota `/api/analisar-aposta` no Worker, reaproveitando a mesma estratégia de
+  provedor já usada no leitor de bilhete (Gemini primeiro, com fallback automático para
+  Anthropic Claude).
+
 ## v1.9.1 — 18/07/2026
 
 ### Acessibilidade

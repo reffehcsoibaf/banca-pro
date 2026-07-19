@@ -896,10 +896,16 @@
                 <button class="btn btn-outline" id="btnPreencherTexto" onclick="abrirModalTexto()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Preencher aposta colando o texto do bilhete">
                     📋 Preencher por Texto
                 </button>
+                <button class="btn btn-outline" id="btnAnalisarAposta" onclick="analisarApostaAtual(false)" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Analisar risco e contexto desta aposta com IA">
+                    🔍 Analisar Aposta
+                </button>
             </div>
 
             <!-- Itens novos detectados pela IA (ainda não existem nas listas) -->
             <div id="sugestoesItensNovosBanca" aria-live="polite" style="margin:0 0 16px;"></div>
+
+            <!-- Análise de risco/contexto da aposta (manual ou automática após preenchimento por IA) -->
+            <div id="analiseApostaResultado" aria-live="polite" style="margin:0 0 16px;"></div>
 
             <!-- Modal: colar texto do bilhete -->
             <div id="modalTextoBilhete" role="dialog" aria-modal="true" aria-labelledby="modalTextoTitulo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:2000; align-items:center; justify-content:center; padding:16px;">
@@ -1298,7 +1304,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.9.1 · 18/07/2026
+  Banca Pro · v1.10.0 · 19/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2487,6 +2493,120 @@ function addEvento() {
 }
 function parseFloat2(v) { return parseFloat(v) || 0; }
 
+/* ==================== ANALISAR APOSTA (IA) ====================
+   Gera uma análise de RISCO e CONTEXTO sobre a aposta que está sendo
+   preenchida no formulário no momento — NUNCA uma previsão de resultado
+   do jogo (isso é impossível de fazer com confiabilidade e seria
+   enganoso). Pode ser acionada de duas formas:
+   1. Manualmente, pelo botão "🔍 Analisar Aposta".
+   2. Automaticamente, logo depois que a IA termina de preencher o
+      formulário via foto ou texto (ver preencherFormularioComExtracao). */
+
+function limparAnaliseAposta() {
+    const el = document.getElementById('analiseApostaResultado');
+    if (el) el.innerHTML = '';
+}
+
+// Reúne os dados atualmente no formulário no mesmo formato esperado pelo Worker
+function coletarDadosApostaParaAnalise() {
+    const casa = getRadioValue('rg-casa');
+    const stake = parseFloat2(document.getElementById('stake').value);
+    const oddTotal = parseFloat2(document.getElementById('oddTotal').value);
+    const status = getRadioValue('rg-status');
+    const bonus = parseFloat2(document.getElementById('bonus').value);
+
+    const eventos = [];
+    document.querySelectorAll('.event').forEach(div => {
+        const esporte = div.querySelector('.esporteEvento') ? div.querySelector('.esporteEvento').value : '';
+        const liga = div.querySelector('.ligaEvento') ? div.querySelector('.ligaEvento').value : '';
+        const evento = div.querySelector('.evento') ? div.querySelector('.evento').value : '';
+        const merDiv = div.querySelector('.mercado');
+        const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
+        const selecao = div.querySelector('.selecao') ? div.querySelector('.selecao').value : '';
+        const odd = div.querySelector('.odd') ? parseFloat2(div.querySelector('.odd').value) : 0;
+        if (evento || mercado || odd > 0) {
+            eventos.push({ esporte, liga, evento, mercado, selecao, odd });
+        }
+    });
+
+    // Saldo atual da casa selecionada (quando disponível), para a IA avaliar
+    // que percentual do saldo o stake representa — não obrigatório.
+    let saldoAtualCasa = null;
+    if (casa) {
+        const saldos = calcularSaldosPorCasa();
+        const s = saldos.find(x => x.casa === casa);
+        if (s) saldoAtualCasa = s.saldoAtual;
+    }
+
+    return { casa, stake, oddTotal, status, bonus, eventos, saldoAtualCasa };
+}
+
+// Só vale a pena chamar a IA se houver o mínimo de dados preenchidos
+function dadosSuficientesParaAnalise(dados) {
+    if (!(dados.stake > 0)) return false;
+    if (!dados.eventos.length) return false;
+    return dados.eventos.some(e => e.odd > 0 && (e.mercado || e.selecao));
+}
+
+// automatico=true: chamada silenciosa após preenchimento por IA (sem toast de aviso se faltar dado)
+// automatico=false: chamada pelo botão manual (avisa o usuário se faltar dado)
+async function analisarApostaAtual(automatico) {
+    const dados = coletarDadosApostaParaAnalise();
+    if (!dadosSuficientesParaAnalise(dados)) {
+        if (!automatico) showToast('⚠️ Preencha ao menos o stake e um evento com mercado/seleção/odd antes de analisar.', 'info');
+        return;
+    }
+
+    const btn = document.getElementById('btnAnalisarAposta');
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Analisando...'; }
+    if (!automatico) limparAnaliseAposta();
+
+    try {
+        const resposta = await fetch('/api/analisar-aposta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ aposta: dados })
+        });
+        const json = await resposta.json();
+        if (!resposta.ok) throw new Error(json.error || 'Erro ao analisar a aposta.');
+        renderizarAnaliseAposta(json);
+        anunciar('Análise de risco da aposta disponível. Nível de risco: ' + (json.nivelRisco || '—') + '. ' + (json.resumo || ''));
+    } catch (err) {
+        if (!automatico) showToast('❌ Não foi possível analisar: ' + err.message, 'error', 8000);
+        console.error('analisarApostaAtual erro:', err);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '🔍 Analisar Aposta'; }
+    }
+}
+
+function renderizarAnaliseAposta(dados) {
+    const container = document.getElementById('analiseApostaResultado');
+    if (!container) return;
+
+    const nivel = (dados.nivelRisco || '').toLowerCase();
+    const corMap = {
+        'baixo': { bg: 'var(--success-bg)', cor: 'var(--success)', emoji: '🟢' },
+        'médio': { bg: 'var(--warning-bg)', cor: 'var(--warning)', emoji: '🟡' },
+        'medio': { bg: 'var(--warning-bg)', cor: 'var(--warning)', emoji: '🟡' },
+        'alto':  { bg: 'var(--danger-bg)',  cor: 'var(--danger)',  emoji: '🔴' }
+    };
+    const estilo = corMap[nivel] || { bg: 'var(--muted-bg)', cor: 'var(--muted)', emoji: '⚪' };
+
+    const alertasHtml = (dados.alertas && dados.alertas.length)
+        ? '<ul style="margin:8px 0 0;padding-left:20px;">' + dados.alertas.map(a => `<li style="margin-bottom:4px;">${escapeHtml(a)}</li>`).join('') + '</ul>'
+        : '';
+
+    container.innerHTML = `
+        <div style="background:${estilo.bg};border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border-light);">
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:${estilo.cor};font-size:13px;text-transform:uppercase;letter-spacing:.4px;">
+                ${estilo.emoji} Risco ${escapeHtml(dados.nivelRisco || '—')}
+            </div>
+            <p style="margin:8px 0 0;font-size:14px;line-height:1.6;">${escapeHtml(dados.resumo || '')}</p>
+            ${alertasHtml}
+            <p style="margin:10px 0 0;font-size:11.5px;color:var(--text-secondary);">⚠️ Análise gerada por IA com foco em risco e contexto — não é previsão de resultado do jogo.</p>
+        </div>`;
+}
+
 /* ==================== PREENCHER BILHETE POR FOTO (IA) ====================
    Fluxo: usuário seleciona uma imagem do bilhete -> a imagem é enviada para
    o Worker do Cloudflare em /api/ler-bilhete (que guarda a chave da API em
@@ -3066,6 +3186,11 @@ function preencherFormularioComExtracao(dados, origem) {
 
         const primeiroRadioCasa = document.querySelector('#rg-casa input[type="radio"]');
         if (primeiroRadioCasa) primeiroRadioCasa.focus();
+
+        // Dispara a análise de risco/contexto automaticamente, sem bloquear a
+        // tela — roda em segundo plano e aparece quando ficar pronta. Modo
+        // "automático" não mostra toast de erro se faltar algum dado.
+        setTimeout(() => analisarApostaAtual(true), 300);
     }
 
     // Preenche o formulário imediatamente. Itens que ainda não existem nas
@@ -3330,6 +3455,7 @@ async function deletar(idx) {
 }
 
 function limparFormulario() {
+    limparAnaliseAposta();
     document.getElementById("identificador").value = "";
     document.getElementById("stake").value = "";
     document.getElementById("bonus").value = "";
