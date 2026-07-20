@@ -1277,6 +1277,33 @@
         </div>
 
         <div class="card">
+            <h2>🔍 Auditoria de Cálculos</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Recalcula o retorno e o lucro de cada aposta salva usando a fórmula atual e compara com os valores
+                gravados no banco. Aponta divergências — por exemplo, apostas salvas com uma versão antiga da
+                fórmula (antes de Ganho Parcial, Perda Parcial ou Cash Out existirem, ou editadas manualmente).
+                Não altera nenhum dado, apenas mostra o que encontrar.
+            </p>
+            <button class="btn btn-outline" onclick="auditarCalculos()" aria-label="Auditar cálculos de todas as apostas" style="width:auto;">
+                🔍 Auditar Cálculos
+            </button>
+            <div id="auditoriaResumo" aria-live="polite" style="margin-top:14px; font-size:13px; color:var(--text-secondary);"></div>
+            <ol id="auditoriaLista" style="margin:10px 0 0; padding-left:20px; font-size:13px;"></ol>
+        </div>
+
+        <div class="card">
+            <h2>🎯 Precisão Decimal</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Recalcula odd total, retornado, lucro, unidades e ROI de todas as apostas com precisão de até
+                4 casas decimais, corrigindo ruído de ponto flutuante acumulado em cálculos e importações
+                antigas. Regrava no banco apenas as apostas cujo valor realmente mudou.
+            </p>
+            <button class="btn btn-outline" onclick="recalcularPrecisaoDecimal()" aria-label="Recalcular todos os valores das apostas com precisão decimal de até 4 casas" style="width:auto;">
+                🎯 Recalcular Precisão Decimal
+            </button>
+        </div>
+
+        <div class="card">
             <h2>💾 Dados</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Backup completo (apostas e lançamentos de saldo) e reset do sistema.
@@ -1304,7 +1331,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.10.0 · 19/07/2026
+  Banca Pro · v1.11.0 · 20/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -3539,6 +3566,15 @@ function formatarMoeda(v) { return v.toLocaleString('pt-BR', { style: 'currency'
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function formatarDecimal(v) { return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }); }
 
+// Arredonda um valor numérico em até 4 casas decimais, eliminando ruído de
+// ponto flutuante (ex: somas sucessivas de stakes/lucros podem resultar em
+// algo como 149.99999999999997). Usado em qualquer total agregado exibido
+// ao usuário e na regravação de valores pela "Recalcular Precisão Decimal".
+function arredondar4(v) {
+    if (!isFinite(v)) return 0;
+    return Math.round((v + Number.EPSILON) * 10000) / 10000;
+}
+
 // Formata uma ODD com precisão dinâmica: sempre ao menos 2 casas decimais,
 // mas estende até "max" casas quando necessário para representar o valor
 // exatamente (essencial em acumuladores, onde o produto de várias odds com
@@ -3586,8 +3622,14 @@ function renderResumo(dados) {
         else outrasF++; // Ganho Parcial, Perda Parcial, Cash Out, Anulada
     }
     const finF    = ganhasF + perdidasF;
-    const acertoF = finF > 0 ? (ganhasF/finF)*100 : 0;
-    const roiF    = tStakeF > 0 ? (tLucroF/tStakeF)*100 : 0;
+    const acertoF = arredondar4(finF > 0 ? (ganhasF/finF)*100 : 0);
+    const roiF    = arredondar4(tStakeF > 0 ? (tLucroF/tStakeF)*100 : 0);
+    // Arredonda os totais somados (stake, lucro, unidades) em até 4 casas decimais:
+    // somas sucessivas em ponto flutuante podem gerar ruído (ex: 149.99999999999997)
+    // que antes escapava para o resumo do filtro sem essa etapa.
+    tStakeF   = arredondar4(tStakeF);
+    tLucroF   = arredondar4(tLucroF);
+    unidadesF = arredondar4(unidadesF);
     const outrasLabel = outrasF > 0 ? ` <small style="opacity:.8;font-size:11px;" title="Ganho Parcial, Perda Parcial, Cash Out ou Anulada">+${outrasF} enc.</small>` : '';
 
     const html = [
@@ -3769,6 +3811,151 @@ function renderSaldos() {
             <td><button class="btn-sm btn-danger" onclick="excluirTransacao(${idxReal})" aria-label="Excluir lançamento de ${t.tipo} de ${formatarMoeda(t.valor)} em ${t.casa}">🗑️</button></td>
         </tr>`;
     }).join('');
+}
+
+/* ==================== MANUTENÇÃO DE CÁLCULOS (Configurações) ==================== */
+
+// Recalcula retornado/lucro de cada aposta salva com a fórmula atual (calcularRetornoLucro)
+// e compara com o que está gravado. Só leitura — não altera nenhuma aposta.
+// Resultado fica inline na própria aba Configurações (região aria-live), sem modal e sem
+// roubar o foco — assim quem usa leitor de tela permanece em modo de navegação normal e
+// só desce a página lendo a lista, sem precisar de comandos especiais de tabela.
+function auditarCalculos() {
+    const TOLERANCIA = 0.01; // diferenças de arredondamento abaixo disso não contam como divergência
+    const divergencias = [];
+
+    apostas.forEach(a => {
+        const { retornado: retornadoEsperado, lucro: lucroEsperado } = calcularRetornoLucro(
+            a.status, a.stake, a.oddTotal, a.bonus, a.cashOutValor
+        );
+        const recebidoSalvo = parseFloat2(a.recebido);
+        const lucroSalvo = parseFloat2(a.lucro);
+        const diffRecebido = recebidoSalvo - retornadoEsperado;
+        const diffLucro = lucroSalvo - lucroEsperado;
+
+        if (Math.abs(diffRecebido) > TOLERANCIA || Math.abs(diffLucro) > TOLERANCIA) {
+            divergencias.push({
+                identificador: a.identificador,
+                casa: a.casa,
+                status: a.status,
+                dataHora: a.dataHora,
+                recebidoSalvo, retornadoEsperado, diffRecebido,
+                lucroSalvo, lucroEsperado, diffLucro
+            });
+        }
+    });
+
+    const resumoEl = document.getElementById('auditoriaResumo');
+    const listaEl = document.getElementById('auditoriaLista');
+
+    if (divergencias.length === 0) {
+        resumoEl.textContent = `✅ ${apostas.length} apostas conferidas — nenhuma divergência encontrada entre o valor gravado e o recalculado com a fórmula atual.`;
+        listaEl.innerHTML = '';
+        return;
+    }
+
+    const impactoTotal = divergencias.reduce((s, d) => s + d.diffLucro, 0);
+    resumoEl.textContent = `⚠️ ${divergencias.length} de ${apostas.length} apostas com divergência entre o valor gravado e o recalculado. `+
+        `Impacto líquido no Lucro: ${formatarMoeda(impactoTotal)} `+
+        `(valor gravado ${impactoTotal >= 0 ? 'acima' : 'abaixo'} do que a fórmula atual calcularia). Lista logo abaixo.`;
+
+    listaEl.innerHTML = divergencias.map(d => `
+        <li style="margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);">
+            <strong>${d.identificador}</strong> — ${d.casa}, status ${d.status}, ${formatarData(d.dataHora)}.
+            Recebido gravado: ${formatarMoeda(d.recebidoSalvo)}. Recebido esperado: ${formatarMoeda(d.retornadoEsperado)}.
+            Diferença no lucro: <strong style="color:${Math.abs(d.diffLucro) > TOLERANCIA ? '#b91c1c' : 'inherit'}">${formatarMoeda(d.diffLucro)}</strong>.
+        </li>`).join('');
+}
+
+// Percorre todas as apostas e regrava odd total, retornado, lucro, unidades
+// e ROI com precisão decimal de até 4 casas (mesma precisão usada em
+// formatarOdd/arredondar4), eliminando ruído de ponto flutuante acumulado
+// em cálculos e importações antigas. Só regrava no banco as apostas cujo
+// valor realmente mudou.
+async function recalcularPrecisaoDecimal() {
+    if (apostas.length === 0) { showToast('ℹ️ Nenhuma aposta para recalcular.', 'info'); return; }
+    if (!confirm(`Isso vai recalcular odd total, retorno, lucro, unidades e ROI de todas as ${apostas.length} aposta(s) com precisão de até 4 casas decimais, e regravar no banco apenas o que mudar. Continuar?`)) return;
+
+    showToast('⏳ Recalculando precisão decimal...', 'info', 8000);
+
+    const alteradas = [];
+    apostas.forEach(a => {
+        const stake = arredondar4(parseFloat2(a.stake));
+        const bonus = arredondar4(parseFloat2(a.bonus));
+
+        // Odd total recalculada como produto das odds de cada evento (mesma
+        // regra usada em calcular()), arredondando a cada 4 casas para não
+        // acumular ruído de ponto flutuante em acumuladores com muitos eventos.
+        let oddTotal = 1, temOdd = false;
+        (a.eventos || []).forEach(e => {
+            const o = arredondar4(parseFloat2(e.odd));
+            if (o > 0) { oddTotal = arredondar4(oddTotal * o); temOdd = true; }
+        });
+        if (!temOdd) oddTotal = arredondar4(parseFloat2(a.oddTotal));
+
+        const cashOutValor = a.cashOutValor != null ? arredondar4(parseFloat2(a.cashOutValor)) : null;
+        const { retornado, lucro } = calcularRetornoLucro(a.status, stake, oddTotal, bonus, cashOutValor);
+        const recebido  = arredondar4(retornado);
+        const lucroCalc = arredondar4(lucro);
+        const unidades  = stake > 0 ? arredondar4(lucroCalc / stake) : 0;
+        const roi       = stake > 0 ? arredondar4((lucroCalc / stake) * 100) : 0;
+
+        const mudou = a.stake !== stake || a.bonus !== bonus || a.oddTotal !== oddTotal ||
+            a.recebido !== recebido || a.lucro !== lucroCalc || a.unidades !== unidades || a.roi !== roi ||
+            (a.eventos || []).some(e => e.odd !== arredondar4(parseFloat2(e.odd)));
+
+        if (mudou) {
+            a.stake = stake;
+            a.bonus = bonus;
+            a.oddTotal = oddTotal;
+            a.recebido = recebido;
+            a.lucro = lucroCalc;
+            a.unidades = unidades;
+            a.roi = roi;
+            (a.eventos || []).forEach(e => { e.odd = arredondar4(parseFloat2(e.odd)); });
+            alteradas.push(a);
+        }
+    });
+
+    if (alteradas.length === 0) {
+        showToast('✅ Todos os valores já estavam com a precisão correta — nada para regravar.', 'success');
+        return;
+    }
+
+    // Regrava em grupos paralelos (mesma estratégia de concorrência controlada
+    // usada na reimportação de planilha), com progresso no toast.
+    const CONCORRENCIA = 8;
+    let falhas = 0, processadas = 0;
+
+    async function regravarUma(a) {
+        const { error } = await sb.from('apostas').update(apostaParaLinha(a)).eq('id', a.id);
+        if (error) { falhas++; return; }
+        for (const e of (a.eventos || [])) {
+            if (e.id) {
+                const { error: eOdd } = await sb.from('eventos').update({ odd: e.odd }).eq('id', e.id);
+                if (eOdd) falhas++;
+            }
+        }
+    }
+
+    for (let i = 0; i < alteradas.length; i += CONCORRENCIA) {
+        const grupo = alteradas.slice(i, i + CONCORRENCIA);
+        await Promise.all(grupo.map(regravarUma));
+        processadas += grupo.length;
+        if (alteradas.length > CONCORRENCIA) {
+            showToast(`⏳ Regravando... ${processadas}/${alteradas.length}`, 'info', 6000);
+        }
+    }
+
+    ordenarApostasPorData();
+    aplicarFiltros();
+    renderSaldos();
+
+    if (falhas > 0) {
+        showToast(`⚠️ ${alteradas.length} aposta(s) recalculada(s), mas ${falhas} gravação(ões) falharam — rode novamente para tentar de novo.`, 'error', 12000);
+    } else {
+        showToast(`✅ ${alteradas.length} de ${apostas.length} aposta(s) recalculada(s) e regravada(s) com precisão de até 4 casas decimais.`, 'success', 8000);
+    }
 }
 
 async function salvarTransacao() {

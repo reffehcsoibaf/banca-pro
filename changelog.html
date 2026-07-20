@@ -114,6 +114,22 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-11-0">v1.11.0</h2>
+  <p class="versao-data">20/07/2026</p>
+  <h3>Manutenção de Cálculos (Configurações)</h3>
+  <ul>
+    <li>Novo card "🔍 Auditoria de Cálculos" na aba <strong>Configurações</strong>. Recalcula o retorno e o lucro de cada aposta salva usando a fórmula atual e compara com os valores gravados no banco, apontando divergências — por exemplo, apostas salvas com uma versão antiga da fórmula (antes de Ganho Parcial, Perda Parcial ou Cash Out existirem) ou editadas manualmente. Só leitura: não altera nenhum dado, apenas mostra o resultado inline na própria aba.</li>
+    <li>Novo card separado "🎯 Precisão Decimal", com o botão "🎯 Recalcular Precisão Decimal": recalcula odd total, retornado, lucro, unidades e ROI de todas as apostas com precisão de até 4 casas decimais, eliminando ruído de ponto flutuante acumulado em cálculos e importações antigas. Regrava no banco apenas as apostas cujo valor realmente mudou, em lotes com progresso mostrado na tela.</li>
+  </ul>
+  <h3>Precisão nos totais do resumo do filtro</h3>
+  <ul>
+    <li>Os totais agregados do resumo (Stake Total, Lucro, Unidades, ROI, % Acerto) agora passam por um arredondamento de até 4 casas decimais antes de serem exibidos, eliminando ruído de ponto flutuante que somas sucessivas de muitas apostas podiam gerar internamente.</li>
+  </ul>
+  <h3>Guia de Uso (wiki.html)</h3>
+  <ul>
+    <li>Nova seção "🧮 Manutenção de Cálculos" documentando os dois botões novos, com link na barra lateral logo abaixo de "Recarregar Aplicativo".</li>
+  </ul>
+
   <h2 id="v1-10-0">v1.10.0</h2>
   <p class="versao-data">19/07/2026</p>
   <h3>Leitor de Bilhete (IA)</h3>

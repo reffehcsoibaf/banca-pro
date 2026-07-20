@@ -4,6 +4,35 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.11.0 — 20/07/2026
+
+### Manutenção de Cálculos (Configurações)
+- Novo card **"🔍 Auditoria de Cálculos"** na aba Configurações. Recalcula o retorno e o lucro de
+  cada aposta salva usando a fórmula atual (`calcularRetornoLucro`) e compara com os valores
+  gravados no banco, apontando divergências — por exemplo, apostas salvas com uma versão antiga
+  da fórmula (antes de Ganho Parcial, Perda Parcial ou Cash Out existirem) ou editadas
+  manualmente. Só leitura: não altera nenhum dado, apenas mostra o resultado inline na própria
+  aba (região `aria-live`, sem modal e sem roubar o foco do leitor de tela).
+- Novo card separado **"🎯 Precisão Decimal"**, com o botão **"🎯 Recalcular Precisão Decimal"**:
+  recalcula odd total, retornado, lucro, unidades e ROI de todas as apostas com precisão de até
+  4 casas decimais, eliminando ruído de ponto flutuante acumulado em cálculos e importações
+  antigas. Regrava no banco apenas as apostas cujo valor realmente mudou, em lotes com progresso
+  mostrado no toast — mesma estratégia de concorrência controlada já usada na reimportação de
+  planilha.
+- Confirmado que a rotina de cálculo de saldo por casa (`calcularSaldosPorCasa`) é feita
+  inteiramente no `index.html`; o `worker.js` não participa desse cálculo (só compõe os prompts
+  do leitor de bilhete por IA), então não precisou de nenhuma alteração nesta atualização.
+
+### Precisão nos totais do resumo do filtro
+- Os totais agregados do resumo (Stake Total, Lucro, Unidades, ROI, % Acerto) agora passam por um
+  arredondamento de até 4 casas decimais antes de serem exibidos, eliminando ruído de ponto
+  flutuante que somas sucessivas de muitas apostas podiam gerar (ex.: algo como
+  `149.99999999999997` exibido como `150,00` por acaso, mas guardando o ruído internamente).
+
+### Guia de Uso (wiki.html)
+- Nova seção "🧮 Manutenção de Cálculos" documentando os dois botões novos, com link na barra
+  lateral logo abaixo de "Recarregar Aplicativo".
+
 ## v1.10.0 — 19/07/2026
 
 ### Leitor de Bilhete (IA)

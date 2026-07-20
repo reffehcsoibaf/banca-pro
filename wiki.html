@@ -256,6 +256,7 @@
     <a href="#configuracoes" class="nav-link">Gerenciar Dados e Listas</a>
     <a href="#config-preferencias-lista" class="nav-link nav-link-sub">Preferências da Lista</a>
     <a href="#config-recarregar-app" class="nav-link nav-link-sub">Recarregar Aplicativo</a>
+    <a href="#config-manutencao-calculos" class="nav-link nav-link-sub">Auditoria e Precisão Decimal</a>
     <a href="#exportar" class="nav-link nav-link-sub">Exportar Excel</a>
     <a href="#importar" class="nav-link nav-link-sub">Importar Excel</a>
     <a href="#limpar-dados" class="nav-link nav-link-sub">Limpar Dados</a>
@@ -742,6 +743,15 @@
     <h3 id="config-recarregar-app">🔄 Recarregar Aplicativo</h3>
     <p>Botão que força uma atualização completa da página, equivalente ao F5 do navegador. É especialmente útil quando o Banca Pro é adicionado à tela inicial do celular (modo "app"), já que nesse modo não existe barra de endereço nem tecla F5 disponível para atualizar manualmente.</p>
     <p>Como alternativa ao botão, também é possível puxar a tela para baixo estando no topo de qualquer aba (rolagem zerada) — um indicador aparece confirmando o gesto, e soltar a tela dispara a atualização.</p>
+
+    <h3 id="config-manutencao-calculos">🔍 Auditoria e Precisão Decimal</h3>
+    <p>Dois recursos para quando os valores de retorno/lucro ou o saldo por casa parecerem estranhos ou desatualizados:</p>
+    <p><strong>🔍 Auditoria de Cálculos</strong> — recalcula o retorno e o lucro de cada aposta salva usando a fórmula atual e compara com o que está gravado no banco, apontando divergências (por exemplo, apostas salvas com uma versão antiga da fórmula, antes de Ganho Parcial, Perda Parcial ou Cash Out existirem, ou editadas manualmente). É <strong>só leitura</strong>: não altera nenhum dado, apenas mostra o resultado logo abaixo do botão.</p>
+    <p><strong>🎯 Recalcular Precisão Decimal</strong> — regrava odd total, retornado, lucro, unidades e ROI de todas as apostas com precisão de até 4 casas decimais, corrigindo ruído de ponto flutuante acumulado em cálculos e importações antigas. Só regrava no banco as apostas cujo valor realmente mudou; o progresso é mostrado na tela enquanto roda.</p>
+    <div class="callout tip">
+      <div class="callout-title">💡 Quando usar</div>
+      Rode a Auditoria primeiro — ela só mostra o que está diferente, sem mexer em nada. Se a diferença for só ruído de casas decimais, o botão de Precisão Decimal corrige. Divergências maiores (fórmula antiga, edição manual) precisam ser revisadas aposta por aposta.
+    </div>
 
     <h3 id="exportar">📊 Exportar Excel</h3>
     <p>Gera um arquivo <code>.xlsx</code> com <strong>todas</strong> as apostas cadastradas (aba <em>Apostas</em>) e todos os lançamentos de saldo (aba <em>Transações</em>). O nome do arquivo inclui data e hora no formato <code>aaaa-mm-dd_hh-mm-ss</code>. Use regularmente como backup.</p>
