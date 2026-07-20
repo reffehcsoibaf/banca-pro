@@ -3717,7 +3717,7 @@ function calcularSaldosPorCasa() {
         const c = pegar(a.casa);
         if (!c) return;
         c.stakeApostado += parseFloat2(a.stake);
-        if (a.status === 'Ganhou') c.recebidoGanho += parseFloat2(a.recebido);
+        if (a.status !== 'Aberto') c.recebidoGanho += parseFloat2(a.recebido);
     });
     transacoes.forEach(t => {
         const c = pegar(t.casa);
