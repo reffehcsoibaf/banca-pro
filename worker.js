@@ -29,7 +29,7 @@ const SCHEMA_JSON = `
     {
       "esporte": "string (ex: Futebol, Basquete, Tênis, Vôlei)",
       "liga": "string ou null (nome do campeonato/liga)",
-      "evento": "string (nome do confronto, ex: Time A x Time B)",
+      "evento": "string (nome do confronto, ex: Time A - Time B)",
       "mercado": "string — um nome da lista de mercados cadastrados (ver MAPEAMENTO DE MERCADOS). Se o evento combinar VÁRIAS condições cujos mercados são todos reconhecidos na lista, use os nomes reconhecidos separados por ', ' (ex.: \"Gols, Escanteios\") em vez de 'Criador de Apostas' — ver regra CRIADOR DE APOSTAS abaixo.",
       "selecao": "string (a seleção escolhida, ex: nome do time, Mais de 2.5, etc.)",
       "odd": "number (a odd daquele evento)",
@@ -233,7 +233,7 @@ Regra especial — SUPERBET NO APP MÓVEL (tela "Cupom de Aposta"):
   • O nome de um país (ex.: "Inglaterra", "Brasil", "Espanha") — nesse caso é o país ao qual aquele campeonato pertence, e deve ser INCORPORADO ao campo "liga" no formato "País - Liga" (ex.: "Inglaterra • Premier League" → liga = "Inglaterra - Premier League"; "Brasil • Brasileirão Série A" → liga = "Brasil - Brasileirão Série A").
   Em ambos os casos, use confiancaLiga alta (0.85-1.0), já que o texto está explícito no bilhete.
 - O botão "+ Adicionar" no canto superior direito do cartão é elemento de interface — não é dado.
-- Os nomes dos times aparecem empilhados em duas linhas, sem "x" nem "-" entre eles. Junte-os no campo "evento" como "Time A x Time B".
+- Os nomes dos times aparecem empilhados em duas linhas, sem "x" nem "-" entre eles. Junte-os no campo "evento" como "Time A - Time B".
 - Dentro do cartão "CRIAR APOSTA", cada condição aparece em duas linhas: a seleção em negrito (linha 1) e o mercado em cinza (linha 2) logo abaixo. Os círculos (○) ao lado de cada condição são apenas elementos visuais de interface — TODAS as condições listadas dentro do cartão fazem parte da aposta, independentemente do círculo estar preenchido ou vazio na imagem.
 - Apostas de jogador aparecem no formato "Sobrenome, Nome - Mais de X" (ex.: "Messi, Lionel - Mais de 0.5"). Inverta para "Nome Sobrenome" ao compor a seleção final (ex.: "Lionel Messi - Mais de 0.5"), mantendo o mercado da linha de baixo (ex.: "Jogador - Chutes no Gol").
 - Pequenos ícones ao lado de alguma condição (ex.: escudo colorido) são apenas indicadores visuais da casa (ex.: aposta protegida) — ignore-os, não fazem parte do texto da seleção.
@@ -296,7 +296,7 @@ ID: 6416780725
 GanhosR$0,00
 """
 → casa: Betano, identificador: "6416780725", dataHora: "2024-10-26T11:29", stake: 3.07, status: "Perdeu"
-→ 5 eventos: Grêmio vs Atlético-GO (mercado: "Resultado Final", selecao: "Grêmio", odd: 1.62), Palmeiras vs Fortaleza (mercado: "Resultado Final", selecao: "Palmeiras", odd: 1.40), Flamengo vs Juventude-RS (mercado: "Resultado Final", selecao: "Flamengo", odd: 1.38), Atlético-MG vs Internacional (mercado: "Handicap", selecao: "Internacional +1", odd: 1.33), Bragantino vs Botafogo-RJ (mercado: "Handicap", selecao: "Botafogo-RJ +1", odd: 1.31)
+→ 5 eventos: Grêmio - Atlético-GO (mercado: "Resultado Final", selecao: "Grêmio", odd: 1.62), Palmeiras - Fortaleza (mercado: "Resultado Final", selecao: "Palmeiras", odd: 1.40), Flamengo - Juventude-RS (mercado: "Resultado Final", selecao: "Flamengo", odd: 1.38), Atlético-MG - Internacional (mercado: "Handicap", selecao: "Internacional +1", odd: 1.33), Bragantino - Botafogo-RJ (mercado: "Handicap", selecao: "Botafogo-RJ +1", odd: 1.31)
 → liga: a Betano não mostra a liga no texto, mas TODOS esses times são times brasileiros de futebol, então infira "Brasil - Série A" para todos (nome oficial, não "Brasileirão"), com confiancaLiga 0.4 (inferência, não leitura direta do bilhete). Esse é o comportamento esperado sempre que a Betano não escrever a liga: nunca deixe liga como null só porque não achou o texto — primeiro tente inferir pelos times.
 
 EXEMPLO 2 — Superbet, criador de apostas (múltiplas condições no mesmo confronto):
@@ -326,11 +326,11 @@ ODDS TOTAIS1.84APOSTA2,00R$
 """
 → casa: Superbet, identificador: "890I-QD3MXC", dataHora: "2026-07-01T09:56", stake: 2.0, status: "Aberto"
 → 2 eventos (cada confronto é um evento separado):
-  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra x RD do Congo", mercado "Classificar, Escanteios da Equipe" (ambos reconhecidos — "Se Classificar" → "Classificar", "Inglaterra - Total de Escanteios" → "Escanteios da Equipe" — por isso NÃO usa "Criador de Apostas" aqui), selecao "Classificar + Inglaterra - Mais de 4.5" (nome do time preservado), odd 1.35
-  Evento 2: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "EUA x Bósnia e Herzegovina", mercado "Intervalo", selecao "1", odd 1.37
+  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra - RD do Congo", mercado "Classificar, Escanteios da Equipe" (ambos reconhecidos — "Se Classificar" → "Classificar", "Inglaterra - Total de Escanteios" → "Escanteios da Equipe" — por isso NÃO usa "Criador de Apostas" aqui), selecao "Classificar + Inglaterra - Mais de 4.5" (nome do time preservado), odd 1.35
+  Evento 2: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "EUA - Bósnia e Herzegovina", mercado "Intervalo", selecao "1", odd 1.37
 → Nota: "1º Tempo - Finalizações 1X2" na Superbet corresponde ao mercado "Intervalo" na lista cadastrada.
 
-Observação para texto da Betano: o padrão é geralmente "SeleçãoODD" colado (ex: "Grêmio1.62"), seguido do mercado na linha seguinte, e depois o confronto ("Time A - Time B"). Extraia o confronto no formato "Time A x Time B" (usando "x" em vez de "-").
+Observação para texto da Betano: o padrão é geralmente "SeleçãoODD" colado (ex: "Grêmio1.62"), seguido do mercado na linha seguinte, e depois o confronto ("Time A - Time B"). Extraia o confronto exatamente nesse formato, com hífen entre os nomes: "Time A - Time B".
 
 Agora extraia os dados do texto do bilhete que será enviado a seguir, na mensagem do usuário, e devolva ESTRITAMENTE um JSON válido no seguinte formato:
 ${SCHEMA_JSON}

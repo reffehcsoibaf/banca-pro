@@ -4,6 +4,15 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.11.1 — 22/07/2026
+
+### Leitor de Bilhete (IA)
+- O nome do confronto no campo **Evento** agora é montado com hífen entre os nomes dos times
+  (ex.: `Grêmio - Atlético-GO`), em vez do "x" usado até então (ex.: `Grêmio x Atlético-GO`).
+  Ajustado tanto na regra geral quanto nos exemplos internos do prompt (Betano e Superbet,
+  foto e texto). Vale para leituras novas feitas a partir desta versão — bilhetes já
+  cadastrados anteriormente com "x" não são alterados automaticamente.
+
 ## v1.11.0 — 20/07/2026
 
 ### Manutenção de Cálculos (Configurações)
