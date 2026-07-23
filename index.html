@@ -1249,6 +1249,19 @@
         </div>
 
         <div class="card">
+            <h2>🧠 Correções Aprendidas (IA)</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Sempre que você corrige a Liga ou o Mercado que a IA sugeriu numa leitura de bilhete (antes de salvar), o app memoriza essa correção aqui — nas próximas leituras, essa preferência é enviada para a IA priorizar em vez de repetir o mesmo erro. Nada manual necessário: basta editar o campo errado normalmente antes de salvar.
+            </p>
+            <div id="listaCorrecoesIA" style="font-family:var(--font-ui);font-size:13px;"></div>
+            <div class="btn-row" style="margin-top:10px;">
+                <button class="btn btn-outline" onclick="limparTodasCorrecoesIA()" aria-label="Apagar todas as correções aprendidas" style="width:auto; color:#ef4444; border-color:#ef4444;">
+                    🗑️ Apagar Todas as Correções
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
             <h2>🔍 Análise de Aposta (IA)</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Controla se a análise de risco e estatística roda sozinha assim que a IA termina de preencher o formulário por foto ou texto. O botão manual "🔍 Analisar Aposta" continua disponível a qualquer momento, independente desta opção.
@@ -1342,7 +1355,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.12.0 · 23/07/2026
+  Banca Pro · v1.13.0 · 23/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1531,6 +1544,7 @@ async function iniciarApp() {
     await carregarOpcoes();
     await carregarApostas();
     await carregarTransacoes();
+    await carregarCorrecoesIA();
     fillSelects();
     // Renderizar radio group do formulário principal
     renderRadioGroup('rg-casa', 'casa', null);
@@ -1989,6 +2003,98 @@ async function inserirTransacaoDB(t) {
 async function excluirTransacaoDB(id) {
     const { error } = await sb.from('transacoes').delete().eq('id', id);
     if (error) showToast('❌ Erro ao excluir transação: ' + error.message, 'error');
+}
+
+// ---- Correções aprendidas da IA (memória de correções de Liga/Mercado) ----
+// Sempre que a Liga ou o Mercado sugerido pela IA numa leitura de bilhete é
+// diferente do valor que o usuário efetivamente salvou, isso é registrado aqui
+// automaticamente (ver diffCorrecoesIA/salvar()). Nas próximas leituras, essas
+// correções são enviadas ao Worker para a IA priorizar a preferência já
+// confirmada em vez de repetir o mesmo erro de inferência.
+let correcoesIA = [];
+
+function correcaoParaLinha(c) {
+    return { campo: c.campo, esporte: c.esporte, valor_errado: c.valorErrado, valor_correto: c.valorCorreto, contexto: c.contexto || null };
+}
+function linhaParaCorrecao(row) {
+    return {
+        id: row.id,
+        campo: row.campo,
+        esporte: row.esporte,
+        valorErrado: row.valor_errado,
+        valorCorreto: row.valor_correto,
+        contexto: row.contexto || '',
+        criadoEm: row.criado_em
+    };
+}
+
+async function carregarCorrecoesIA() {
+    const { data, error } = await selecionarTudo('correcoes_ia', 'id');
+    if (error) {
+        // Tabela pode ainda não existir se o usuário não rodou o SQL de criação —
+        // falha silenciosa aqui não deve travar o app, só desativa esse recurso.
+        console.warn('Não foi possível carregar correções aprendidas (tabela pode não existir ainda):', error.message);
+        correcoesIA = [];
+        return;
+    }
+    correcoesIA = (data || []).map(linhaParaCorrecao);
+}
+
+// Evita duplicar a mesma correção exata (campo+esporte+errado+correto) — se já
+// existir, apenas ignora silenciosamente em vez de criar linhas repetidas.
+async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, contexto) {
+    if (!valorErrado || !valorCorreto || valorErrado === valorCorreto) return;
+    const jaExiste = correcoesIA.some(c => c.campo === campo && c.esporte === esporte && c.valorErrado === valorErrado && c.valorCorreto === valorCorreto);
+    if (jaExiste) return;
+    const nova = { campo, esporte, valorErrado, valorCorreto, contexto: contexto || '' };
+    const { data, error } = await sb.from('correcoes_ia').insert(correcaoParaLinha(nova)).select().single();
+    if (error) { console.warn('Não foi possível salvar correção aprendida:', error.message); return; }
+    nova.id = data.id;
+    nova.criadoEm = data.criado_em;
+    correcoesIA.push(nova);
+}
+
+async function excluirCorrecaoIA(id) {
+    const { error } = await sb.from('correcoes_ia').delete().eq('id', id);
+    if (error) { showToast('❌ Erro ao excluir correção: ' + error.message, 'error'); return; }
+    correcoesIA = correcoesIA.filter(c => c.id !== id);
+    renderCorrecoesIA();
+    showToast('🗑️ Correção removida', 'info');
+}
+
+async function limparTodasCorrecoesIA() {
+    if (!correcoesIA.length) return;
+    if (!confirm(`Apagar todas as ${correcoesIA.length} correções aprendidas? A IA volta a inferir do zero, sem lembrar dos ajustes feitos até agora.`)) return;
+    const { error } = await sb.from('correcoes_ia').delete().not('id', 'is', null);
+    if (error) { showToast('❌ Erro ao limpar correções: ' + error.message, 'error'); return; }
+    correcoesIA = [];
+    renderCorrecoesIA();
+    showToast('✅ Correções aprendidas apagadas', 'success');
+}
+
+// Compara os valores de Liga/Mercado que a IA sugeriu na última extração
+// (extracaoAtualDados) com os valores efetivamente salvos na aposta, evento a
+// evento. Toda diferença vira uma correção aprendida automaticamente — o
+// usuário não precisa clicar em nada, só editar o campo errado antes de salvar,
+// como já faria normalmente.
+async function detectarECorrigirAprendizadoIA(listaEventosSalvos) {
+    if (!extracaoAtualDados || !Array.isArray(extracaoAtualDados.eventos)) return;
+    const eventosIA = extracaoAtualDados.eventos;
+    const gravacoes = [];
+    listaEventosSalvos.forEach((evSalvo, idx) => {
+        const evIA = eventosIA[idx];
+        if (!evIA || !evSalvo.esporte) return;
+        const contexto = evSalvo.evento || '';
+        if (evIA.liga && evSalvo.liga && evIA.liga !== evSalvo.liga) {
+            gravacoes.push(registrarCorrecaoIA('liga', evSalvo.esporte, evIA.liga, evSalvo.liga, contexto));
+        }
+        if (evIA.mercado && evSalvo.mercado && evIA.mercado !== evSalvo.mercado) {
+            gravacoes.push(registrarCorrecaoIA('mercado', evSalvo.esporte, evIA.mercado, evSalvo.mercado, contexto));
+        }
+    });
+    if (gravacoes.length) await Promise.all(gravacoes);
+    // Consumida: evita comparar de novo contra uma aposta futura sem relação com esta extração.
+    extracaoAtualDados = null;
 }
 
 // ---- Operações SEGURAS e incrementais sobre a tabela 'opcoes' ----
@@ -2744,7 +2850,7 @@ async function processarFotoBilhete(event) {
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imagemBase64: base64, mediaType })
+            body: JSON.stringify({ imagemBase64: base64, mediaType, correcoesConhecidas: correcoesIA })
         });
 
         const dados = await resposta.json();
@@ -2816,7 +2922,7 @@ async function processarTextoBilhete() {
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ textoBilhete: texto })
+            body: JSON.stringify({ textoBilhete: texto, correcoesConhecidas: correcoesIA })
         });
 
         const dados = await resposta.json();
@@ -3153,6 +3259,12 @@ function preencherFormularioComExtracao(dados, origem) {
             if ((conf.stake ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('stake')); camposParaRevisar.push('Stake'); }
         }
 
+        // ---- Bônus ----
+        if (dados.bonus != null) {
+            document.getElementById('bonus').value = dados.bonus;
+            if ((conf.bonus ?? 1) < LIMIAR_BAIXA_CONFIANCA) { marcarCampoBaixaConfianca(document.getElementById('bonus')); camposParaRevisar.push('Bônus'); }
+        }
+
         // ---- Status ----
         if (dados.status) {
             const radio = document.querySelector(`#rg-status input[value="${dados.status}"]`);
@@ -3420,6 +3532,11 @@ async function salvar() {
     ordenarApostasPorData();
     aplicarFiltros();
     renderSaldos();
+    // Compara o que a IA sugeriu (se esta aposta veio de uma extração por foto/texto)
+    // com o que foi efetivamente salvo, e memoriza qualquer correção de Liga/Mercado
+    // para não repetir o mesmo erro nas próximas leituras. Roda em segundo plano,
+    // sem atrasar a limpeza do formulário.
+    detectarECorrigirAprendizadoIA(listaEventos);
     limparFormulario();
 }
 
@@ -4046,12 +4163,37 @@ async function excluirTransacao(idx) {
 /* ==================== CONFIGURAÇÕES (gerenciar listas) ==================== */
 const CAMPOS_CONFIG = ['casa','tipster','tipo','esporte','liga','mercado'];
 
+// Lista as correções aprendidas em Configurações, mais recentes primeiro, com
+// botão de exclusão individual — mesmo padrão visual dos chips das outras listas.
+function renderCorrecoesIA() {
+    const container = document.getElementById('listaCorrecoesIA');
+    if (!container) return;
+    if (!correcoesIA.length) {
+        container.innerHTML = `<span style="color:var(--text-secondary);">Nenhuma correção aprendida ainda.</span>`;
+        return;
+    }
+    const ordenadas = correcoesIA.slice().sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
+    container.innerHTML = ordenadas.map(c => {
+        const campoLabel = c.campo === 'liga' ? 'Liga' : 'Mercado';
+        return `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-light);">
+            <div>
+                <strong>${escapeHtml(campoLabel)}</strong> (${escapeHtml(c.esporte)}): "${escapeHtml(c.valorErrado)}" → "${escapeHtml(c.valorCorreto)}"
+                ${c.contexto ? `<br><small style="color:var(--text-secondary);">${escapeHtml(c.contexto)}</small>` : ''}
+            </div>
+            <button class="btn-xs btn-danger" onclick="excluirCorrecaoIA(${c.id})" aria-label="Excluir esta correção aprendida">🗑️</button>
+        </div>`;
+    }).join('');
+}
+
 function renderConfiguracoes() {
     const selItensPagina = document.getElementById('config-itens-por-pagina');
     if (selItensPagina) selItensPagina.value = itensPorPagina === Infinity ? 'todas' : String(itensPorPagina);
 
     const chkAnaliseAuto = document.getElementById('config-analise-automatica');
     if (chkAnaliseAuto) chkAnaliseAuto.checked = analiseAutomaticaAtiva;
+
+    renderCorrecoesIA();
 
     renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
     renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');

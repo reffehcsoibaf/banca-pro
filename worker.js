@@ -24,6 +24,7 @@ const SCHEMA_JSON = `
   "tipo": "uma destas strings: Ao Vivo, Pré Live (ver regra TIPO DA APOSTA abaixo)",
   "stake": "number ou null (valor apostado, só o número, sem moeda)",
   "status": "uma destas strings ou null: Aberto, Ganhou, Perdeu, Ganho Parcial, Perda Parcial, Cash Out, Anulada",
+  "bonus": "number ou null (valor de bônus/promoção aplicado pela casa sobre esta aposta, se identificável — ver regra BÔNUS abaixo)",
   "observacao": "string ou null (placar final ou resultado, se visível)",
   "eventos": [
     {
@@ -43,7 +44,8 @@ const SCHEMA_JSON = `
     "dataHora": "number entre 0 e 1",
     "tipo": "number entre 0 e 1",
     "stake": "number entre 0 e 1",
-    "status": "number entre 0 e 1"
+    "status": "number entre 0 e 1",
+    "bonus": "number entre 0 e 1"
   }
 }`;
 
@@ -66,6 +68,14 @@ Regra especial — IDENTIFICADOR DO BILHETE:
 - Superbet: código sem rótulo no padrão XXXX-XXXXXX (4+ chars, hífen, 4+ chars). Ex: 890I-QD3MXC, 892N-1QNSK9.
 - No app mobile da Superbet, ignore textos técnicos de rodapé que pareçam UUID (ex: "1B4BAD59-FF6F-4611-A95B-3CEE4DF34F76") ou strings de versão de app/sistema (ex: "BrazilSport/2607011314 CFNetwork/3860.600.12 Darwin/25.5.0") — isso é informação de depuração do aplicativo, não é o identificador do bilhete.
 - Outras casas: use o bom senso para identificar códigos que claramente servem como referência do bilhete.
+
+Regra especial — BÔNUS:
+- Superbet: promoções do tipo "SUPERMÚLTIPLA" (ou similar) aparecem no rodapé do bilhete junto ao valor total, geralmente logo depois de "ODDS TOTAIS" e "APOSTA", no formato "SUPERMÚLTIPLA<percentual>%<valor>R$" (ex.: "SUPERMÚLTIPLA5%0,65R$" significa um bônus de R$ 0,65, correspondente a 5% de acréscimo). Extraia APENAS o valor em reais desse bônus para o campo "bonus" — não o percentual. Use confiancaGeral.bonus alta (0.8-1.0) quando esse valor aparecer claramente escrito.
+- Betano: bônus geralmente aparece com rótulos como "Bônus aplicado", "Free bet utilizado" ou valor destacado próximo ao retorno/lucro simulado, quando existir.
+- Se não houver nenhuma indicação de bônus no bilhete, "bonus" deve ser null (não use 0 — null indica "não identificado", e 0 indica "identificado e é zero").
+
+Regra especial — HANDICAP ASIÁTICO E "RESULTADO ATUAL":
+- Bilhetes de mercados como Handicap Asiático (e outros mercados de handicap) às vezes exibem um texto do tipo "Resultado atual: 0-0" ou "Placar atual: 0-0" junto à condição — isso é apenas um indicador de referência do próprio mercado (o placar-base a partir do qual o handicap é calculado), NÃO é o placar real de um jogo em andamento nem um resultado a ser registrado. NUNCA copie esse "0-0" (ou qualquer placar mostrado dessa forma, associado a um mercado de handicap) para o campo "observacao" — isso não é uma observação sobre o resultado da aposta, é só parte da explicação do mercado. Só preencha "observacao" com um placar quando ele for claramente o resultado final real de uma aposta já encerrada (Ganhou/Perdeu/etc.), nunca com um "placar de referência" de um mercado ainda em aberto.
 
 Regra especial — STATUS (não confundir opção de Cashout com status Cash Out):
 - Use o rótulo explícito "STATUS" (ou equivalente) quando ele existir no bilhete — é a fonte de verdade. Ex.: "STATUS: ATIVO" → status "Aberto".
@@ -132,7 +142,7 @@ FUTEBOL:
 "Impedimentos da Equipe" → quando o bilhete diz: "<Nome do Time> - Total de Impedimentos" (estatística do time específico, não da partida)
 "Intervalo" → quando o bilhete diz: Resultado no Intervalo, Placar ao Intervalo, 1º Tempo
 "Jogador" → quando o bilhete diz: Marcador, Jogador a Marcar, Assistência do Jogador, Estatística de Jogador
-"Placar" → quando o bilhete diz: Placar Exato, Resultado Exato
+"Placar" → quando o bilhete diz: Placar Exato, Resultado Exato, Ficar à Frente do Placar (Superbet — mercado sobre um time assumir a frente no placar em algum momento do jogo; NÃO é Criador de Apostas, é o mercado fixo "Placar". Monte a seleção como "<Time> - Ficar à Frente do Placar", ex.: "Qarabag - Ficar à Frente do Placar")
 "Resultado" → quando o bilhete diz: Resultado Final 1X2, 1X2 (sem especificação de tempo), Moneyline
 "Resultado Final" → quando o bilhete diz: Resultado Final (explicitamente), Vencedor da Partida
 "Resultado Final & Total de Gols" → quando o bilhete diz: Resultado e Gols, 1X2 e Total de Gols
@@ -417,7 +427,7 @@ export default {
     try { payload = await request.json(); }
     catch (e) { return new Response(JSON.stringify({ error: 'Corpo da requisição inválido.' }), { status: 400, headers }); }
 
-    let imagemBase64, mediaType, textoBilhete, systemInstrucoes;
+    let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
     const comBusca = url.pathname === '/api/analisar-aposta'; // habilita busca real na web só nesta rota
 
     if (url.pathname === '/api/analisar-aposta') {
@@ -451,6 +461,22 @@ export default {
         }
         systemInstrucoes = PROMPT_IMAGEM;
       }
+
+      // ---- Correções aprendidas de leituras anteriores (memória de correções) ----
+      // O app envia aqui até algumas dezenas de correções que o próprio usuário já
+      // fez no passado (liga/mercado que a IA errou e o usuário ajustou manualmente
+      // antes de salvar). Isso é enviado como texto avulso, FORA do bloco de system
+      // prompt (que fica em cache), para não invalidar o cache a cada correção nova
+      // e para não misturar dado específico do usuário com a instrução genérica.
+      const correcoesConhecidas = Array.isArray(payload?.correcoesConhecidas) ? payload.correcoesConhecidas : [];
+      if (correcoesConhecidas.length > 0) {
+        const linhas = correcoesConhecidas.slice(0, 60).map((c) => {
+          const campo = c.campo === 'liga' ? 'Liga' : c.campo === 'mercado' ? 'Mercado' : c.campo;
+          const contexto = c.contexto ? ` (contexto: ${c.contexto})` : '';
+          return `- [${campo}] Em vez de "${c.valorErrado}", o usuário já corrigiu para "${c.valorCorreto}" — esporte: ${c.esporte}${contexto}.`;
+        }).join('\n');
+        textoCorrecoes = `CORREÇÕES APRENDIDAS DE LEITURAS ANTERIORES — o usuário já corrigiu manualmente estas sugestões da IA em bilhetes passados. Quando o contexto do bilhete atual combinar (mesmos times, mesma liga/competição, ou claramente o mesmo caso), priorize a preferência já confirmada pelo usuário abaixo em vez da sua própria inferência. Se o contexto não combinar com nenhuma linha, ignore esta lista normalmente:\n${linhas}\n\nAgora, aplicando essas preferências quando fizerem sentido, extraia os dados do bilhete a seguir, seguindo todas as regras do system prompt.`;
+      }
     }
 
     // ---- 1ª TENTATIVA: GEMINI (grátis) ----
@@ -463,6 +489,7 @@ export default {
           imagemBase64,
           mediaType,
           comBusca,
+          textoCorrecoes,
         });
         return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
       } catch (erroGemini) {
@@ -489,6 +516,7 @@ export default {
         imagemBase64,
         mediaType,
         comBusca,
+        textoCorrecoes,
       });
       return new Response(JSON.stringify({ ...extraido, _provedor: 'anthropic' }), { status: 200, headers });
     } catch (erroAnthropic) {
@@ -512,10 +540,13 @@ const MODELOS_GEMINI_CANDIDATOS = [
   'gemini-3.5-flash',
 ];
 
-async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca }) {
+async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes }) {
   const parteConteudo = textoBilhete
     ? { text: textoBilhete }
     : { inline_data: { mime_type: mediaType, data: imagemBase64 } };
+  // Correções aprendidas de leituras anteriores (memória de correções): entram como
+  // uma "part" de texto adicional, antes do conteúdo do bilhete em si.
+  const partesConteudo = textoCorrecoes ? [{ text: textoCorrecoes }, parteConteudo] : [parteConteudo];
 
   let ultimoErro = null;
 
@@ -524,7 +555,7 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
     try {
       const corpoRequisicao = {
         systemInstruction: { parts: [{ text: systemInstrucoes }] },
-        contents: [{ role: 'user', parts: [parteConteudo] }],
+        contents: [{ role: 'user', parts: partesConteudo }],
         generationConfig: { temperature: 0 },
       };
       // Grounding com Google Search: permite ao modelo pesquisar dados reais na web
@@ -540,15 +571,20 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
 
       if (!resposta.ok) {
         const corpoErro = await resposta.text();
-        // Modelo descontinuado/inexistente (404) ou indisponível (503):
-        // registra e tenta o próximo candidato da lista.
-        if (resposta.status === 404 || resposta.status === 503) {
-          console.log(`[gemini] Modelo "${modelo}" indisponível (${resposta.status}), tentando o próximo candidato.`);
+        // Modelo descontinuado/inexistente (404) ou indisponível (503): tenta o
+        // próximo candidato. Com busca (comBusca) ativada, um erro 400 também é
+        // tratado como "tenta o próximo modelo" — é o sintoma típico de um modelo
+        // que não suporta a ferramenta de busca/grounding (ex.: variantes "lite"),
+        // e não deve abortar toda a tentativa Gemini já na primeira falha.
+        const tentarProximoModelo = resposta.status === 404 || resposta.status === 503 ||
+          (comBusca && resposta.status === 400);
+        if (tentarProximoModelo) {
+          console.log(`[gemini] Modelo "${modelo}" falhou (${resposta.status}), tentando o próximo candidato. Detalhe: ${corpoErro.slice(0, 300)}`);
           ultimoErro = new Error(`Gemini (${modelo}) retornou ${resposta.status}: ${corpoErro}`);
           continue;
         }
-        // Outros erros (ex.: 429 rate limit, 400 chave inválida) não são
-        // resolvidos trocando de modelo — propaga direto para o fallback Anthropic.
+        // Outros erros (ex.: 429 rate limit, chave inválida) não são resolvidos
+        // trocando de modelo — propaga direto para o fallback Anthropic.
         throw new Error(`Gemini (${modelo}) retornou ${resposta.status}: ${corpoErro}`);
       }
 
@@ -573,10 +609,14 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
 }
 
 // ==================== PROVEDOR: ANTHROPIC ====================
-async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca }) {
-  const conteudoMensagem = textoBilhete
-    ? [{ type: 'text', text: textoBilhete }]
-    : [{ type: 'image', source: { type: 'base64', media_type: mediaType, data: imagemBase64 } }];
+async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes }) {
+  const blocoConteudo = textoBilhete
+    ? { type: 'text', text: textoBilhete }
+    : { type: 'image', source: { type: 'base64', media_type: mediaType, data: imagemBase64 } };
+  // Correções aprendidas de leituras anteriores (memória de correções): entram como
+  // um bloco de texto adicional, antes do conteúdo do bilhete em si — fora do
+  // "system" (que fica em cache) para não gerar um cache novo a cada correção.
+  const conteudoMensagem = textoCorrecoes ? [{ type: 'text', text: textoCorrecoes }, blocoConteudo] : [blocoConteudo];
 
   const corpoRequisicao = {
     model: 'claude-sonnet-4-6',

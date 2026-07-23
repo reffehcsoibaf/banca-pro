@@ -114,6 +114,25 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-13-0">v1.13.0</h2>
+  <p class="versao-data">23/07/2026</p>
+  <h3>Correções Aprendidas (IA) — nova funcionalidade</h3>
+  <ul>
+    <li>O app agora <strong>memoriza correções de Liga e Mercado</strong>: sempre que a IA erra esses campos numa leitura de bilhete e o usuário corrige manualmente antes de salvar, a correção é gravada automaticamente (nova tabela <code>correcoes_ia</code> no Supabase, com RLS por usuário). Não é preciso fazer nada diferente — basta continuar corrigindo o campo errado como já se fazia.</li>
+    <li>Nas próximas leituras de bilhete (foto ou texto), essas correções são enviadas junto para o Gemini/Anthropic como preferências já confirmadas pelo usuário, para a IA priorizar em vez de repetir a mesma inferência errada quando o contexto combinar (mesmos times, mesma liga/competição).</li>
+    <li>Nova seção em <strong>Configurações → 🧠 Correções Aprendidas</strong>: lista todas as correções salvas com o valor errado, o valor correto e o contexto, com opção de remover individualmente ou apagar todas de uma vez.</li>
+  </ul>
+  <h3>Leitor de Bilhete (IA) — correções de prompt</h3>
+  <ul>
+    <li><strong>Bônus (Superbet)</strong>: promoções do tipo "SUPERMÚLTIPLA" (formato <code>SUPERMÚLTIPLA&lt;percentual&gt;%&lt;valor&gt;R$</code> no rodapé do bilhete) agora são identificadas e preenchidas no campo Bônus do formulário. Esse campo nunca tinha sido conectado à extração por IA antes — agora está.</li>
+    <li><strong>Handicap Asiático (Betano)</strong>: quando o bilhete exibe um texto do tipo "Resultado atual: 0-0" junto à condição do handicap, isso não é mais copiado para o campo Observação — é só um indicador de referência do mercado, não um resultado real da aposta.</li>
+    <li><strong>Mercado "Ficar à Frente do Placar" (Superbet)</strong>: corrigido o mapeamento — esse mercado agora é reconhecido corretamente como "Placar" (com a seleção no formato "&lt;Time&gt; - Ficar à Frente do Placar"), em vez de cair incorretamente em "Criador de Apostas".</li>
+  </ul>
+  <h3>Correção de bug — Análise de Aposta</h3>
+  <ul>
+    <li>Corrigido um bug no fallback entre modelos do Gemini na rota de Analisar Aposta: quando o primeiro modelo candidato retornava erro 400 (típico de modelos que não suportam a ferramenta de busca/grounding, como variantes "lite"), o Worker abandonava o Gemini por completo e caía direto no Anthropic — o que podia falhar se não houvesse crédito configurado na chave da Anthropic. Agora, com a busca ativada, um erro 400 também aciona a tentativa do próximo modelo candidato antes de desistir do Gemini.</li>
+  </ul>
+
   <h2 id="v1-12-0">v1.12.0</h2>
   <p class="versao-data">23/07/2026</p>
   <h3>Analisar Aposta (IA)</h3>

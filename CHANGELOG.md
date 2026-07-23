@@ -4,6 +4,46 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.13.0 — 23/07/2026
+
+### Correções Aprendidas (IA) — nova funcionalidade
+- O app agora **memoriza correções de Liga e Mercado**: sempre que a IA erra esses
+  campos numa leitura de bilhete e o usuário corrige manualmente antes de salvar, a
+  correção é gravada automaticamente (nova tabela `correcoes_ia` no Supabase, com
+  RLS por usuário). Não é preciso fazer nada diferente — basta continuar corrigindo
+  o campo errado como já se fazia.
+- Nas próximas leituras de bilhete (foto ou texto), essas correções são enviadas
+  junto para o Gemini/Anthropic como preferências já confirmadas pelo usuário, para
+  a IA priorizar em vez de repetir a mesma inferência errada quando o contexto
+  combinar (mesmos times, mesma liga/competição).
+- Nova seção em **Configurações → 🧠 Correções Aprendidas**: lista todas as
+  correções salvas com o valor errado, o valor correto e o contexto, com opção de
+  remover individualmente ou apagar todas de uma vez.
+
+### Leitor de Bilhete (IA) — correções de prompt
+- **Bônus (Superbet)**: promoções do tipo "SUPERMÚLTIPLA" (formato
+  `SUPERMÚLTIPLA<percentual>%<valor>R$` no rodapé do bilhete) agora são
+  identificadas e preenchidas no campo Bônus do formulário. Esse campo nunca
+  tinha sido conectado à extração por IA antes — agora está.
+- **Handicap Asiático (Betano)**: quando o bilhete exibe um texto do tipo
+  "Resultado atual: 0-0" junto à condição do handicap, isso não é mais copiado
+  para o campo Observação — é só um indicador de referência do mercado, não um
+  resultado real da aposta.
+- **Mercado "Ficar à Frente do Placar" (Superbet)**: corrigido o mapeamento — esse
+  mercado agora é reconhecido corretamente como "Placar" (com a seleção no formato
+  "<Time> - Ficar à Frente do Placar"), em vez de cair incorretamente em "Criador
+  de Apostas".
+
+### Correção de bug — Análise de Aposta
+- Corrigido um bug no fallback entre modelos do Gemini na rota de Analisar Aposta:
+  quando o primeiro modelo candidato retornava erro 400 (típico de modelos que não
+  suportam a ferramenta de busca/grounding, como variantes "lite"), o Worker
+  abandonava o Gemini por completo e caía direto no Anthropic — o que podia falhar
+  se não houvesse crédito configurado na chave da Anthropic, mesmo com o Gemini
+  ainda tendo outros modelos candidatos capazes de atender o pedido. Agora, com a
+  busca ativada, um erro 400 também aciona a tentativa do próximo modelo candidato
+  antes de desistir do Gemini.
+
 ## v1.12.0 — 23/07/2026
 
 ### Analisar Aposta (IA)
