@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.11.1</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.12.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -528,37 +528,38 @@
   <!-- ANALISAR APOSTA (IA) -->
   <section id="analisar-aposta" class="wiki-section" aria-labelledby="h-analisar-aposta">
     <h2 id="h-analisar-aposta">🔍 Analisar Aposta (IA)</h2>
-    <p class="lead">Uma análise de <strong>risco e contexto</strong> sobre a aposta que está sendo preenchida no formulário, gerada por inteligência artificial. Importante: essa análise <strong>não prevê o resultado do jogo</strong> — ela ajuda a entender melhor o que está sendo apostado e sinaliza pontos de atenção objetivos.</p>
+    <p class="lead">Uma análise de <strong>risco e estatística</strong> sobre a aposta que está sendo preenchida no formulário. Para cada evento, a IA pesquisa na web dados estatísticos reais e recentes (médias de gols, forma dos times, confrontos diretos etc.) e compara com a probabilidade implícita pela ODD da casa. Importante: essa análise <strong>não prevê o resultado do jogo</strong> — ela dá uma estimativa baseada em estatística histórica e sinaliza pontos de atenção objetivos.</p>
 
     <div class="callout warn">
       <div class="callout-title">⚠️ Isto não é uma previsão de resultado</div>
-      A IA não tem acesso a dados ao vivo (lesões, escalação, clima, forma recente dos times) e não é capaz de prever com confiabilidade quem vai ganhar um jogo — nenhuma IA de propósito geral consegue isso de forma consistente. A análise foca em <strong>probabilidade implícita da ODD</strong> e em <strong>riscos objetivos</strong> calculados a partir dos próprios dados da aposta.
+      A estimativa estatística é calculada a partir de dados históricos encontrados na busca (médias recentes, confrontos diretos) — ela <strong>não</strong> tem acesso a fatores de última hora como lesões, escalação, clima ou motivação, e não garante o que vai acontecer no jogo. Nenhuma IA de propósito geral consegue prever resultados esportivos com confiabilidade.
     </div>
 
     <h3 id="como-usar-analise">Como usar</h3>
     <ol class="steps">
       <li><span class="step-num">1</span>Preencha ao menos o Stake e um evento com Mercado, Seleção e ODD (manualmente ou via Preencher por Foto/Texto).</li>
       <li><span class="step-num">2</span>Clique em <span class="btn-demo outline">🔍 Analisar Aposta</span>, na aba Cadastro.</li>
-      <li><span class="step-num">3</span>Aguarde alguns segundos — o resultado aparece em um painel colorido logo abaixo dos botões.</li>
+      <li><span class="step-num">3</span>Aguarde — como a IA pesquisa dados reais na web antes de responder, essa análise leva mais tempo que o preenchimento por foto/texto (em torno de 10 a 20 segundos a mais). O resultado aparece em um painel colorido logo abaixo dos botões.</li>
     </ol>
 
     <div class="callout tip">
-      <div class="callout-title">💡 Também roda automaticamente</div>
-      Sempre que a IA termina de preencher o formulário via <strong>Preencher por Foto</strong> ou <strong>Preencher por Texto</strong>, a análise de risco é disparada automaticamente em segundo plano, sem travar a tela — o painel aparece assim que fica pronto. Você pode clicar no botão novamente a qualquer momento (por exemplo, depois de editar algum campo) para atualizar a análise.
+      <div class="callout-title">💡 Pode rodar automaticamente (opcional)</div>
+      Por padrão, sempre que a IA termina de preencher o formulário via <strong>Preencher por Foto</strong> ou <strong>Preencher por Texto</strong>, a análise é disparada automaticamente em segundo plano, sem travar a tela. Isso pode ser desligado em <a href="#configuracoes">Configurações → 🔍 Análise de Aposta (IA)</a>, desmarcando "Analisar automaticamente após preencher por Foto/Texto" — útil se você preferir controlar manualmente quando a busca acontece (ela consome mais tempo e cota de API do que um preenchimento comum). O botão manual continua funcionando normalmente com a opção desligada.
     </div>
 
     <h3 id="conteudo-analise">O que aparece na análise</h3>
     <table class="field-table" aria-label="Conteúdo do painel de análise de aposta">
       <thead><tr><th>Item</th><th>Descrição</th></tr></thead>
       <tbody>
-        <tr><td class="field-name">Nível de Risco</td><td>Classificação <strong>Baixo</strong> (verde), <strong>Médio</strong> (amarelo) ou <strong>Alto</strong> (vermelho), com base em critérios objetivos: tamanho do acumulador, percentual do saldo da casa arriscado (quando disponível) e odds extremas — nunca em achismo sobre o resultado do jogo.</td></tr>
-        <tr><td class="field-name">Resumo</td><td>Poucas frases explicando o que está sendo apostado e o que a ODD implica em termos de probabilidade (probabilidade implícita = 1 ÷ ODD).</td></tr>
-        <tr><td class="field-name">Alertas</td><td>Lista de pontos de atenção específicos: acumuladores com muitos eventos, stake alto em relação ao saldo atual daquela casa, odds muito baixas ou muito altas, campos vazios ou inconsistentes.</td></tr>
+        <tr><td class="field-name">Nível de Risco</td><td>Classificação <strong>Baixo</strong> (verde), <strong>Médio</strong> (amarelo) ou <strong>Alto</strong> (vermelho), com base em critérios objetivos: tamanho do acumulador, percentual do saldo da casa arriscado (quando disponível), odds extremas e divergência entre a probabilidade implícita e a estimada.</td></tr>
+        <tr><td class="field-name">Resumo e Alertas</td><td>Visão geral da aposta como um todo: o que está sendo apostado, tamanho do acumulador, stake em relação ao saldo, inconsistências nos dados.</td></tr>
+        <tr><td class="field-name">Por evento — Probabilidade Implícita</td><td>Percentual calculado a partir da própria ODD informada (1 ÷ ODD × 100). Sempre aparece, independente de a busca ter encontrado dados ou não.</td></tr>
+        <tr><td class="field-name">Por evento — Estimativa por Estatística</td><td>Percentual estimado pela IA com base em dados reais encontrados na busca (médias de gols, forma recente, confrontos diretos etc.), junto com uma breve explicação da base usada. Quando a busca não encontra dados suficientes para aquele mercado específico, aparece "sem dados suficientes" em vez de um número — a IA nunca inventa uma estimativa sem base real.</td></tr>
       </tbody>
     </table>
 
     <h3 id="dados-usados-analise">Quais dados são enviados</h3>
-    <p>São enviados apenas os dados já visíveis no formulário no momento do clique: casa, stake, status, bônus, ODD Total e os eventos (esporte, liga, evento, mercado, seleção e odd de cada um). Quando uma casa está selecionada, o saldo atual calculado dela (ver <a href="#saldos">Saldo por Casa</a>) também é enviado, para a IA avaliar que percentual da banca o stake representa.</p>
+    <p>São enviados apenas os dados já visíveis no formulário no momento do clique: casa, stake, status, bônus, ODD Total e os eventos (esporte, liga, evento, mercado, seleção e odd de cada um). Quando uma casa está selecionada, o saldo atual calculado dela (ver <a href="#saldos">Saldo por Casa</a>) também é enviado, para a IA avaliar que percentual da banca o stake representa. A partir desses dados, a IA formula buscas na web (ex: "média de gols Time A últimos jogos") para cada evento — nenhum dado sai do formulário além do que já está preenchido.</p>
   </section>
 
   <!-- LISTAS DINÂMICAS -->

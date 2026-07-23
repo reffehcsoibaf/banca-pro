@@ -114,6 +114,17 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-12-0">v1.12.0</h2>
+  <p class="versao-data">23/07/2026</p>
+  <h3>Analisar Aposta (IA)</h3>
+  <ul>
+    <li>A análise de aposta agora usa <strong>busca real na web</strong> (Google Search via Gemini, com fallback para a ferramenta de busca da própria Anthropic) para pesquisar estatísticas reais e recentes de cada evento — médias de gols, forma dos times, confrontos diretos — em vez de só calcular a probabilidade implícita da ODD.</li>
+    <li>Para cada evento da aposta, o painel agora mostra lado a lado a <strong>Probabilidade Implícita</strong> (calculada a partir da ODD) e a <strong>Estimativa por Estatística</strong> (baseada nos dados reais encontrados na busca), com uma breve explicação da base usada.</li>
+    <li>Quando a busca não encontra dados estatísticos suficientes e confiáveis para um evento (times menores, ligas obscuras, mercados muito específicos), o painel mostra claramente "sem dados suficientes" — a IA nunca inventa um número nesses casos.</li>
+    <li>Como a busca leva mais tempo (aprox. 10 a 20 segundos a mais) e consome mais cota das chaves de API, novo controle em <strong>Configurações → 🔍 Análise de Aposta (IA)</strong>: caixa de verificação "Analisar automaticamente após preencher por Foto/Texto", ligada por padrão. O botão manual "🔍 Analisar Aposta" continua disponível a qualquer momento, independente dessa preferência.</li>
+    <li>Texto do botão durante a análise atualizado para "⏳ Pesquisando estatísticas..." para deixar claro que a IA está pesquisando na web.</li>
+  </ul>
+
   <h2 id="v1-11-1">v1.11.1</h2>
   <p class="versao-data">22/07/2026</p>
   <h3>Leitor de Bilhete (IA)</h3>

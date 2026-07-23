@@ -4,6 +4,27 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.12.0 — 23/07/2026
+
+### Analisar Aposta (IA)
+- A análise de aposta agora usa **busca real na web** (Google Search via Gemini, com
+  fallback para a ferramenta de busca da própria Anthropic) para pesquisar estatísticas
+  reais e recentes de cada evento — médias de gols, forma dos times, confrontos diretos
+  — em vez de só calcular a probabilidade implícita da ODD.
+- Para cada evento da aposta, o painel agora mostra lado a lado a **Probabilidade
+  Implícita** (calculada a partir da ODD) e a **Estimativa por Estatística** (baseada
+  nos dados reais encontrados na busca), com uma breve explicação da base usada.
+- Quando a busca não encontra dados estatísticos suficientes e confiáveis para um
+  evento (times menores, ligas obscuras, mercados muito específicos), o painel mostra
+  claramente "sem dados suficientes" — a IA nunca inventa um número nesses casos.
+- Como a busca leva mais tempo (aprox. 10 a 20 segundos a mais) e consome mais cota das
+  chaves de API, novo controle em **Configurações → 🔍 Análise de Aposta (IA)**: caixa
+  de verificação "Analisar automaticamente após preencher por Foto/Texto", ligada por
+  padrão. O botão manual "🔍 Analisar Aposta" continua disponível a qualquer momento,
+  independente dessa preferência (salva neste dispositivo/navegador).
+- Texto do botão durante a análise atualizado para "⏳ Pesquisando estatísticas..." para
+  deixar claro que a IA está pesquisando na web, não apenas processando localmente.
+
 ## v1.11.1 — 22/07/2026
 
 ### Leitor de Bilhete (IA)

@@ -896,7 +896,7 @@
                 <button class="btn btn-outline" id="btnPreencherTexto" onclick="abrirModalTexto()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Preencher aposta colando o texto do bilhete">
                     📋 Preencher por Texto
                 </button>
-                <button class="btn btn-outline" id="btnAnalisarAposta" onclick="analisarApostaAtual(false)" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Analisar risco e contexto desta aposta com IA">
+                <button class="btn btn-outline" id="btnAnalisarAposta" onclick="analisarApostaAtual(false)" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Analisar risco e buscar estatísticas reais desta aposta com IA">
                     🔍 Analisar Aposta
                 </button>
             </div>
@@ -1249,6 +1249,17 @@
         </div>
 
         <div class="card">
+            <h2>🔍 Análise de Aposta (IA)</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Controla se a análise de risco e estatística roda sozinha assim que a IA termina de preencher o formulário por foto ou texto. O botão manual "🔍 Analisar Aposta" continua disponível a qualquer momento, independente desta opção.
+            </p>
+            <label style="display:flex; align-items:center; gap:10px; font-size:14px; text-transform:none; letter-spacing:0; color:var(--text); font-weight:500; cursor:pointer;">
+                <input type="checkbox" id="config-analise-automatica" onchange="alterarAnaliseAutomatica(this.checked)" style="width:18px; height:18px; accent-color:var(--primary-light); flex-shrink:0;">
+                Analisar automaticamente após preencher por Foto/Texto
+            </label>
+        </div>
+
+        <div class="card">
             <h2>📋 Preferências da Lista</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Controla quantas apostas aparecem por página na aba Lista. Listas grandes carregam e navegam mais rápido com um número menor — a preferência fica salva neste dispositivo/navegador.
@@ -1331,7 +1342,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.11.1 · 22/07/2026
+  Banca Pro · v1.12.0 · 23/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1372,6 +1383,21 @@ function lerItensPorPaginaSalvo() {
 }
 let itensPorPagina = lerItensPorPaginaSalvo();
 let paginaAtualLista = 1;
+
+// ---- Preferência: rodar a análise de risco/estatística automaticamente após
+// preencher por Foto/Texto. Fica salva neste dispositivo/navegador, igual à
+// paginação — não é um dado da conta, é preferência de uso local. Padrão: ligada.
+const CHAVE_ANALISE_AUTOMATICA = 'bancapro_analiseAutomatica';
+function lerAnaliseAutomaticaSalva() {
+    const salvo = localStorage.getItem(CHAVE_ANALISE_AUTOMATICA);
+    return salvo === null ? true : salvo === 'true';
+}
+let analiseAutomaticaAtiva = lerAnaliseAutomaticaSalva();
+function alterarAnaliseAutomatica(ativa) {
+    analiseAutomaticaAtiva = !!ativa;
+    localStorage.setItem(CHAVE_ANALISE_AUTOMATICA, String(analiseAutomaticaAtiva));
+    showToast(analiseAutomaticaAtiva ? '✅ Análise automática ativada' : '✅ Análise automática desativada — use o botão manual quando quiser', 'success');
+}
 
 // ---- Ligas vinculadas a um esporte ----
 // Cada item de defaults.liga é armazenado como "Esporte::Nome da Liga" (string única,
@@ -2585,7 +2611,10 @@ async function analisarApostaAtual(automatico) {
     }
 
     const btn = document.getElementById('btnAnalisarAposta');
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Analisando...'; }
+    // A análise agora pesquisa estatísticas reais na web antes de responder,
+    // então leva mais tempo que uma simples chamada de IA — o texto do botão
+    // deixa isso claro para quem estiver esperando com o leitor de tela.
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Pesquisando estatísticas...'; }
     if (!automatico) limparAnaliseAposta();
 
     try {
@@ -2597,7 +2626,7 @@ async function analisarApostaAtual(automatico) {
         const json = await resposta.json();
         if (!resposta.ok) throw new Error(json.error || 'Erro ao analisar a aposta.');
         renderizarAnaliseAposta(json);
-        anunciar('Análise de risco da aposta disponível. Nível de risco: ' + (json.nivelRisco || '—') + '. ' + (json.resumo || ''));
+        anunciar('Análise da aposta disponível. Nível de risco: ' + (json.nivelRisco || '—') + '. ' + (json.resumo || ''));
     } catch (err) {
         if (!automatico) showToast('❌ Não foi possível analisar: ' + err.message, 'error', 8000);
         console.error('analisarApostaAtual erro:', err);
@@ -2623,6 +2652,27 @@ function renderizarAnaliseAposta(dados) {
         ? '<ul style="margin:8px 0 0;padding-left:20px;">' + dados.alertas.map(a => `<li style="margin-bottom:4px;">${escapeHtml(a)}</li>`).join('') + '</ul>'
         : '';
 
+    // Estatística por evento: probabilidade implícita da odd (sempre) vs. estimativa
+    // baseada em dados reais buscados na web (só quando a IA de fato encontrou dados —
+    // "dadosEncontrados" false/ausente significa que não há número inventado aqui).
+    const eventosHtml = (dados.analisesEventos && dados.analisesEventos.length)
+        ? dados.analisesEventos.map(ev => {
+            const implicita = (typeof ev.probabilidadeImplicita === 'number') ? ev.probabilidadeImplicita.toFixed(1) + '%' : '—';
+            const temEstimativa = ev.dadosEncontrados && typeof ev.probabilidadeEstimada === 'number';
+            const estimativaHtml = temEstimativa
+                ? `<span style="color:var(--primary-light);font-weight:700;">${ev.probabilidadeEstimada.toFixed(1)}%</span>`
+                : `<span style="color:var(--text-secondary);font-style:italic;">sem dados suficientes</span>`;
+            return `
+                <div style="border-top:1px solid var(--border-light);padding:10px 0 0;margin-top:10px;">
+                    <div style="font-weight:700;font-size:13px;">${escapeHtml(ev.evento || '')}</div>
+                    <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:4px;">${escapeHtml(ev.mercado || '')} — ${escapeHtml(ev.selecao || '')}</div>
+                    <div style="font-size:13px;">Probabilidade implícita na odd: <strong>${implicita}</strong> &nbsp;|&nbsp; Estimativa por estatística: ${estimativaHtml}</div>
+                    <div style="font-size:12.5px;color:var(--text-secondary);margin-top:2px;">${escapeHtml(ev.baseEstimativa || '')}</div>
+                    ${ev.comentario ? `<div style="font-size:13px;margin-top:4px;">${escapeHtml(ev.comentario)}</div>` : ''}
+                </div>`;
+        }).join('')
+        : '';
+
     container.innerHTML = `
         <div style="background:${estilo.bg};border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border-light);">
             <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:${estilo.cor};font-size:13px;text-transform:uppercase;letter-spacing:.4px;">
@@ -2630,7 +2680,8 @@ function renderizarAnaliseAposta(dados) {
             </div>
             <p style="margin:8px 0 0;font-size:14px;line-height:1.6;">${escapeHtml(dados.resumo || '')}</p>
             ${alertasHtml}
-            <p style="margin:10px 0 0;font-size:11.5px;color:var(--text-secondary);">⚠️ Análise gerada por IA com foco em risco e contexto — não é previsão de resultado do jogo.</p>
+            ${eventosHtml}
+            <p style="margin:10px 0 0;font-size:11.5px;color:var(--text-secondary);">⚠️ Estimativas baseadas em busca de estatísticas reais na web — não são garantia de resultado. Fatores como lesões de última hora, escalação e clima não entram nessa conta.</p>
         </div>`;
 }
 
@@ -3214,10 +3265,13 @@ function preencherFormularioComExtracao(dados, origem) {
         const primeiroRadioCasa = document.querySelector('#rg-casa input[type="radio"]');
         if (primeiroRadioCasa) primeiroRadioCasa.focus();
 
-        // Dispara a análise de risco/contexto automaticamente, sem bloquear a
-        // tela — roda em segundo plano e aparece quando ficar pronta. Modo
-        // "automático" não mostra toast de erro se faltar algum dado.
-        setTimeout(() => analisarApostaAtual(true), 300);
+        // Dispara a análise de risco/estatística automaticamente, sem bloquear
+        // a tela — só se a preferência "Analisar automaticamente" (Configurações)
+        // estiver ativada. Modo "automático" não mostra toast de erro se faltar
+        // algum dado, e não é exibido nenhum aviso caso a preferência esteja desligada.
+        if (analiseAutomaticaAtiva) {
+            setTimeout(() => analisarApostaAtual(true), 300);
+        }
     }
 
     // Preenche o formulário imediatamente. Itens que ainda não existem nas
@@ -3995,6 +4049,9 @@ const CAMPOS_CONFIG = ['casa','tipster','tipo','esporte','liga','mercado'];
 function renderConfiguracoes() {
     const selItensPagina = document.getElementById('config-itens-por-pagina');
     if (selItensPagina) selItensPagina.value = itensPorPagina === Infinity ? 'todas' : String(itensPorPagina);
+
+    const chkAnaliseAuto = document.getElementById('config-analise-automatica');
+    if (chkAnaliseAuto) chkAnaliseAuto.checked = analiseAutomaticaAtiva;
 
     renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
     renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');

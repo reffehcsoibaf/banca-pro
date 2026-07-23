@@ -336,31 +336,53 @@ Agora extraia os dados do texto do bilhete que será enviado a seguir, na mensag
 ${SCHEMA_JSON}
 ${REGRAS_COMUNS}`;
 
-// ---- SCHEMA e PROMPT PARA ANÁLISE DE RISCO DE APOSTA ----
+// ---- SCHEMA e PROMPT PARA ANÁLISE DE RISCO E ESTATÍSTICA DE APOSTA ----
 // Diferente do leitor de bilhete (que EXTRAI dados), esta rota recebe os
-// dados já preenchidos no formulário e devolve uma análise de RISCO e
-// CONTEXTO — nunca uma previsão de resultado do jogo.
+// dados já preenchidos no formulário e devolve uma análise de RISCO,
+// CONTEXTO e ESTATÍSTICA (com busca real na web) — nunca uma previsão
+// garantida de resultado do jogo.
 const SCHEMA_ANALISE = `
 {
   "nivelRisco": "uma destas strings: Baixo, Médio, Alto",
-  "resumo": "string — 2 a 4 frases em linguagem simples explicando o que está sendo apostado, o que a ODD implica em termos de probabilidade (probabilidade implícita = 1/ODD) e o principal ponto de atenção",
-  "alertas": ["lista de strings curtas com pontos de atenção específicos e objetivos"]
+  "resumo": "string — 2 a 4 frases em linguagem simples explicando o que está sendo apostado e o principal ponto de atenção geral da aposta como um todo",
+  "alertas": ["lista de strings curtas com pontos de atenção específicos e objetivos sobre a aposta como um todo (ex: tamanho do acumulador, % da banca)"],
+  "analisesEventos": [
+    {
+      "evento": "string — nome do confronto (ex: Time A - Time B)",
+      "mercado": "string — mercado apostado nesse evento",
+      "selecao": "string — a seleção escolhida (ex: Mais de 1.5 gols)",
+      "probabilidadeImplicita": "number — probabilidade em % implícita pela ODD informada (1 ÷ ODD × 100), sempre preenchido",
+      "dadosEncontrados": "boolean — true se a busca na web encontrou estatísticas relevantes e recentes sobre este confronto/mercado específico, false se não encontrou dados suficientes",
+      "probabilidadeEstimada": "number ou null — percentual estimado com base nas estatísticas reais encontradas na busca (ex: média de gols dos últimos jogos, confrontos diretos). OBRIGATORIAMENTE null se dadosEncontrados for false — nunca invente um número aqui",
+      "baseEstimativa": "string — se dadosEncontrados=true, descreva resumidamente em que dados concretos a estimativa se baseou (ex: 'média de 3.1 gols/jogo nos últimos 8 jogos do Time A e 2.4 do Time B, temporada 2026'). Se dadosEncontrados=false, explique objetivamente por que não achou (ex: 'não encontrei estatísticas recentes suficientes para este confronto/liga')",
+      "comentario": "string curta com o contexto para o usuário"
+    }
+  ]
 }`;
 
-const PROMPT_ANALISE_APOSTA = `Você é um assistente de análise de RISCO para apostas esportivas — você NÃO prevê resultado de jogos e nunca deve fingir que consegue fazer isso. Você vai receber os dados de uma aposta (em preenchimento ou já preenchida) no formato JSON, e deve devolver uma análise objetiva.
+const PROMPT_ANALISE_APOSTA = `Você é um assistente de análise de RISCO e ESTATÍSTICA para apostas esportivas — você NÃO prevê resultado de jogos e nunca deve fingir que consegue fazer isso. Você vai receber os dados de uma aposta (em preenchimento ou já preenchida) no formato JSON, e deve devolver uma análise objetiva, usando a ferramenta de busca na web disponível para embasar sua resposta com dados estatísticos reais e recentes.
 
-REGRAS IMPORTANTES:
-- NUNCA diga ou insinue se a aposta "vai ganhar", "tem grande chance de ganhar" ou qualquer julgamento sobre o resultado real do jogo. Você não tem acesso a dados ao vivo (lesões, escalação, clima, forma recente) e fingir uma previsão seria enganoso e pode incentivar apostas ruins.
-- Foque em dois pontos, sempre: (1) explicar em linguagem simples o que está sendo apostado e o que a ODD informada implica em termos de probabilidade implícita (1 ÷ ODD, em %); e (2) apontar riscos objetivos e verificáveis a partir dos próprios dados recebidos:
+USO DA BUSCA NA WEB — MUITO IMPORTANTE:
+- Para CADA evento da aposta, pesquise na web dados estatísticos reais e recentes que ajudem a estimar a probabilidade daquele mercado específico acontecer. Exemplos de como pesquisar por tipo de mercado:
+  • Mercados de gols (ex: "Mais de 1.5 gols", "Menos de 2.5 gols"): pesquise a média de gols marcados/sofridos de cada time nos últimos jogos (ideal: últimos 5 a 10 jogos), e se possível o histórico de confrontos diretos entre os dois times.
+  • Mercados de resultado/vencedor: pesquise forma recente dos times (sequência de vitórias/derrotas/empates), posição na tabela, confrontos diretos recentes.
+  • Mercados de escanteios/cartões/finalizações: pesquise médias recentes dessas estatísticas para os times envolvidos, se disponíveis.
+  • Outros mercados sem dado estatístico direto disponível (ex: jogador específico, mercados muito específicos): é aceitável não encontrar dados — nesse caso, "dadosEncontrados" deve ser false.
+- Priorize fontes com dados recentes e específicos (sites de estatísticas esportivas, resultados de jogos recentes, tabelas de campeonato). Evite basear a estimativa em opiniões, palpites de terceiros ou "dicas de apostas" — você quer NÚMEROS reais (médias, resultados), não opiniões.
+- SEMPRE que não encontrar dados estatísticos concretos e recentes o suficiente para embasar uma estimativa razoável, defina "dadosEncontrados": false e "probabilidadeEstimada": null — NUNCA invente ou "chute" um número só para preencher o campo. É preferível dizer claramente que não encontrou dados do que apresentar uma estimativa sem base real.
+- A "probabilidadeEstimada" é uma ESTIMATIVA baseada em estatística histórica, não uma previsão garantida — jogos têm fatores que estatística pura não captura (lesões de última hora, motivação, clima). Isso deve ficar implícito no tom do "comentario" de cada evento, sem precisar repetir o aviso em cada um (o aviso geral já aparece na interface).
+
+REGRAS GERAIS IMPORTANTES:
+- NUNCA diga ou insinue se a aposta "vai ganhar", "tem grande chance de ganhar" ou qualquer julgamento definitivo sobre o resultado real do jogo. A probabilidade estimada é sobre o mercado específico com base em dados históricos — não uma garantia.
+- No "resumo" e nos "alertas" gerais, aponte riscos objetivos da aposta como um todo:
   • Acumuladores: quanto mais eventos, menor a chance combinada de todos ganharem juntos — mencione isso quando houver 3+ eventos.
   • Se "saldoAtualCasa" foi informado e for maior que zero, calcule que percentual do saldo o "stake" representa; sinalize como atenção se passar de ~10-15% do saldo (gestão de banca básica).
   • ODDs muito baixas (ex: abaixo de 1.20) → retorno pequeno para o risco assumido. ODDs muito altas (ex: acima de 5.00) → baixíssima probabilidade implícita.
-  • Campos vazios/zerados relevantes (ex: mercado ou seleção em branco, ODD Total que não bate com o produto das odds dos eventos informados).
-  • Bônus aplicado sem stake real (verifique se faz sentido).
-- Se souber algo factual e verificável sobre os times/competições envolvidos (ex: rebaixamento, fase de mata-mata) até seu conhecimento, pode citar como contexto, mas deixe claro que pode estar desatualizado — nunca apresente isso como palpite de resultado.
-- "nivelRisco": classifique com base em critérios objetivos acima (tamanho do acumulador, % da banca arriscado quando disponível, odds extremas) — nunca com base em achismo sobre quem vai ganhar o jogo.
-- Se os dados estiverem muito incompletos para uma análise útil, ainda assim responda com o que for possível e mencione a limitação dentro de "resumo".
-- Seja direto e conciso. Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases.
+  • Campos vazios/zerados relevantes, ODD Total que não bate com o produto das odds dos eventos informados.
+  • Se a "probabilidadeEstimada" de algum evento estiver bem abaixo da "probabilidadeImplicita" da odd, isso é um sinal de que a odd pode estar "cara" para o risco real — vale mencionar como alerta.
+- "nivelRisco": classifique com base em critérios objetivos (tamanho do acumulador, % da banca arriscado quando disponível, odds extremas, e divergência entre probabilidade implícita e estimada quando houver dados) — nunca com base em achismo sobre quem vai ganhar o jogo.
+- Preencha "analisesEventos" para TODOS os eventos recebidos na aposta, na mesma ordem.
+- Seja direto e conciso. Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases — mesmo tendo usado a ferramenta de busca antes, a resposta final deve ser só o JSON.
 
 Formato de saída:
 ${SCHEMA_ANALISE}`;
@@ -396,6 +418,7 @@ export default {
     catch (e) { return new Response(JSON.stringify({ error: 'Corpo da requisição inválido.' }), { status: 400, headers }); }
 
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes;
+    const comBusca = url.pathname === '/api/analisar-aposta'; // habilita busca real na web só nesta rota
 
     if (url.pathname === '/api/analisar-aposta') {
       // ---- Rota de análise de risco (não extrai dados, recebe dados já preenchidos) ----
@@ -439,6 +462,7 @@ export default {
           textoBilhete,
           imagemBase64,
           mediaType,
+          comBusca,
         });
         return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
       } catch (erroGemini) {
@@ -464,6 +488,7 @@ export default {
         textoBilhete,
         imagemBase64,
         mediaType,
+        comBusca,
       });
       return new Response(JSON.stringify({ ...extraido, _provedor: 'anthropic' }), { status: 200, headers });
     } catch (erroAnthropic) {
@@ -487,7 +512,7 @@ const MODELOS_GEMINI_CANDIDATOS = [
   'gemini-3.5-flash',
 ];
 
-async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType }) {
+async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca }) {
   const parteConteudo = textoBilhete
     ? { text: textoBilhete }
     : { inline_data: { mime_type: mediaType, data: imagemBase64 } };
@@ -497,14 +522,20 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
   for (const modelo of MODELOS_GEMINI_CANDIDATOS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
     try {
+      const corpoRequisicao = {
+        systemInstruction: { parts: [{ text: systemInstrucoes }] },
+        contents: [{ role: 'user', parts: [parteConteudo] }],
+        generationConfig: { temperature: 0 },
+      };
+      // Grounding com Google Search: permite ao modelo pesquisar dados reais na web
+      // (estatísticas de jogos, médias de gols etc.) antes de responder — usado só
+      // na rota de Analisar Aposta, nunca no leitor de bilhete.
+      if (comBusca) corpoRequisicao.tools = [{ google_search: {} }];
+
       const resposta = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstrucoes }] },
-          contents: [{ role: 'user', parts: [parteConteudo] }],
-          generationConfig: { temperature: 0 },
-        }),
+        body: JSON.stringify(corpoRequisicao),
       });
 
       if (!resposta.ok) {
@@ -522,7 +553,10 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
       }
 
       const dados = await resposta.json();
-      const texto = dados?.candidates?.[0]?.content?.parts?.[0]?.text;
+      // Com grounding, a resposta pode vir em múltiplas "parts" (texto intercalado
+      // com chamadas de busca) — concatena todas as partes de texto, não só a primeira.
+      const partes = dados?.candidates?.[0]?.content?.parts || [];
+      const texto = partes.map((p) => p.text || '').join('').trim();
       if (!texto) {
         throw new Error(`Gemini (${modelo}) não retornou texto utilizável (possível bloqueio de segurança ou resposta vazia).`);
       }
@@ -539,25 +573,34 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
 }
 
 // ==================== PROVEDOR: ANTHROPIC ====================
-async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType }) {
+async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca }) {
   const conteudoMensagem = textoBilhete
     ? [{ type: 'text', text: textoBilhete }]
     : [{ type: 'image', source: { type: 'base64', media_type: mediaType, data: imagemBase64 } }];
 
+  const corpoRequisicao = {
+    model: 'claude-sonnet-4-6',
+    // Buscas na web consomem tokens extras (resultados de pesquisa entram no
+    // contexto) — usa um teto maior quando a busca está habilitada.
+    max_tokens: comBusca ? 4000 : 2000,
+    // Prompt caching: as instruções fixas (schema, regras, mapeamento de mercados,
+    // exemplos) são reaproveitadas entre chamadas dentro de 1h, reduzindo custo
+    // em sessões de importação com vários bilhetes seguidos.
+    system: [
+      { type: 'text', text: systemInstrucoes, cache_control: { type: 'ephemeral', ttl: '1h' } },
+    ],
+    messages: [{ role: 'user', content: conteudoMensagem }],
+  };
+  // Ferramenta de busca na web da própria Anthropic: usada só na rota de
+  // Analisar Aposta, para pesquisar estatísticas reais do confronto.
+  if (comBusca) {
+    corpoRequisicao.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }];
+  }
+
   const resposta = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      // Prompt caching: as instruções fixas (schema, regras, mapeamento de mercados,
-      // exemplos) são reaproveitadas entre chamadas dentro de 1h, reduzindo custo
-      // em sessões de importação com vários bilhetes seguidos.
-      system: [
-        { type: 'text', text: systemInstrucoes, cache_control: { type: 'ephemeral', ttl: '1h' } },
-      ],
-      messages: [{ role: 'user', content: conteudoMensagem }],
-    }),
+    body: JSON.stringify(corpoRequisicao),
   });
 
   if (!resposta.ok) {
@@ -576,7 +619,11 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     );
   }
 
-  const blocoTexto = (dados.content || []).find((b) => b.type === 'text');
+  // Com a ferramenta de busca ativa, a resposta pode conter vários blocos
+  // (buscas realizadas, resultados, texto intermediário) — pega o ÚLTIMO
+  // bloco de texto, que é a resposta final do modelo após concluir as buscas.
+  const blocosTexto = (dados.content || []).filter((b) => b.type === 'text');
+  const blocoTexto = blocosTexto[blocosTexto.length - 1];
   if (!blocoTexto) {
     throw new Error('Anthropic não retornou texto utilizável.');
   }
