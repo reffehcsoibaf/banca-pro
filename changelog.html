@@ -114,6 +114,15 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-13-2">v1.13.2</h2>
+  <p class="versao-data">24/07/2026</p>
+  <h3>Correção de bug importante — Análise de Aposta (integridade dos dados)</h3>
+  <ul>
+    <li>Corrigido um problema sério: quando a busca real não estava disponível (ver v1.13.1) e o Gemini respondia no modo "sem busca", o modelo por vezes <strong>inventava</strong> números que pareciam estatísticas reais (médias de gols/finalizações, forma dos times) mesmo sem ter pesquisado nada — violando a própria instrução de "nunca invente uma estimativa sem base real".</li>
+    <li>Agora isso é impedido de duas formas: (1) uma instrução extra e explícita é enviada ao modelo nesse modo, proibindo qualquer número; e principalmente (2) o próprio código do Worker <strong>sobrescreve à força</strong> qualquer estimativa recebida nesse cenário, independente do que o modelo tenha escrito — garantindo que nenhuma estatística "alucinada" chegue até o usuário como se fosse dado real pesquisado.</li>
+    <li>Reforço adicional: mesmo quando a busca é aceita como bem-sucedida (sem erro), o Worker agora confere se há evidência real de que uma pesquisa foi executada (metadados de grounding no Gemini, ou bloco de resultado de busca na Anthropic). Se essa evidência não existir, a resposta é tratada como "sem busca" e passa pela mesma sanitização — mesmo numa chamada que "deu certo".</li>
+  </ul>
+
   <h2 id="v1-13-1">v1.13.1</h2>
   <p class="versao-data">23/07/2026</p>
   <h3>Correção de bug — Análise de Aposta</h3>

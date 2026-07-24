@@ -560,20 +560,50 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
   } catch (erroComBusca) {
     if (!comBusca) throw erroComBusca; // não havia busca envolvida, nada mais a tentar
     // Nenhum modelo candidato conseguiu responder usando a ferramenta de busca
-    // (típico quando nenhum dos modelos da lista suporta grounding no momento).
+    // (típico quando nenhum dos modelos da lista suporta grounding no momento, ou
+    // quando a cota de Grounding with Google Search não está liberada na conta —
+    // ela exige billing vinculado no projeto, mesmo dentro da faixa gratuita).
     // Antes de gastar crédito no fallback pago da Anthropic, tenta os mesmos
     // modelos MAIS UMA VEZ sem a ferramenta de busca — ainda gratuito no Gemini,
     // só que sem estatística real (só a análise de risco básica).
     console.log('[gemini] Todos os modelos falharam com busca ativada, tentando novamente sem busca:', erroComBusca.message);
-    const resultadoSemBusca = await tentarModelosGemini({ apiKey, systemInstrucoes, partesConteudo, usarBusca: false });
-    // Sinaliza para o frontend que esta análise NÃO teve busca real na web —
-    // útil para o app avisar o usuário, em vez de apresentar "sem dados
-    // suficientes" em todos os eventos sem explicar o motivo.
-    if (resultadoSemBusca && typeof resultadoSemBusca === 'object') {
-      resultadoSemBusca._buscaIndisponivel = true;
-    }
-    return resultadoSemBusca;
+    // Instrução extra, específica deste modo degradado: sem isso, o próprio
+    // modelo pode "alucinar" números plausíveis (médias, estatísticas) mesmo
+    // sem ter pesquisado nada — o que já foi observado acontecendo na prática.
+    // Reforça aqui, mas o código abaixo (sanearRespostaSemBusca) é quem garante
+    // isso de fato, não confiando só na obediência do modelo à instrução.
+    const avisoSemBusca = {
+      text: 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "probabilidadeEstimada" com qualquer número ou descrever estatísticas específicas (médias, resultados recentes) em "baseEstimativa" — para TODOS os eventos, defina "dadosEncontrados": false, "probabilidadeEstimada": null, e em "baseEstimativa" escreva apenas algo como "Busca de estatísticas indisponível nesta análise". Continue preenchendo normalmente "nivelRisco", "resumo" e "alertas" com base só nos dados da aposta fornecidos e na probabilidade implícita da odd.',
+    };
+    const resultadoSemBusca = await tentarModelosGemini({
+      apiKey,
+      systemInstrucoes,
+      partesConteudo: [avisoSemBusca, ...partesConteudo],
+      usarBusca: false,
+    });
+    // Sanitiza a resposta independentemente do que o modelo tenha escrito — a
+    // garantia de "nenhuma estatística inventada" não pode depender só de o
+    // modelo obedecer à instrução acima.
+    return sanearRespostaSemBusca(resultadoSemBusca);
   }
+}
+
+// Remove à força qualquer estimativa estatística de uma resposta que foi gerada
+// SEM a ferramenta de busca disponível, e marca a resposta como tal — garante
+// que nenhum número "alucinado" pelo modelo chegue ao usuário como se fosse
+// uma estimativa real baseada em dados pesquisados.
+function sanearRespostaSemBusca(resultado) {
+  if (!resultado || typeof resultado !== 'object') return resultado;
+  resultado._buscaIndisponivel = true;
+  if (Array.isArray(resultado.analisesEventos)) {
+    resultado.analisesEventos = resultado.analisesEventos.map((ev) => ({
+      ...ev,
+      dadosEncontrados: false,
+      probabilidadeEstimada: null,
+      baseEstimativa: 'Busca de estatísticas indisponível nesta análise — nenhuma estimativa foi gerada.',
+    }));
+  }
+  return resultado;
 }
 
 // Percorre a lista de modelos candidatos uma vez, com ou sem a ferramenta de
@@ -627,6 +657,15 @@ async function tentarModelosGemini({ apiKey, systemInstrucoes, partesConteudo, u
       const texto = partes.map((p) => p.text || '').join('').trim();
       if (!texto) {
         throw new Error(`Gemini (${modelo}, busca=${usarBusca}) não retornou texto utilizável (possível bloqueio de segurança ou resposta vazia).`);
+      }
+
+      // Confirmação extra: quando a busca deveria ter sido usada, exige que o
+      // Gemini tenha de fato registrado metadados de grounding (evidência real
+      // de que uma pesquisa foi executada). Sem isso, o modelo pode responder
+      // "normalmente" com números que parecem estatística mas são só memória
+      // própria — trata como falha desta tentativa em vez de aceitar às cegas.
+      if (usarBusca && !dados?.candidates?.[0]?.groundingMetadata) {
+        throw new Error(`Gemini (${modelo}, busca=${usarBusca}) respondeu sem evidência de busca real (sem groundingMetadata) — descartando para não aceitar estatística não verificada.`);
       }
 
       return parsearJSON(texto);
@@ -700,7 +739,18 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     throw new Error('Anthropic não retornou texto utilizável.');
   }
 
-  return parsearJSON(blocoTexto.text);
+  const resultado = parsearJSON(blocoTexto.text);
+  // Mesma garantia aplicada ao Gemini: se a busca estava habilitada mas não há
+  // evidência de que uma pesquisa real foi executada (bloco de resultado de
+  // busca no retorno), não confia em nenhuma estatística que o modelo tenha
+  // escrito — evita aceitar números "de memória" disfarçados de pesquisa real.
+  if (comBusca) {
+    const houveBuscaReal = (dados.content || []).some((b) => b.type === 'web_search_tool_result' || b.type === 'server_tool_use');
+    if (!houveBuscaReal) {
+      return sanearRespostaSemBusca(resultado);
+    }
+  }
+  return resultado;
 }
 
 // ==================== AUXILIAR ====================

@@ -4,6 +4,26 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.13.2 — 24/07/2026
+
+### Correção de bug importante — Análise de Aposta (integridade dos dados)
+- Corrigido um problema sério: quando a busca real não estava disponível (ver
+  v1.13.1) e o Gemini respondia no modo "sem busca", o modelo por vezes
+  **inventava** números que pareciam estatísticas reais (médias de gols/
+  finalizações, forma dos times) mesmo sem ter pesquisado nada — violando a
+  própria instrução de "nunca invente uma estimativa sem base real".
+- Agora isso é impedido de duas formas: (1) uma instrução extra e explícita é
+  enviada ao modelo nesse modo, proibindo qualquer número; e principalmente
+  (2) o próprio código do Worker **sobrescreve à força** qualquer estimativa
+  recebida nesse cenário, independente do que o modelo tenha escrito —
+  garantindo que nenhuma estatística "alucinada" chegue até o usuário como se
+  fosse dado real pesquisado.
+- Reforço adicional: mesmo quando a busca é aceita como bem-sucedida (sem
+  erro), o Worker agora confere se há evidência real de que uma pesquisa foi
+  executada (metadados de grounding no Gemini, ou bloco de resultado de busca
+  na Anthropic). Se essa evidência não existir, a resposta é tratada como "sem
+  busca" e passa pela mesma sanitização — mesmo numa chamada que "deu certo".
+
 ## v1.13.1 — 23/07/2026
 
 ### Correção de bug — Análise de Aposta
