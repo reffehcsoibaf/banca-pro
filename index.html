@@ -1355,7 +1355,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.13.0 · 23/07/2026
+  Banca Pro · v1.13.1 · 23/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2732,7 +2732,8 @@ async function analisarApostaAtual(automatico) {
         const json = await resposta.json();
         if (!resposta.ok) throw new Error(json.error || 'Erro ao analisar a aposta.');
         renderizarAnaliseAposta(json);
-        anunciar('Análise da aposta disponível. Nível de risco: ' + (json.nivelRisco || '—') + '. ' + (json.resumo || ''));
+        anunciar((json._buscaIndisponivel ? 'Busca de estatísticas indisponível no momento. ' : '') +
+            'Análise da aposta disponível. Nível de risco: ' + (json.nivelRisco || '—') + '. ' + (json.resumo || ''));
     } catch (err) {
         if (!automatico) showToast('❌ Não foi possível analisar: ' + err.message, 'error', 8000);
         console.error('analisarApostaAtual erro:', err);
@@ -2779,6 +2780,14 @@ function renderizarAnaliseAposta(dados) {
         }).join('')
         : '';
 
+    // Se nenhum modelo Gemini conseguiu usar a busca real (ex.: indisponibilidade
+    // temporária da ferramenta de grounding), o Worker ainda responde — só que sem
+    // estatística de fato pesquisada. Avisa isso claramente em vez de deixar o
+    // usuário achar que "sem dados suficientes" em tudo é normal.
+    const avisoBuscaIndisponivel = dados._buscaIndisponivel
+        ? `<p style="margin:8px 0 0;font-size:12.5px;background:var(--warning-bg);color:var(--warning);padding:6px 10px;border-radius:6px;">⚠️ A busca de estatísticas reais não pôde ser feita agora (indisponibilidade temporária) — esta análise ficou limitada à probabilidade implícita da odd e aos alertas de risco gerais. Tente novamente em alguns minutos para a estimativa por estatística.</p>`
+        : '';
+
     container.innerHTML = `
         <div style="background:${estilo.bg};border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border-light);">
             <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:${estilo.cor};font-size:13px;text-transform:uppercase;letter-spacing:.4px;">
@@ -2786,6 +2795,7 @@ function renderizarAnaliseAposta(dados) {
             </div>
             <p style="margin:8px 0 0;font-size:14px;line-height:1.6;">${escapeHtml(dados.resumo || '')}</p>
             ${alertasHtml}
+            ${avisoBuscaIndisponivel}
             ${eventosHtml}
             <p style="margin:10px 0 0;font-size:11.5px;color:var(--text-secondary);">⚠️ Estimativas baseadas em busca de estatísticas reais na web — não são garantia de resultado. Fatores como lesões de última hora, escalação e clima não entram nessa conta.</p>
         </div>`;

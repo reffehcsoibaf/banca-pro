@@ -480,6 +480,7 @@ export default {
     }
 
     // ---- 1ª TENTATIVA: GEMINI (grátis) ----
+    let erroGeminiDetalhe = null;
     if (env.GEMINI_API_KEY) {
       try {
         const extraido = await lerComGemini({
@@ -494,10 +495,13 @@ export default {
         return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
       } catch (erroGemini) {
         console.log('[fallback] Gemini falhou, tentando Anthropic:', erroGemini.message);
-        // segue para a Anthropic abaixo
+        // Guarda o erro real (truncado) para devolver ao usuário se a Anthropic
+        // também falhar — assim dá para diagnosticar sem precisar de `wrangler tail`.
+        erroGeminiDetalhe = String(erroGemini.message || erroGemini).slice(0, 500);
       }
     } else {
       console.log('[fallback] GEMINI_API_KEY não configurada, indo direto para Anthropic.');
+      erroGeminiDetalhe = 'GEMINI_API_KEY não configurada neste Worker.';
     }
 
     // ---- 2ª TENTATIVA: ANTHROPIC (paga, fallback) ----
@@ -521,7 +525,10 @@ export default {
       return new Response(JSON.stringify({ ...extraido, _provedor: 'anthropic' }), { status: 200, headers });
     } catch (erroAnthropic) {
       return new Response(
-        JSON.stringify({ error: 'Erro ao ler bilhete (Gemini e Anthropic falharam): ' + erroAnthropic.message }),
+        JSON.stringify({
+          error: 'Erro ao ler bilhete (Gemini e Anthropic falharam): ' + erroAnthropic.message +
+            (erroGeminiDetalhe ? ' | Detalhe do Gemini: ' + erroGeminiDetalhe : ''),
+        }),
         { status: 502, headers }
       );
     }
@@ -548,6 +555,31 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
   // uma "part" de texto adicional, antes do conteúdo do bilhete em si.
   const partesConteudo = textoCorrecoes ? [{ text: textoCorrecoes }, parteConteudo] : [parteConteudo];
 
+  try {
+    return await tentarModelosGemini({ apiKey, systemInstrucoes, partesConteudo, usarBusca: comBusca });
+  } catch (erroComBusca) {
+    if (!comBusca) throw erroComBusca; // não havia busca envolvida, nada mais a tentar
+    // Nenhum modelo candidato conseguiu responder usando a ferramenta de busca
+    // (típico quando nenhum dos modelos da lista suporta grounding no momento).
+    // Antes de gastar crédito no fallback pago da Anthropic, tenta os mesmos
+    // modelos MAIS UMA VEZ sem a ferramenta de busca — ainda gratuito no Gemini,
+    // só que sem estatística real (só a análise de risco básica).
+    console.log('[gemini] Todos os modelos falharam com busca ativada, tentando novamente sem busca:', erroComBusca.message);
+    const resultadoSemBusca = await tentarModelosGemini({ apiKey, systemInstrucoes, partesConteudo, usarBusca: false });
+    // Sinaliza para o frontend que esta análise NÃO teve busca real na web —
+    // útil para o app avisar o usuário, em vez de apresentar "sem dados
+    // suficientes" em todos os eventos sem explicar o motivo.
+    if (resultadoSemBusca && typeof resultadoSemBusca === 'object') {
+      resultadoSemBusca._buscaIndisponivel = true;
+    }
+    return resultadoSemBusca;
+  }
+}
+
+// Percorre a lista de modelos candidatos uma vez, com ou sem a ferramenta de
+// busca, tentando o próximo em caso de indisponibilidade. Lança o último erro
+// se nenhum candidato responder.
+async function tentarModelosGemini({ apiKey, systemInstrucoes, partesConteudo, usarBusca }) {
   let ultimoErro = null;
 
   for (const modelo of MODELOS_GEMINI_CANDIDATOS) {
@@ -561,7 +593,7 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
       // Grounding com Google Search: permite ao modelo pesquisar dados reais na web
       // (estatísticas de jogos, médias de gols etc.) antes de responder — usado só
       // na rota de Analisar Aposta, nunca no leitor de bilhete.
-      if (comBusca) corpoRequisicao.tools = [{ google_search: {} }];
+      if (usarBusca) corpoRequisicao.tools = [{ google_search: {} }];
 
       const resposta = await fetch(url, {
         method: 'POST',
@@ -572,20 +604,20 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
       if (!resposta.ok) {
         const corpoErro = await resposta.text();
         // Modelo descontinuado/inexistente (404) ou indisponível (503): tenta o
-        // próximo candidato. Com busca (comBusca) ativada, um erro 400 também é
+        // próximo candidato. Com busca (usarBusca) ativada, um erro 400 também é
         // tratado como "tenta o próximo modelo" — é o sintoma típico de um modelo
         // que não suporta a ferramenta de busca/grounding (ex.: variantes "lite"),
         // e não deve abortar toda a tentativa Gemini já na primeira falha.
         const tentarProximoModelo = resposta.status === 404 || resposta.status === 503 ||
-          (comBusca && resposta.status === 400);
+          (usarBusca && resposta.status === 400);
         if (tentarProximoModelo) {
-          console.log(`[gemini] Modelo "${modelo}" falhou (${resposta.status}), tentando o próximo candidato. Detalhe: ${corpoErro.slice(0, 300)}`);
-          ultimoErro = new Error(`Gemini (${modelo}) retornou ${resposta.status}: ${corpoErro}`);
+          console.log(`[gemini] Modelo "${modelo}" falhou (${resposta.status}) [busca=${usarBusca}], tentando o próximo candidato. Detalhe: ${corpoErro.slice(0, 300)}`);
+          ultimoErro = new Error(`Gemini (${modelo}, busca=${usarBusca}) retornou ${resposta.status}: ${corpoErro}`);
           continue;
         }
         // Outros erros (ex.: 429 rate limit, chave inválida) não são resolvidos
-        // trocando de modelo — propaga direto para o fallback Anthropic.
-        throw new Error(`Gemini (${modelo}) retornou ${resposta.status}: ${corpoErro}`);
+        // trocando de modelo — propaga direto para quem chamou.
+        throw new Error(`Gemini (${modelo}, busca=${usarBusca}) retornou ${resposta.status}: ${corpoErro}`);
       }
 
       const dados = await resposta.json();
@@ -594,7 +626,7 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
       const partes = dados?.candidates?.[0]?.content?.parts || [];
       const texto = partes.map((p) => p.text || '').join('').trim();
       if (!texto) {
-        throw new Error(`Gemini (${modelo}) não retornou texto utilizável (possível bloqueio de segurança ou resposta vazia).`);
+        throw new Error(`Gemini (${modelo}, busca=${usarBusca}) não retornou texto utilizável (possível bloqueio de segurança ou resposta vazia).`);
       }
 
       return parsearJSON(texto);
@@ -605,7 +637,7 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
     }
   }
 
-  throw ultimoErro || new Error('Nenhum modelo Gemini candidato respondeu.');
+  throw ultimoErro || new Error(`Nenhum modelo Gemini candidato respondeu (busca=${usarBusca}).`);
 }
 
 // ==================== PROVEDOR: ANTHROPIC ====================

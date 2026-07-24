@@ -114,6 +114,15 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-13-1">v1.13.1</h2>
+  <p class="versao-data">23/07/2026</p>
+  <h3>Correção de bug — Análise de Aposta</h3>
+  <ul>
+    <li>A correção anterior (v1.13.0) só tentava o próximo modelo Gemini quando o <strong>primeiro</strong> candidato falhava com erro 400 e a busca estava ativada — mas se <strong>todos</strong> os modelos candidatos não suportassem a ferramenta de busca no momento, o Worker ainda caía no fallback pago da Anthropic, que falhava sem crédito configurado. Agora, se nenhum modelo Gemini conseguir responder com busca ativada, o Worker tenta os mesmos modelos <strong>mais uma vez sem a busca</strong> (ainda gratuito) antes de considerar ir para a Anthropic.</li>
+    <li>Quando isso acontece, a análise ainda é gerada (nível de risco, alertas, probabilidade implícita da odd), só sem a estimativa por estatística real — e o painel agora mostra um aviso claro de que a busca não pôde ser feita desta vez, em vez de simplesmente mostrar "sem dados suficientes" em todos os eventos sem explicação.</li>
+    <li>Se mesmo assim tudo falhar (Gemini indisponível e Anthropic sem crédito), a mensagem de erro agora inclui o detalhe real do erro do Gemini junto com o da Anthropic, para diagnóstico sem precisar acessar os logs do Cloudflare.</li>
+  </ul>
+
   <h2 id="v1-13-0">v1.13.0</h2>
   <p class="versao-data">23/07/2026</p>
   <h3>Correções Aprendidas (IA) — nova funcionalidade</h3>

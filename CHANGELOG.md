@@ -4,6 +4,25 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.13.1 — 23/07/2026
+
+### Correção de bug — Análise de Aposta
+- A correção anterior (v1.13.0) só tentava o próximo modelo Gemini quando o
+  **primeiro** candidato falhava com erro 400 e a busca estava ativada — mas se
+  **todos** os modelos candidatos não suportassem a ferramenta de busca no
+  momento, o Worker ainda caía no fallback pago da Anthropic, que falhava sem
+  crédito configurado. Agora, se nenhum modelo Gemini conseguir responder com
+  busca ativada, o Worker tenta os mesmos modelos **mais uma vez sem a busca**
+  (ainda gratuito) antes de considerar ir para a Anthropic.
+- Quando isso acontece, a análise ainda é gerada (nível de risco, alertas,
+  probabilidade implícita da odd), só sem a estimativa por estatística real —
+  e o painel agora mostra um aviso claro de que a busca não pôde ser feita
+  desta vez, em vez de simplesmente mostrar "sem dados suficientes" em todos
+  os eventos sem explicação.
+- Se mesmo assim tudo falhar (Gemini indisponível e Anthropic sem crédito), a
+  mensagem de erro agora inclui o detalhe real do erro do Gemini junto com o
+  da Anthropic, para diagnóstico sem precisar acessar os logs do Cloudflare.
+
 ## v1.13.0 — 23/07/2026
 
 ### Correções Aprendidas (IA) — nova funcionalidade
