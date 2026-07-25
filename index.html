@@ -1367,6 +1367,15 @@ const SUPABASE_URL = 'https://nccpmxavmwipsvzquzeg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_XAjlhNGUMf9EzoqY4C3J9w_FJ1k-SxT';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Monta o header Authorization com o token da sessão atual, usado nas
+// chamadas às rotas de IA do Worker (/api/ler-bilhete, /api/analisar-aposta),
+// que checam no servidor se este usuário tem ai_enabled = true.
+async function headerAutorizacaoIA() {
+    const { data } = await sb.auth.getSession();
+    const token = data && data.session ? data.session.access_token : null;
+    return token ? { Authorization: 'Bearer ' + token } : {};
+}
+
 /* ==================== DADOS ==================== */
 const defaults = {
     casa: ["Betano","Betfair","Superbet"].sort((a,b)=>a.localeCompare(b)),
@@ -1523,6 +1532,36 @@ function mostrarApp() {
     if (!appJaIniciado) {
         appJaIniciado = true;
         iniciarApp();
+    }
+    aplicarVisibilidadeIA();
+}
+
+// Esconde os botões de IA (foto, texto, análise de risco) se este usuário
+// estiver com ai_enabled = false no perfil. A checagem real de segurança
+// acontece no servidor (Worker); isto é só para não mostrar um botão que
+// vai ser bloqueado ao clicar.
+async function aplicarVisibilidadeIA() {
+    try {
+        const { data: sessao } = await sb.auth.getSession();
+        const userId = sessao && sessao.session ? sessao.session.user.id : null;
+        if (!userId) return;
+
+        const { data: perfil, error } = await sb
+            .from('profiles')
+            .select('ai_enabled')
+            .eq('id', userId)
+            .single();
+
+        if (error) return; // em caso de erro, não esconde nada (evita falso negativo)
+
+        const habilitado = !perfil || perfil.ai_enabled !== false;
+        const idsBotoesIA = ['btnPreencherFoto', 'btnPreencherTexto', 'btnAnalisarAposta'];
+        idsBotoesIA.forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = habilitado ? '' : 'none';
+        });
+    } catch (e) {
+        // silencioso: não bloqueia o uso do app por falha nesta checagem visual
     }
 }
 
@@ -2726,7 +2765,7 @@ async function analisarApostaAtual(automatico) {
     try {
         const resposta = await fetch('/api/analisar-aposta', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
             body: JSON.stringify({ aposta: dados })
         });
         const json = await resposta.json();
@@ -2859,7 +2898,7 @@ async function processarFotoBilhete(event) {
 
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
             body: JSON.stringify({ imagemBase64: base64, mediaType, correcoesConhecidas: correcoesIA })
         });
 
@@ -2931,7 +2970,7 @@ async function processarTextoBilhete() {
     try {
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
             body: JSON.stringify({ textoBilhete: texto, correcoesConhecidas: correcoesIA })
         });
 
