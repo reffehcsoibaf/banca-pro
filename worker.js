@@ -433,6 +433,25 @@ async function checarAcessoIA(request, env) {
   return { ok: true };
 }
 
+// Incrementa o contador de uso de IA do usuário logado. Chamado só depois de
+// uma resposta bem-sucedida da IA; falha aqui nunca deve quebrar a resposta
+// já obtida para o usuário, por isso é sempre "melhor esforço" (sem throw).
+async function registrarUsoIA(accessToken, env) {
+  try {
+    await fetch(env.SUPABASE_URL + '/rest/v1/rpc/increment_ai_calls_count', {
+      method: 'POST',
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: '{}'
+    });
+  } catch (e) {
+    console.log('[uso-ia] falha ao registrar uso (ignorado):', e.message);
+  }
+}
+
 // ---- HANDLER PRINCIPAL (formato Cloudflare Workers) ----
 export default {
   async fetch(request, env, ctx) {
@@ -463,6 +482,7 @@ export default {
     if (!acesso.ok) {
       return new Response(JSON.stringify({ error: acesso.message }), { status: acesso.status, headers });
     }
+    const accessToken = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
 
     let payload;
     try { payload = await request.json(); }
@@ -533,6 +553,7 @@ export default {
           comBusca,
           textoCorrecoes,
         });
+        ctx.waitUntil(registrarUsoIA(accessToken, env));
         return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
       } catch (erroGemini) {
         console.log('[fallback] Gemini falhou, tentando Anthropic:', erroGemini.message);
@@ -563,6 +584,7 @@ export default {
         comBusca,
         textoCorrecoes,
       });
+      ctx.waitUntil(registrarUsoIA(accessToken, env));
       return new Response(JSON.stringify({ ...extraido, _provedor: 'anthropic' }), { status: 200, headers });
     } catch (erroAnthropic) {
       return new Response(
