@@ -114,6 +114,14 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-13-3">v1.13.3</h2>
+  <p class="versao-data">25/07/2026</p>
+  <h3>Correção — Lista de Apostas</h3>
+  <ul>
+    <li>Corrigido: ao marcar uma aposta como Ganhou/Perdeu/Ganho Parcial/Perda Parcial/Cash Out/Anulada pela aba Lista (botões ✓/✗ ou atalhos <code>Alt+G</code>/<code>Alt+P</code>), a aposta agora <strong>some da tela na hora</strong> se ela deixou de atender aos filtros ativos — por exemplo, com o filtro "Status: Aberto" ativo, marcar uma aposta como Ganhou a remove imediatamente da lista exibida, sem precisar reaplicar o filtro manualmente ou trocar de aba. Antes, a aposta só era atualizada visualmente (novo status, lucro, etc.) mas continuava na lista até o filtro ser reaplicado.</li>
+    <li>A lógica de checagem dos filtros (Casa, Tipster, Tipo, Esporte, Liga, Mercado, Status, intervalo de datas, busca por ID/Evento) foi extraída para uma função reutilizável, garantindo que a verificação usada ao marcar um status seja idêntica à usada em "Filtros".</li>
+  </ul>
+
   <h2 id="v1-13-2">v1.13.2</h2>
   <p class="versao-data">24/07/2026</p>
   <h3>Correção de bug importante — Análise de Aposta (integridade dos dados)</h3>

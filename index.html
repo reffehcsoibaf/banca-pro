@@ -1355,7 +1355,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.13.2 · 24/07/2026
+  Banca Pro · v1.13.3 · 25/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -3672,9 +3672,22 @@ async function marcarStatusAposta(i, novoStatus) {
     // ── Atualizar a lista filtrada em memória e re-renderizar ──
     // Com a tabela paginada, isso é barato (só a página atual, no máximo algumas
     // dezenas de linhas, é redesenhada — não a lista inteira). A página atual é
-    // preservada, diferente de aplicarFiltros() que sempre volta para a página 1.
+    // preservada quando a aposta continua visível, diferente de aplicarFiltros()
+    // que sempre volta para a página 1.
+    //
+    // Se a aposta deixou de atender ao filtro ativo (ex.: filtro "Status: Aberto"
+    // e ela acabou de ser marcada como Ganhou/Perdeu), ela é removida da lista
+    // filtrada exibida — some da tela na hora, sem precisar reaplicar o filtro
+    // manualmente ou trocar de aba.
     const filtIdx = apostasFiltradasAtuais.findIndex(x => x.identificador === a.identificador);
-    if (filtIdx !== -1) apostasFiltradasAtuais[filtIdx] = a;
+    if (filtIdx !== -1) {
+        const f = lerValoresFiltrosAtuais();
+        if (apostaPassaNosFiltrosAtuais(a, f)) {
+            apostasFiltradasAtuais[filtIdx] = a;
+        } else {
+            apostasFiltradasAtuais.splice(filtIdx, 1);
+        }
+    }
     renderTabela(apostasFiltradasAtuais);
 
     // Feedback visual imediato — toast antes do await
@@ -3738,36 +3751,48 @@ function ordenarApostasPorData() {
     apostas.sort((a,b) => new Date(a.dataHora) - new Date(b.dataHora));
 }
 
-function aplicarFiltros() {
+// Lê os valores atuais dos controles de filtro da aba Filtros.
+function lerValoresFiltrosAtuais() {
     const gv = id => { const el = document.getElementById(id); return el ? el.value : ''; };
-    const fCasa    = gv("fCasa");
-    const fTipster = gv("fTipster");
-    const fTipo    = gv("fTipo");
-    const fEsporte = gv("fEsporte");
-    const fLiga    = gv("fLiga");
-    const fMercado = gv("fMercado");
-    const fStatus  = gv("fStatus");
-    const fDataI   = gv("fDataInicial");
-    const fDataF   = gv("fDataFinal");
-    const busca    = gv("campoBusca").toLowerCase().trim();
+    return {
+        fCasa:    gv("fCasa"),
+        fTipster: gv("fTipster"),
+        fTipo:    gv("fTipo"),
+        fEsporte: gv("fEsporte"),
+        fLiga:    gv("fLiga"),
+        fMercado: gv("fMercado"),
+        fStatus:  gv("fStatus"),
+        fDataI:   gv("fDataInicial"),
+        fDataF:   gv("fDataFinal"),
+        busca:    gv("campoBusca").toLowerCase().trim()
+    };
+}
 
-    apostasFiltradasAtuais = apostas.filter(a => {
-        if (fCasa && a.casa !== fCasa) return false;
-        if (fTipster && a.tipster !== fTipster) return false;
-        if (fTipo && a.tipo !== fTipo) return false;
-        if (fStatus && a.status !== fStatus) return false;
-        if (fDataI && a.dataHora.substring(0,10) < fDataI) return false;
-        if (fDataF && a.dataHora.substring(0,10) > fDataF) return false;
-        if (fEsporte && !a.eventos.some(e => e.esporte === fEsporte)) return false;
-        if (fLiga && !a.eventos.some(e => e.liga === fLiga)) return false;
-        if (fMercado && !a.eventos.some(e => (e.mercado||'').split(',').map(m=>m.trim()).includes(fMercado))) return false;
-        if (busca) {
-            const temId = a.identificador.toLowerCase().includes(busca);
-            const temEv = a.eventos.some(e => e.evento.toLowerCase().includes(busca));
-            if (!temId && !temEv) return false;
-        }
-        return true;
-    });
+// Testa se UMA aposta passa nos filtros atualmente ativos na aba Filtros.
+// Usado tanto por aplicarFiltros() (lista inteira) quanto por marcarStatusAposta()
+// (para saber se uma aposta que acabou de mudar de status deve sair da lista
+// filtrada exibida, ex.: some da visão "Status: Aberto" ao marcar Ganhou/Perdeu).
+function apostaPassaNosFiltrosAtuais(a, f) {
+    if (f.fCasa && a.casa !== f.fCasa) return false;
+    if (f.fTipster && a.tipster !== f.fTipster) return false;
+    if (f.fTipo && a.tipo !== f.fTipo) return false;
+    if (f.fStatus && a.status !== f.fStatus) return false;
+    if (f.fDataI && a.dataHora.substring(0,10) < f.fDataI) return false;
+    if (f.fDataF && a.dataHora.substring(0,10) > f.fDataF) return false;
+    if (f.fEsporte && !a.eventos.some(e => e.esporte === f.fEsporte)) return false;
+    if (f.fLiga && !a.eventos.some(e => e.liga === f.fLiga)) return false;
+    if (f.fMercado && !a.eventos.some(e => (e.mercado||'').split(',').map(m=>m.trim()).includes(f.fMercado))) return false;
+    if (f.busca) {
+        const temId = a.identificador.toLowerCase().includes(f.busca);
+        const temEv = a.eventos.some(e => e.evento.toLowerCase().includes(f.busca));
+        if (!temId && !temEv) return false;
+    }
+    return true;
+}
+
+function aplicarFiltros() {
+    const f = lerValoresFiltrosAtuais();
+    apostasFiltradasAtuais = apostas.filter(a => apostaPassaNosFiltrosAtuais(a, f));
 
     apostasFiltradasAtuais.sort((a,b) => (a.dataHora > b.dataHora ? 1 : a.dataHora < b.dataHora ? -1 : 0));
     paginaAtualLista = 1; // novo filtro/busca sempre volta para a primeira página

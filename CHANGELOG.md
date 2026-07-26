@@ -4,6 +4,19 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.13.3 — 25/07/2026
+
+### Correção — Lista de Apostas
+- Corrigido: ao marcar uma aposta como Ganhou/Perdeu/Ganho Parcial/Perda Parcial/Cash Out/Anulada
+  pela aba Lista (botões ✓/✗ ou atalhos `Alt+G`/`Alt+P`), a aposta agora **some da tela na hora**
+  se ela deixou de atender aos filtros ativos — por exemplo, com o filtro "Status: Aberto" ativo,
+  marcar uma aposta como Ganhou a remove imediatamente da lista exibida, sem precisar reaplicar o
+  filtro manualmente ou trocar de aba. Antes, a aposta só era atualizada visualmente (novo status,
+  lucro, etc.) mas continuava na lista até o filtro ser reaplicado.
+- A lógica de checagem dos filtros (Casa, Tipster, Tipo, Esporte, Liga, Mercado, Status, intervalo
+  de datas, busca por ID/Evento) foi extraída para uma função reutilizável, garantindo que a
+  verificação usada ao marcar um status seja idêntica à usada em "Filtros".
+
 ## v1.13.2 — 24/07/2026
 
 ### Correção de bug importante — Análise de Aposta (integridade dos dados)
