@@ -433,12 +433,13 @@ async function checarAcessoIA(request, env) {
   return { ok: true };
 }
 
-// Incrementa o contador de uso de IA do usuário logado. Chamado só depois de
-// uma resposta bem-sucedida da IA; falha aqui nunca deve quebrar a resposta
-// já obtida para o usuário, por isso é sempre "melhor esforço" (sem throw).
-async function registrarUsoIA(accessToken, env) {
+// Incrementa o contador de uso de IA do usuário logado, separando por tipo
+// (leitura de bilhete vs análise de estatísticas/risco). Melhor esforço:
+// nunca deve quebrar a resposta já obtida para o usuário.
+async function registrarUsoIA(accessToken, env, tipo) {
+  const funcaoRpc = tipo === 'estatisticas' ? 'increment_ai_calls_estatisticas' : 'increment_ai_calls_bilhete';
   try {
-    await fetch(env.SUPABASE_URL + '/rest/v1/rpc/increment_ai_calls_count', {
+    await fetch(env.SUPABASE_URL + '/rest/v1/rpc/' + funcaoRpc, {
       method: 'POST',
       headers: {
         apikey: env.SUPABASE_ANON_KEY,
@@ -455,6 +456,28 @@ async function registrarUsoIA(accessToken, env) {
 // ---- HANDLER PRINCIPAL (formato Cloudflare Workers) ----
 export default {
   async fetch(request, env, ctx) {
+    try {
+      return await handleFetch(request, env, ctx);
+    } catch (erroFatal) {
+      // Rede de segurança: qualquer erro não previsto abaixo cai aqui,
+      // garantindo que a resposta seja sempre um JSON legível.
+      return new Response(
+        JSON.stringify({ error: 'Erro inesperado no servidor: ' + (erroFatal && erroFatal.message) }),
+        {
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+    }
+  },
+};
+
+async function handleFetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
@@ -478,7 +501,15 @@ export default {
       return new Response(JSON.stringify({ error: 'Método não permitido.' }), { status: 405, headers });
     }
 
-    const acesso = await checarAcessoIA(request, env);
+    let acesso;
+    try {
+      acesso = await checarAcessoIA(request, env);
+    } catch (erroChecagem) {
+      return new Response(
+        JSON.stringify({ error: 'Erro ao checar permissão de IA: ' + erroChecagem.message }),
+        { status: 500, headers }
+      );
+    }
     if (!acesso.ok) {
       return new Response(JSON.stringify({ error: acesso.message }), { status: acesso.status, headers });
     }
@@ -490,6 +521,7 @@ export default {
 
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
     const comBusca = url.pathname === '/api/analisar-aposta'; // habilita busca real na web só nesta rota
+    const tipoUso = url.pathname === '/api/analisar-aposta' ? 'estatisticas' : 'bilhete';
 
     if (url.pathname === '/api/analisar-aposta') {
       // ---- Rota de análise de risco (não extrai dados, recebe dados já preenchidos) ----
@@ -553,7 +585,7 @@ export default {
           comBusca,
           textoCorrecoes,
         });
-        ctx.waitUntil(registrarUsoIA(accessToken, env));
+        ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
         return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
       } catch (erroGemini) {
         console.log('[fallback] Gemini falhou, tentando Anthropic:', erroGemini.message);
@@ -584,7 +616,7 @@ export default {
         comBusca,
         textoCorrecoes,
       });
-      ctx.waitUntil(registrarUsoIA(accessToken, env));
+      ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
       return new Response(JSON.stringify({ ...extraido, _provedor: 'anthropic' }), { status: 200, headers });
     } catch (erroAnthropic) {
       return new Response(
@@ -595,8 +627,7 @@ export default {
         { status: 502, headers }
       );
     }
-  },
-};
+}
 
 // ==================== PROVEDOR: GEMINI ====================
 // Lista de modelos candidatos, em ordem de preferência. Se o Google
