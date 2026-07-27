@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.13.3</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.14.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -593,11 +593,18 @@
   <!-- LISTAS DINÂMICAS -->
   <section id="listas-dinamicas" class="wiki-section" aria-labelledby="h-listas">
     <h2 id="h-listas">📋 Listas Dinâmicas</h2>
-    <p>Os campos Casa, Tipster, Tipo, Esporte, Liga e Mercado têm listas personalizáveis. Cada campo tem dois botões de gerenciamento:</p>
+    <p>Os campos Casa, Tipster, Tipo, Esporte, Liga e Mercado têm listas personalizáveis. Na tela de Cadastro, cada campo tem um botão de gerenciamento:</p>
     <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
       <li><span class="btn-demo success">+</span> — abre um diálogo para digitar e adicionar um novo valor. Se já existir um valor equivalente na lista — mesmo com maiúsculas/minúsculas ou espaços diferentes — o sistema avisa e não cria um duplicado. O novo valor é <strong>selecionado automaticamente</strong> após ser adicionado.</li>
-      <li><span class="btn-demo danger">−</span> — remove o valor atualmente selecionado, após confirmação.</li>
     </ul>
+    <div class="callout info">
+      <div class="callout-title">🗑️ Remover valores das listas</div>
+      O botão de remover ("−") não aparece mais na tela de Cadastro, para evitar remover algo sem querer no meio do preenchimento de uma aposta. Para remover um valor de Casa, Tipster, Tipo, Esporte, Liga ou Mercado, use <a href="#configuracoes">Configurações → Gerenciar Listas</a>.
+    </div>
+    <div class="callout tip">
+      <div class="callout-title">✏️ Uso avulso: opção "Outro (digitar)"</div>
+      Os combos de <strong>Esporte</strong>, <strong>Liga</strong> (por evento) e <strong>Tipster</strong> têm, ao final da lista, a opção "✏️ Outro (digitar)…". Escolhendo-a, aparece um campo de texto para digitar o valor manualmente — sem cadastrá-lo na lista. Útil quando você vai usar aquele esporte, liga ou tipster quase nunca. O valor é salvo normalmente na aposta e reaparece corretamente ao reabrir para edição, mesmo não estando em nenhuma lista.
+    </div>
     <div class="callout info">
       <div class="callout-title">🔄 Preenchimento automático ao importar</div>
       Ao importar uma planilha Excel, todos os valores únicos de Casa, Tipster, Tipo, Esporte, Liga e Mercado são mesclados nas listas existentes sem duplicar — mesmo que a grafia varie em maiúsculas/minúsculas ou espaços extras.

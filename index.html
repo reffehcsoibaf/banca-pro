@@ -927,7 +927,6 @@
                     <div id="rg-casa" class="option-group" role="radiogroup" aria-label="Casa de aposta" aria-required="true"></div>
                     <div class="inline" style="margin-top:4px;">
                         <button class="btn-sm btn-success" onclick="addOption('casa')" aria-label="Adicionar casa">+ Casa</button>
-                        <button class="btn-sm btn-danger" onclick="removeOption('casa')" aria-label="Remover casa selecionada">−</button>
                     </div>
                 </div>
                 <div>
@@ -940,10 +939,10 @@
                 </div>
                 <div>
                     <label for="tipster">Tipster</label>
-                    <select id="tipster"></select>
+                    <select id="tipster" onchange="toggleCampoOutro(this,'tipsterOutro')"></select>
+                    <input type="text" class="tipsterOutro" placeholder="Digite o nome do tipster..." style="display:none;margin-top:4px;" aria-label="Digite o nome do tipster (uso avulso, não será salvo na lista)">
                     <div class="inline" style="margin-top:4px;">
                         <button class="btn-sm btn-success" onclick="addOption('tipster')" aria-label="Adicionar tipster">+ Tipster</button>
-                        <button class="btn-sm btn-danger" onclick="removeOption('tipster')" aria-label="Remover tipster selecionado">−</button>
                     </div>
                 </div>
                 <div>
@@ -951,7 +950,6 @@
                     <select id="tipo"></select>
                     <div class="inline" style="margin-top:4px;">
                         <button class="btn-sm btn-success" onclick="addOption('tipo')" aria-label="Adicionar tipo">+ Tipo</button>
-                        <button class="btn-sm btn-danger" onclick="removeOption('tipo')" aria-label="Remover tipo selecionado">−</button>
                     </div>
                 </div>
                 <div>
@@ -1355,7 +1353,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.13.3 · 25/07/2026
+  Banca Pro · v1.14.0 · 26/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2226,14 +2224,16 @@ function fillSelects() {
         renderRadioGroup('rg-casa', 'casa', defaults.casa.includes(cur) ? cur : undefined);
     }
     // Selects simples: tipster, tipo — incluem opção vazia no início (sem pré-seleção)
+    // Tipster também ganha a opção "Outro (digitar)" para uso avulso.
     ['tipster','tipo'].forEach(field => {
         const sel = document.getElementById(field);
         if (sel) {
             const cur = sel.value;
             const label = field === 'tipster' ? '— Tipster —' : '— Tipo —';
-            sel.innerHTML = `<option value="">` + label + `</option>` +
-                defaults[field].map(v => `<option value="${v}">${v}</option>`).join('');
-            if (defaults[field].includes(cur)) sel.value = cur;
+            sel.innerHTML = field === 'tipster'
+                ? opcoesComOutro(defaults[field], label)
+                : `<option value="">` + label + `</option>` + defaults[field].map(v => `<option value="${v}">${v}</option>`).join('');
+            if (defaults[field].includes(cur) || (field === 'tipster' && cur === OUTRO_VALOR)) sel.value = cur;
         }
     });
     // Select de casa no formulário de Saldos
@@ -2350,6 +2350,77 @@ function buscarOuPrepararValor(lista, valorBruto) {
     const existente = (lista || []).find(x => chaveNormalizada(x) === chave);
     if (existente) return { valor: existente, duplicado: true };
     return { valor: v, duplicado: false };
+}
+
+/* ==================== CAMPO LIVRE "OUTRO" (Liga / Tipster / Esporte) ====================
+   Permite digitar um valor avulso em Liga, Tipster ou Esporte sem precisar
+   cadastrá-lo permanentemente na lista — útil para valores usados quase nunca.
+   O valor digitado é salvo normalmente na aposta, só não entra em defaults[]. */
+const OUTRO_VALOR = '__outro__';
+const OUTRO_LABEL = '✏️ Outro (digitar)…';
+
+// Monta as <option> de um select simples (ex.: Tipster, Esporte), sempre
+// incluindo a opção "Outro" ao final. rotuloVazio, se informado, vira uma
+// option vazia inicial (ex.: "— Tipster —").
+function opcoesComOutro(lista, rotuloVazio) {
+    let html = rotuloVazio !== undefined ? `<option value="">${rotuloVazio}</option>` : '';
+    html += (lista || []).map(v => `<option value="${v}">${v}</option>`).join('');
+    html += `<option value="${OUTRO_VALOR}">${OUTRO_LABEL}</option>`;
+    return html;
+}
+
+// Mesma ideia, mas para listas cujo value real difere do nome de exibição
+// (Liga, que internamente é composta com o esporte).
+function opcoesComOutroExibicao(lista, nomeExibicaoFn, rotuloVazio) {
+    let html = rotuloVazio !== undefined ? `<option value="">${rotuloVazio}</option>` : '';
+    html += (lista || []).map(v => `<option value="${nomeExibicaoFn(v)}">${nomeExibicaoFn(v)}</option>`).join('');
+    html += `<option value="${OUTRO_VALOR}">${OUTRO_LABEL}</option>`;
+    return html;
+}
+
+// Mostra/esconde o campo de texto livre associado a um select "com Outro".
+// O campo de texto precisa ser um irmão do select (mesmo pai), com a classe
+// indicada em outroClass.
+function toggleCampoOutro(selectEl, outroClass) {
+    const pai = selectEl.parentElement;
+    const input = pai ? pai.querySelector('.' + outroClass) : null;
+    if (!input) return;
+    if (selectEl.value === OUTRO_VALOR) {
+        input.style.display = '';
+        setTimeout(() => input.focus(), 30);
+    } else {
+        input.style.display = 'none';
+        input.value = '';
+    }
+}
+
+// Valor "efetivo" de um select com Outro: se estiver no modo Outro, usa o
+// texto digitado no campo livre; senão, o próprio valor do select.
+function valorEfetivoComOutro(selectEl, outroClass) {
+    if (!selectEl) return '';
+    if (selectEl.value === OUTRO_VALOR) {
+        const pai = selectEl.parentElement;
+        const input = pai ? pai.querySelector('.' + outroClass) : null;
+        return input ? input.value.trim() : '';
+    }
+    return selectEl.value;
+}
+
+// Aplica um valor salvo a um select com Outro: se o valor existir entre as
+// opções atuais, seleciona normalmente; senão, entra em modo Outro com o
+// campo de texto preenchido (caso de apostas antigas com valor avulso).
+function aplicarValorComOutro(selectEl, outroClass, valor) {
+    if (!selectEl) return;
+    const pai = selectEl.parentElement;
+    const input = pai ? pai.querySelector('.' + outroClass) : null;
+    const existe = valor !== undefined && valor !== OUTRO_VALOR && Array.from(selectEl.options).some(o => o.value === valor);
+    if (existe) {
+        selectEl.value = valor;
+        if (input) { input.style.display = 'none'; input.value = ''; }
+    } else {
+        selectEl.value = OUTRO_VALOR;
+        if (input) { input.style.display = ''; input.value = valor || ''; }
+    }
 }
 
 async function addOption(field) {
@@ -2576,15 +2647,15 @@ function updateDynamicSelects(field) {
             if (!selLiga || !selEsp) return;
             const cur = selLiga.value; // já é nome puro, não composto
             const opcoes = ligasDoEsporte(selEsp.value);
-            selLiga.innerHTML = opcoes.map(v => `<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
-            if (opcoes.some(v => ligaNomeExibicao(v) === cur)) selLiga.value = cur;
+            selLiga.innerHTML = opcoesComOutroExibicao(opcoes, ligaNomeExibicao);
+            if (opcoes.some(v => ligaNomeExibicao(v) === cur) || cur === OUTRO_VALOR) selLiga.value = cur;
         });
     } else if (field === 'esporte') {
         // Trocar a lista de esportes não deve perder a liga já escolhida; só repopula o select de esporte
         document.querySelectorAll('select.' + cls).forEach(sel => {
             const cur = sel.value;
-            sel.innerHTML = defaults.esporte.map(v => `<option value="${v}">${v}</option>`).join('');
-            if (defaults.esporte.includes(cur)) sel.value = cur;
+            sel.innerHTML = opcoesComOutro(defaults.esporte);
+            if (defaults.esporte.includes(cur) || cur === OUTRO_VALOR) sel.value = cur;
         });
     } else {
         // Selects: usar a classe correta
@@ -2601,24 +2672,27 @@ function atualizarLigasDoEvento(selectEsporte) {
     const div = selectEsporte.closest('.event');
     if (!div) return;
     const esporte = selectEsporte.value;
+    const esporteEhOutro = esporte === OUTRO_VALOR;
 
     const selectLiga = div.querySelector('.ligaEvento');
     if (selectLiga) {
-        const opcoesLiga = ligasDoEsporte(esporte);
-        if (opcoesLiga.length === 0) {
-            selectLiga.innerHTML = `<option value="">Nenhuma liga cadastrada para ${esporte}</option>`;
-        } else {
-            selectLiga.innerHTML = `<option value="">— Liga —</option>` +
-                opcoesLiga.map(v => `<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
-        }
+        const opcoesLiga = esporteEhOutro ? [] : ligasDoEsporte(esporte);
+        const rotuloVazio = esporteEhOutro
+            ? 'Nenhuma liga cadastrada (esporte digitado manualmente)'
+            : (opcoesLiga.length === 0 ? `Nenhuma liga cadastrada para ${esporte}` : '— Liga —');
+        selectLiga.innerHTML = opcoesComOutroExibicao(opcoesLiga, ligaNomeExibicao, rotuloVazio);
+        // Trocar de esporte invalida qualquer texto livre de liga já digitado
+        const inputOutroLiga = selectLiga.parentElement ? selectLiga.parentElement.querySelector('.ligaEventoOutro') : null;
+        if (inputOutroLiga) { inputOutroLiga.style.display = 'none'; inputOutroLiga.value = ''; }
     }
 
     const merDiv = div.querySelector('.mercado');
     if (merDiv) {
         const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-        const opcoesMercado = mercadosDoEsporte(esporte);
+        const opcoesMercado = esporteEhOutro ? [] : mercadosDoEsporte(esporte);
         if (opcoesMercado.length === 0) {
-            merDiv.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);">Nenhum mercado cadastrado para ${esporte}</span>`;
+            const msg = esporteEhOutro ? 'Nenhum mercado cadastrado (esporte digitado manualmente)' : `Nenhum mercado cadastrado para ${esporte}`;
+            merDiv.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);">${msg}</span>`;
         } else {
             merDiv.innerHTML = opcoesMercado.map(v => {
                 const nome = mercadoNomeExibicao(v);
@@ -2642,24 +2716,22 @@ function addEvento() {
     <div class="grid">
         <div>
             <label for="${id}-esp">Esporte</label>
-            <select id="${id}-esp" class="esporteEvento" onchange="atualizarLigasDoEvento(this)">
-                <option value="">— Esporte —</option>
-                ${defaults.esporte.map(v=>`<option value="${v}">${v}</option>`).join("")}
+            <select id="${id}-esp" class="esporteEvento" onchange="atualizarLigasDoEvento(this); toggleCampoOutro(this,'esporteEventoOutro');">
+                ${opcoesComOutro(defaults.esporte, '— Esporte —')}
             </select>
+            <input type="text" class="esporteEventoOutro" placeholder="Digite o esporte..." style="display:none;margin-top:4px;" aria-label="Digite o nome do esporte (uso avulso, não será salvo na lista)">
             <div class="inline" style="margin-top:4px;">
                 <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('esporte',this)" aria-label="Adicionar esporte">+</button>
-                <button type="button" class="btn-xs btn-danger" onclick="removeDynamicOption('esporte',this)" aria-label="Remover esporte">−</button>
             </div>
         </div>
         <div>
             <label for="${id}-lig">Liga</label>
-            <select id="${id}-lig" class="ligaEvento">
-                <option value="">— Liga —</option>
-                ${ligasDoEsporte(defaults.esporte[0] || '').map(v=>`<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join("")}
+            <select id="${id}-lig" class="ligaEvento" onchange="toggleCampoOutro(this,'ligaEventoOutro');">
+                ${opcoesComOutroExibicao(ligasDoEsporte(defaults.esporte[0] || ''), ligaNomeExibicao, '— Liga —')}
             </select>
+            <input type="text" class="ligaEventoOutro" placeholder="Digite a liga..." style="display:none;margin-top:4px;" aria-label="Digite o nome da liga (uso avulso, não será salvo na lista)">
             <div class="inline" style="margin-top:4px;">
                 <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('liga',this)" aria-label="Adicionar liga">+</button>
-                <button type="button" class="btn-xs btn-danger" onclick="removeDynamicOption('liga',this)" aria-label="Remover liga">−</button>
             </div>
         </div>
         <div>
@@ -2673,7 +2745,6 @@ function addEvento() {
             </div>
             <div class="inline" style="margin-top:4px;">
                 <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('mercado',this)" aria-label="Adicionar mercado">+</button>
-                <button type="button" class="btn-xs btn-danger" onclick="removeDynamicOption('mercado',this)" aria-label="Remover mercado">−</button>
             </div>
         </div>
         <div>
@@ -2715,8 +2786,8 @@ function coletarDadosApostaParaAnalise() {
 
     const eventos = [];
     document.querySelectorAll('.event').forEach(div => {
-        const esporte = div.querySelector('.esporteEvento') ? div.querySelector('.esporteEvento').value : '';
-        const liga = div.querySelector('.ligaEvento') ? div.querySelector('.ligaEvento').value : '';
+        const esporte = valorEfetivoComOutro(div.querySelector('.esporteEvento'), 'esporteEventoOutro');
+        const liga = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
         const evento = div.querySelector('.evento') ? div.querySelector('.evento').value : '';
         const merDiv = div.querySelector('.mercado');
         const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
@@ -3188,7 +3259,7 @@ function reaplicarItemNoFormulario(item, valorFinal) {
 
         if (item.field === 'esporte' && ev.esporte === item.valor) {
             const selEsp = bloco.querySelector('.esporteEvento');
-            selEsp.innerHTML = `<option value="">— Esporte —</option>` + defaults.esporte.map(v => `<option value="${v}">${v}</option>`).join('');
+            selEsp.innerHTML = opcoesComOutro(defaults.esporte, '— Esporte —');
             selEsp.value = valorFinal;
             atualizarLigasDoEvento(selEsp);
             marcarCampoComoNovo(selEsp);
@@ -3197,7 +3268,7 @@ function reaplicarItemNoFormulario(item, valorFinal) {
         if (item.field === 'liga' && ev.esporte === item.esporte && ev.liga === item.valor) {
             const selLig = bloco.querySelector('.ligaEvento');
             if (selLig) {
-                selLig.innerHTML = `<option value="">— Liga —</option>` + ligasDoEsporte(ev.esporte).map(v => `<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
+                selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(ev.esporte), ligaNomeExibicao, '— Liga —');
                 selLig.value = valorFinal;
                 marcarCampoComoNovo(selLig);
             }
@@ -3346,7 +3417,7 @@ function preencherFormularioComExtracao(dados, origem) {
             // Esporte
             if (ev.esporte) {
                 const selEsp = bloco.querySelector('.esporteEvento');
-                selEsp.innerHTML = `<option value="">— Esporte —</option>` + defaults.esporte.map(v=>`<option value="${v}">${v}</option>`).join('');
+                selEsp.innerHTML = opcoesComOutro(defaults.esporte, '— Esporte —');
                 selEsp.value = ev.esporte;
                 atualizarLigasDoEvento(selEsp);
                 // Se o esporte ainda não existe nas listas, o select fica em branco
@@ -3358,7 +3429,7 @@ function preencherFormularioComExtracao(dados, origem) {
             if (ev.liga && ev.esporte) {
                 const r = buscarOuPrepararValor(ligasDoEsporte(ev.esporte).map(ligaNomeExibicao), ev.liga);
                 const selLig = bloco.querySelector('.ligaEvento');
-                selLig.innerHTML = `<option value="">— Liga —</option>` + ligasDoEsporte(ev.esporte).map(v=>`<option value="${ligaNomeExibicao(v)}">${ligaNomeExibicao(v)}</option>`).join('');
+                selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(ev.esporte), ligaNomeExibicao, '— Liga —');
                 selLig.value = r.valor;
                 if (itensNovos.some(i => i.field === 'liga' && i.valor === r.valor && i.esporte === ev.esporte)) marcarCampoBaixaConfianca(selLig);
                 if (ev.confiancaLiga != null && ev.confiancaLiga < LIMIAR_BAIXA_CONFIANCA) {
@@ -3515,8 +3586,8 @@ async function salvar() {
     const divsEventos = document.querySelectorAll(".event");
     const listaEventos = [];
     divsEventos.forEach((e, idx) => {
-        const esporte = e.querySelector(".esporteEvento").value;
-        const liga    = e.querySelector(".ligaEvento").value;
+        const esporte = valorEfetivoComOutro(e.querySelector(".esporteEvento"), 'esporteEventoOutro');
+        const liga    = valorEfetivoComOutro(e.querySelector(".ligaEvento"), 'ligaEventoOutro');
         // mercado: checkboxes
         const merDiv  = e.querySelector(".mercado");
         const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
@@ -3551,7 +3622,7 @@ async function salvar() {
         casa: getRadioValue('rg-casa'),
         identificador,
         dataHora: document.getElementById("dataHora").value || new Date().toISOString().slice(0,16),
-        tipster: document.getElementById("tipster").value,
+        tipster: valorEfetivoComOutro(document.getElementById("tipster"), 'tipsterOutro'),
         tipo: document.getElementById("tipo").value,
         status, stake, oddTotal, recebido, lucro,
         unidades: stake > 0 ? lucro / stake : 0,
@@ -3596,8 +3667,8 @@ function editar(idx) {
     // Restaurar radio groups: casa e status
     renderRadioGroup('rg-casa', 'casa', a.casa);
     document.querySelectorAll('#rg-status input[type="radio"]').forEach(r => { r.checked = (r.value === a.status); });
-    // Restaurar selects: tipster e tipo
-    document.getElementById("tipster").value = a.tipster;
+    // Restaurar selects: tipster e tipo (tipster entra em modo "Outro" se o valor salvo não estiver mais na lista)
+    aplicarValorComOutro(document.getElementById("tipster"), 'tipsterOutro', a.tipster);
     document.getElementById("tipo").value = a.tipo;
     document.getElementById("identificador").value = a.identificador;
     document.getElementById("dataHora").value = (a.dataHora || "").slice(0,16);
@@ -3612,14 +3683,16 @@ function editar(idx) {
         const divs = document.getElementById("eventos").children;
         const e = divs[divs.length - 1];
         const selEsporte = e.querySelector(".esporteEvento");
-        selEsporte.value = ev.esporte;
+        // Se o esporte salvo não existir mais nas opções (ex.: veio de um uso avulso
+        // do campo "Outro"), o select entra em modo Outro com o texto original.
+        aplicarValorComOutro(selEsporte, 'esporteEventoOutro', ev.esporte);
         // Reconstrói as opções de Liga e Mercado para o esporte real do evento
         // (definir .value diretamente não dispara o onchange, então isso precisa
         // ser chamado manualmente — sem isso, liga e mercado ficavam com as opções
         // do primeiro esporte da lista, e os valores salvos não batiam com nenhuma
         // opção disponível, aparecendo em branco silenciosamente).
         atualizarLigasDoEvento(selEsporte);
-        e.querySelector(".ligaEvento").value = ev.liga;
+        aplicarValorComOutro(e.querySelector(".ligaEvento"), 'ligaEventoOutro', ev.liga);
         e.querySelector(".evento").value = ev.evento;
         // Restaurar mercados (checkboxes)
         const mercadosEv = (ev.mercado || '').split(', ').filter(Boolean);
@@ -3738,6 +3811,8 @@ function limparFormulario() {
         const sel = document.getElementById(field);
         if (sel) sel.value = '';
     });
+    const tipsterOutro = document.querySelector('.tipsterOutro');
+    if (tipsterOutro) { tipsterOutro.style.display = 'none'; tipsterOutro.value = ''; }
     document.getElementById("eventos").innerHTML = "";
     editIndex = null;
     document.getElementById("btnSalvar").innerHTML = "💾 Salvar Aposta";

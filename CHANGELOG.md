@@ -4,6 +4,28 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.14.0 — 26/07/2026
+
+### Campo livre "Outro (digitar)" — Esporte, Liga e Tipster
+- Os combos de **Esporte** e **Liga** (por evento) e de **Tipster** (na aposta) ganharam
+  uma opção extra ao final da lista: **"✏️ Outro (digitar)…"**. Ao escolher essa opção,
+  aparece um campo de texto para digitar o valor manualmente — útil para ligas, esportes
+  ou tipsters que você vai usar quase nunca e não quer deixar cadastrados de forma
+  permanente nas listas.
+- O valor digitado é salvo normalmente na aposta (é o que aparece na Lista, nos Filtros
+  e na Análise de Aposta), só não entra na lista de opções reaproveitáveis.
+- Ao editar uma aposta cujo Esporte, Liga ou Tipster foi preenchido dessa forma (ou que
+  não existe mais na lista atual por qualquer motivo), o campo volta automaticamente para
+  o modo "Outro" com o texto original preenchido, em vez de aparecer em branco.
+- Trocar o Esporte de um evento limpa o texto livre de Liga digitado anteriormente, já que
+  ele deixou de fazer sentido para o novo esporte escolhido.
+
+### Tela de Preenchimento — remoção de itens
+- Os botões "−" de remover Casa, Tipster, Tipo, Esporte, Liga e Mercado foram retirados da
+  tela de Cadastro (Preenchimento). A remoção desses valores das listas continua disponível
+  normalmente em **Configurações → Gerenciar Listas**, sem nenhuma perda de funcionalidade —
+  a ideia é só evitar remover algo sem querer no meio do preenchimento de uma aposta.
+
 ## v1.13.3 — 25/07/2026
 
 ### Correção — Lista de Apostas
