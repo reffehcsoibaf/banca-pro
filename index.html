@@ -1060,8 +1060,8 @@
             <h2>🔍 Filtros</h2>
             <div class="filters-grid">
                 <div>
-                    <label for="campoBusca">Buscar ID ou Evento</label>
-                    <input type="search" id="campoBusca" placeholder="Digite..." oninput="aplicarFiltros()" aria-label="Buscar apostas" inputmode="search">
+                    <label for="campoBusca">Buscar (qualquer campo)</label>
+                    <input type="search" id="campoBusca" placeholder="ID, evento, casa, liga, mercado..." oninput="aplicarFiltros()" aria-label="Buscar apostas por ID, evento, casa, tipster, tipo, status, observação, esporte, liga, mercado ou seleção" inputmode="search">
                 </div>
                 <div>
                     <label for="fCasa">Casa</label>
@@ -1077,7 +1077,8 @@
                 </div>
                 <div>
                     <label for="fEsporte">Esporte</label>
-                    <select id="fEsporte" onchange="aplicarFiltros()"><option value="">Todos</option></select>
+                    <select id="fEsporte" onchange="atualizarLigaMercadoFiltro(true)" aria-describedby="fEsporteAjuda"><option value="">Todos</option></select>
+                    <span id="fEsporteAjuda" class="sr-only">Ao escolher um esporte, os campos Liga e Mercado abaixo mostram só as opções cadastradas para esse esporte.</span>
                 </div>
                 <div>
                     <label for="fLiga">Liga</label>
@@ -1353,7 +1354,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.14.0 · 26/07/2026
+  Banca Pro · v1.15.0 · 27/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1557,6 +1558,11 @@ async function aplicarVisibilidadeIA() {
         idsBotoesIA.forEach(function (id) {
             const el = document.getElementById(id);
             if (el) el.style.display = habilitado ? '' : 'none';
+        });
+        // Botões "Buscar Liga" são recriados a cada evento adicionado (sem id fixo);
+        // escondidos/mostrados por classe.
+        document.querySelectorAll('.btnBuscarLigaIA').forEach(function (el) {
+            el.style.display = habilitado ? '' : 'none';
         });
     } catch (e) {
         // silencioso: não bloqueia o uso do app por falha nesta checagem visual
@@ -2316,11 +2322,23 @@ function fillFilters() {
             el.value = (defaults[k] || []).includes(cur) ? cur : "";
         }
     });
-    // Liga: lista de nomes puros (sem repetir), já que o filtro compara contra e.liga (nome puro)
+    atualizarLigaMercadoFiltro(false);
+}
+
+// Repopula fLiga e fMercado — se um Esporte estiver selecionado no filtro,
+// mostra só as ligas/mercados cadastrados para aquele esporte (mesma lógica já
+// usada no Cadastro, via ligasDoEsporte/mercadosDoEsporte); sem esporte selecionado,
+// mostra todas as ligas/mercados cadastrados, como antes.
+// refiltrar=true reaplica os filtros da lista depois de repopular (usado quando
+// o próprio Esporte muda, já que a troca pode invalidar uma Liga/Mercado escolhidos antes).
+function atualizarLigaMercadoFiltro(refiltrar) {
+    const esporte = (document.getElementById("fEsporte") || {}).value || '';
+
     const fLiga = document.getElementById("fLiga");
     if (fLiga) {
         const cur = fLiga.value;
-        const nomes = Array.from(new Set((defaults.liga || []).map(ligaNomeExibicao))).sort((a,b)=>a.localeCompare(b));
+        const origem = esporte ? ligasDoEsporte(esporte) : (defaults.liga || []);
+        const nomes = Array.from(new Set(origem.map(ligaNomeExibicao))).sort((a,b)=>a.localeCompare(b));
         fLiga.innerHTML = `<option value="">Todas</option>` + nomes.map(v => `<option value="${v}">${v}</option>`).join('');
         fLiga.value = nomes.includes(cur) ? cur : "";
     }
@@ -2328,10 +2346,13 @@ function fillFilters() {
     const fMercado = document.getElementById("fMercado");
     if (fMercado) {
         const cur = fMercado.value;
-        const nomes = Array.from(new Set((defaults.mercado || []).map(mercadoNomeExibicao))).sort((a,b)=>a.localeCompare(b));
+        const origem = esporte ? mercadosDoEsporte(esporte) : (defaults.mercado || []);
+        const nomes = Array.from(new Set(origem.map(mercadoNomeExibicao))).sort((a,b)=>a.localeCompare(b));
         fMercado.innerHTML = `<option value="">Todos</option>` + nomes.map(v => `<option value="${v}">${v}</option>`).join('');
         fMercado.value = nomes.includes(cur) ? cur : "";
     }
+
+    if (refiltrar) aplicarFiltros();
 }
 
 /* ==================== DEDUPLICAÇÃO (case/espaço-insensível) ==================== */
@@ -2732,6 +2753,7 @@ function addEvento() {
             <input type="text" class="ligaEventoOutro" placeholder="Digite a liga..." style="display:none;margin-top:4px;" aria-label="Digite o nome da liga (uso avulso, não será salvo na lista)">
             <div class="inline" style="margin-top:4px;">
                 <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('liga',this)" aria-label="Adicionar liga">+</button>
+                <button type="button" class="btn-xs btn-outline btnBuscarLigaIA" onclick="buscarLigaEvento(this)" aria-label="Buscar automaticamente com IA a liga deste evento, com base no esporte e no nome do evento já preenchidos">🔍 Buscar Liga</button>
             </div>
         </div>
         <div>
@@ -2758,9 +2780,82 @@ function addEvento() {
     </div>`;
 
     document.getElementById("eventos").appendChild(div);
+    aplicarVisibilidadeIA();
     calcular();
 }
 function parseFloat2(v) { return parseFloat(v) || 0; }
+
+/* ==================== BUSCAR LIGA (IA) ====================
+   Usada ao preencher manualmente uma aposta antiga: com o Esporte e o nome do
+   Evento (ex: "Time A x Time B") já digitados, pesquisa na web em qual liga/
+   competição esse confronto foi disputado e preenche o campo Liga sozinho.
+   Nunca "chuta" uma liga sem confirmação — se a IA não encontrar com confiança
+   razoável, avisa e deixa o campo como estava para preenchimento manual. */
+async function buscarLigaEvento(botao) {
+    const div = botao.closest('.event');
+    if (!div) return;
+
+    const selEsp = div.querySelector('.esporteEvento');
+    const esporte = valorEfetivoComOutro(selEsp, 'esporteEventoOutro');
+    if (!esporte) {
+        showToast('⚠️ Escolha o Esporte deste evento antes de buscar a liga.', 'info');
+        return;
+    }
+    const inputEvento = div.querySelector('.evento');
+    const evento = inputEvento ? inputEvento.value.trim() : '';
+    if (!evento) {
+        showToast('⚠️ Preencha o nome do Evento (ex: Time A x Time B) antes de buscar a liga.', 'info');
+        return;
+    }
+
+    const textoOriginal = botao.innerHTML;
+    botao.disabled = true;
+    botao.innerHTML = '⏳ Buscando...';
+
+    try {
+        const resposta = await fetch('/api/buscar-liga', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
+            body: JSON.stringify({ esporte, evento })
+        });
+        const json = await resposta.json();
+        if (!resposta.ok) throw new Error(json.error || 'Erro ao buscar a liga.');
+
+        const selLig = div.querySelector('.ligaEvento');
+
+        if (!json.encontrado || !json.liga) {
+            anunciar('Não foi possível confirmar a liga deste evento com confiança. ' + (json.observacao || ''));
+            showToast('ℹ️ Não encontrei a liga com confiança suficiente' + (json.observacao ? ': ' + json.observacao : '.'), 'info', 7000);
+            return;
+        }
+
+        const r = buscarOuPrepararValor(ligasDoEsporte(esporte).map(ligaNomeExibicao), json.liga);
+        selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporte), ligaNomeExibicao, '— Liga —');
+        if (r.duplicado) {
+            // Já existe uma liga cadastrada com esse nome — seleciona normalmente.
+            selLig.value = r.valor;
+            toggleCampoOutro(selLig, 'ligaEventoOutro');
+        } else {
+            // Liga nova (ainda não cadastrada): entra em modo "Outro" com o texto já preenchido.
+            selLig.value = OUTRO_VALOR;
+            toggleCampoOutro(selLig, 'ligaEventoOutro');
+            const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
+            if (inputOutro) inputOutro.value = r.valor;
+        }
+
+        const baixaConfianca = json.confianca != null && json.confianca < LIMIAR_BAIXA_CONFIANCA;
+        if (baixaConfianca) marcarCampoBaixaConfianca(selLig);
+
+        anunciar('Liga encontrada: ' + r.valor + (baixaConfianca ? '. Confira este campo, confiança baixa.' : '.'));
+        showToast('✅ Liga preenchida: ' + r.valor, 'success');
+    } catch (err) {
+        showToast('❌ Não foi possível buscar a liga: ' + err.message, 'error', 8000);
+        console.error('buscarLigaEvento erro:', err);
+    } finally {
+        botao.disabled = false;
+        botao.innerHTML = textoOriginal;
+    }
+}
 
 /* ==================== ANALISAR APOSTA (IA) ====================
    Gera uma análise de RISCO e CONTEXTO sobre a aposta que está sendo
@@ -3858,9 +3953,16 @@ function apostaPassaNosFiltrosAtuais(a, f) {
     if (f.fLiga && !a.eventos.some(e => e.liga === f.fLiga)) return false;
     if (f.fMercado && !a.eventos.some(e => (e.mercado||'').split(',').map(m=>m.trim()).includes(f.fMercado))) return false;
     if (f.busca) {
-        const temId = a.identificador.toLowerCase().includes(f.busca);
-        const temEv = a.eventos.some(e => e.evento.toLowerCase().includes(f.busca));
-        if (!temId && !temEv) return false;
+        // Busca livre: compara o termo digitado contra qualquer campo relevante da
+        // aposta, não só ID e Evento — inclui casa, tipster, tipo, status, observação
+        // e, dentro de cada evento, esporte, liga, mercado e seleção.
+        const camposAposta = [a.identificador, a.casa, a.tipster, a.tipo, a.status, a.observacao];
+        const bateCamposAposta = camposAposta.some(v => (v || '').toLowerCase().includes(f.busca));
+        const bateEventos = a.eventos.some(e => {
+            const camposEvento = [e.evento, e.esporte, ligaNomeExibicao(e.liga || ''), e.mercado, e.selecao];
+            return camposEvento.some(v => (v || '').toLowerCase().includes(f.busca));
+        });
+        if (!bateCamposAposta && !bateEventos) return false;
     }
     return true;
 }
@@ -3877,6 +3979,8 @@ function aplicarFiltros() {
 function limparFiltros() {
     ["campoBusca","fDataInicial","fDataFinal"].forEach(id => document.getElementById(id).value = "");
     ["fCasa","fTipster","fTipo","fEsporte","fLiga","fMercado","fStatus"].forEach(id => document.getElementById(id).value = "");
+    // fEsporte voltou a "Todos" — repopula Liga/Mercado com a lista completa (sem filtro de esporte)
+    atualizarLigaMercadoFiltro(false);
     aplicarFiltros();
     showToast('Filtros removidos', 'info');
 }

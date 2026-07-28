@@ -4,6 +4,33 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.15.0 — 27/07/2026
+
+### Busca de Liga por IA (preenchimento manual de apostas antigas)
+- Novo botão **"🔍 Buscar Liga"** ao lado do campo Liga de cada evento, na tela de Cadastro.
+  Útil ao preencher manualmente uma aposta antiga: com o Esporte e o nome do Evento
+  (ex: "Time A x Time B") já digitados, a IA pesquisa na web em qual liga/competição
+  aquele confronto foi disputado e preenche o campo sozinha.
+- Reaproveita a mesma infraestrutura de busca real na web (Gemini com grounding, com
+  fallback para Anthropic) já usada em "🔍 Analisar Aposta" — nunca inventa uma liga:
+  se não encontrar o confronto com confiança razoável, avisa e deixa o campo como estava.
+- Se a liga encontrada já existe na lista cadastrada, ela é selecionada normalmente; se
+  for nova, o campo entra automaticamente no modo "✏️ Outro (digitar)…" já preenchido,
+  para você conferir e confirmar antes de salvar.
+- Uso registrado em um contador próprio no Supabase (`increment_ai_calls_liga`), separado
+  das estatísticas de "Analisar Aposta" e do leitor de bilhete.
+
+### Filtros — busca livre ampliada
+- O campo de busca da aba Filtros (antes restrito a ID e Evento) agora compara o termo
+  digitado contra qualquer campo relevante da aposta: Casa, Tipster, Tipo, Status,
+  Observação e, dentro de cada evento, Esporte, Liga, Mercado e Seleção.
+
+### Filtros — Liga e Mercado dependentes do Esporte
+- Ao escolher um Esporte no filtro, os combos de Liga e Mercado passam a mostrar só as
+  opções cadastradas para aquele esporte, no mesmo padrão já usado na tela de Cadastro —
+  antes, esses dois combos sempre listavam todas as ligas/mercados cadastrados, de
+  qualquer esporte.
+
 ## v1.14.0 — 26/07/2026
 
 ### Campo livre "Outro (digitar)" — Esporte, Liga e Tipster

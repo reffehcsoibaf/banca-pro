@@ -397,6 +397,30 @@ REGRAS GERAIS IMPORTANTES:
 Formato de saída:
 ${SCHEMA_ANALISE}`;
 
+const SCHEMA_BUSCAR_LIGA = `
+{
+  "encontrado": "boolean — true somente se a busca na web confirmou com boa confiança em qual liga/competição esse confronto aconteceu ou está programado para acontecer",
+  "liga": "string — nome da liga no formato 'País - Divisão' (ex: 'Brasil - Série A', 'Inglaterra - Premier League'); torneios internacionais mantêm o nome padrão sem prefixo de país (ex: 'Champions League', 'Copa Libertadores'). String vazia se encontrado=false",
+  "confianca": "number de 0 a 1 — o quanto você confia nesse resultado (leve em conta ambiguidade de nomes de time repetidos em vários países)",
+  "observacao": "string curta — se encontrado=true, cite brevemente a base (ex: 'confirmado via tabela do campeonato atual'). Se encontrado=false, explique objetivamente por que (ex: 'não encontrei esse confronto específico nas competições em andamento')"
+}`;
+
+const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, usando a ferramenta de busca na web disponível. Você vai receber o esporte e o nome do evento/confronto (ex: "Time A x Time B") em formato JSON.
+
+USO DA BUSCA NA WEB — MUITO IMPORTANTE:
+- Pesquise o confronto informado para descobrir a liga/competição/campeonato em que ele está sendo ou foi disputado. Priorize a temporada/rodada mais recente ou em andamento.
+- Nomes de time podem ser ambíguos (o mesmo nome existe em várias ligas/países diferentes) — use o contexto disponível (esporte informado, outros times mencionados) para reduzir ambiguidade, mas NUNCA garanta uma resposta apenas por familiaridade com um nome de time conhecido sem confirmar via busca.
+- Times mudam de divisão entre temporadas (acesso/rebaixamento) — não confie em conhecimento antigo sobre em que divisão um time jogava; confirme a temporada atual/mais recente pela busca.
+- Se não encontrar o confronto específico com confiança razoável (ex: nome de time comum a várias ligas, informação insuficiente, evento não encontrado), defina "encontrado": false e "liga": "" — NUNCA invente ou "chute" uma liga só para preencher o campo.
+
+REGRAS DE FORMATO:
+- A liga deve seguir o padrão "País - Divisão" (ex: "Brasil - Série A", "Inglaterra - Premier League", "Espanha - La Liga"), EXCETO torneios internacionais/continentais, que mantêm o nome padrão sem prefixo de país (ex: "Champions League", "Copa Libertadores", "Copa do Mundo").
+- Nunca use nome comercial de patrocínio da liga (ex: use "Inglaterra - Premier League", não "Sky Bet Championship" ou nomes com marca de patrocinador, a menos que seja o nome oficial sem alternativa).
+- Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases — mesmo tendo usado a ferramenta de busca antes, a resposta final deve ser só o JSON.
+
+Formato de saída:
+${SCHEMA_BUSCAR_LIGA}`;
+
 // ---- Checagem de acesso à IA: valida o token do usuário e confere ai_enabled ----
 // Retorna { ok: true } ou { ok: false, status, message }
 async function checarAcessoIA(request, env) {
@@ -437,7 +461,9 @@ async function checarAcessoIA(request, env) {
 // (leitura de bilhete vs análise de estatísticas/risco). Melhor esforço:
 // nunca deve quebrar a resposta já obtida para o usuário.
 async function registrarUsoIA(accessToken, env, tipo) {
-  const funcaoRpc = tipo === 'estatisticas' ? 'increment_ai_calls_estatisticas' : 'increment_ai_calls_bilhete';
+  const funcaoRpc = tipo === 'estatisticas' ? 'increment_ai_calls_estatisticas'
+    : tipo === 'liga' ? 'increment_ai_calls_liga'
+    : 'increment_ai_calls_bilhete';
   try {
     await fetch(env.SUPABASE_URL + '/rest/v1/rpc/' + funcaoRpc, {
       method: 'POST',
@@ -482,7 +508,7 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta'];
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -520,8 +546,16 @@ async function handleFetch(request, env, ctx) {
     catch (e) { return new Response(JSON.stringify({ error: 'Corpo da requisição inválido.' }), { status: 400, headers }); }
 
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
-    const comBusca = url.pathname === '/api/analisar-aposta'; // habilita busca real na web só nesta rota
-    const tipoUso = url.pathname === '/api/analisar-aposta' ? 'estatisticas' : 'bilhete';
+    // Busca real na web só nas rotas que precisam de dado atualizado/externo.
+    const comBusca = url.pathname === '/api/analisar-aposta' || url.pathname === '/api/buscar-liga';
+    const tipoUso = url.pathname === '/api/analisar-aposta' ? 'estatisticas'
+      : url.pathname === '/api/buscar-liga' ? 'liga'
+      : 'bilhete';
+    // Controla qual schema usar ao sanitizar uma resposta que caiu no modo sem
+    // busca (ver sanearRespostaSemBusca) — cada rota tem um formato de retorno diferente.
+    const schemaTipo = url.pathname === '/api/buscar-liga' ? 'buscar-liga'
+      : url.pathname === '/api/analisar-aposta' ? 'analise'
+      : null;
 
     if (url.pathname === '/api/analisar-aposta') {
       // ---- Rota de análise de risco (não extrai dados, recebe dados já preenchidos) ----
@@ -531,6 +565,14 @@ async function handleFetch(request, env, ctx) {
       }
       systemInstrucoes = PROMPT_ANALISE_APOSTA;
       textoBilhete = JSON.stringify(aposta); // reaproveita o caminho de "texto" das funções de provedor abaixo
+    } else if (url.pathname === '/api/buscar-liga') {
+      // ---- Rota de busca de liga por IA (usada no preenchimento manual de apostas antigas) ----
+      const { esporte, evento } = payload || {};
+      if (!esporte || !evento) {
+        return new Response(JSON.stringify({ error: 'Envie "esporte" e "evento" para buscar a liga.' }), { status: 400, headers });
+      }
+      systemInstrucoes = PROMPT_BUSCAR_LIGA;
+      textoBilhete = JSON.stringify({ esporte, evento });
     } else {
       // ---- Rota original: leitor de bilhete por foto ou texto ----
       ({ imagemBase64, mediaType, textoBilhete } = payload || {});
@@ -584,6 +626,7 @@ async function handleFetch(request, env, ctx) {
           mediaType,
           comBusca,
           textoCorrecoes,
+          schemaTipo,
         });
         ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
         return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
@@ -615,6 +658,7 @@ async function handleFetch(request, env, ctx) {
         mediaType,
         comBusca,
         textoCorrecoes,
+        schemaTipo,
       });
       ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
       return new Response(JSON.stringify({ ...extraido, _provedor: 'anthropic' }), { status: 200, headers });
@@ -641,7 +685,7 @@ const MODELOS_GEMINI_CANDIDATOS = [
   'gemini-3.5-flash',
 ];
 
-async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes }) {
+async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes, schemaTipo }) {
   const parteConteudo = textoBilhete
     ? { text: textoBilhete }
     : { inline_data: { mime_type: mediaType, data: imagemBase64 } };
@@ -667,7 +711,9 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
     // Reforça aqui, mas o código abaixo (sanearRespostaSemBusca) é quem garante
     // isso de fato, não confiando só na obediência do modelo à instrução.
     const avisoSemBusca = {
-      text: 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "probabilidadeEstimada" com qualquer número ou descrever estatísticas específicas (médias, resultados recentes) em "baseEstimativa" — para TODOS os eventos, defina "dadosEncontrados": false, "probabilidadeEstimada": null, e em "baseEstimativa" escreva apenas algo como "Busca de estatísticas indisponível nesta análise". Continue preenchendo normalmente "nivelRisco", "resumo" e "alertas" com base só nos dados da aposta fornecidos e na probabilidade implícita da odd.',
+      text: schemaTipo === 'buscar-liga'
+        ? 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "liga" com qualquer valor baseado em memória própria — defina "encontrado": false, "liga": "" e em "observacao" escreva apenas algo como "Busca na web indisponível nesta chamada".'
+        : 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "probabilidadeEstimada" com qualquer número ou descrever estatísticas específicas (médias, resultados recentes) em "baseEstimativa" — para TODOS os eventos, defina "dadosEncontrados": false, "probabilidadeEstimada": null, e em "baseEstimativa" escreva apenas algo como "Busca de estatísticas indisponível nesta análise". Continue preenchendo normalmente "nivelRisco", "resumo" e "alertas" com base só nos dados da aposta fornecidos e na probabilidade implícita da odd.',
     };
     const resultadoSemBusca = await tentarModelosGemini({
       apiKey,
@@ -676,19 +722,26 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
       usarBusca: false,
     });
     // Sanitiza a resposta independentemente do que o modelo tenha escrito — a
-    // garantia de "nenhuma estatística inventada" não pode depender só de o
+    // garantia de "nenhuma estatística/liga inventada" não pode depender só de o
     // modelo obedecer à instrução acima.
-    return sanearRespostaSemBusca(resultadoSemBusca);
+    return sanearRespostaSemBusca(resultadoSemBusca, schemaTipo);
   }
 }
 
-// Remove à força qualquer estimativa estatística de uma resposta que foi gerada
-// SEM a ferramenta de busca disponível, e marca a resposta como tal — garante
-// que nenhum número "alucinado" pelo modelo chegue ao usuário como se fosse
-// uma estimativa real baseada em dados pesquisados.
-function sanearRespostaSemBusca(resultado) {
+// Remove à força qualquer estimativa/dado que dependa de busca real de uma
+// resposta que foi gerada SEM a ferramenta de busca disponível, e marca a
+// resposta como tal — garante que nenhum dado "alucinado" pelo modelo chegue
+// ao usuário como se fosse baseado em uma pesquisa real.
+function sanearRespostaSemBusca(resultado, schemaTipo) {
   if (!resultado || typeof resultado !== 'object') return resultado;
   resultado._buscaIndisponivel = true;
+  if (schemaTipo === 'buscar-liga') {
+    resultado.encontrado = false;
+    resultado.liga = '';
+    resultado.confianca = 0;
+    resultado.observacao = 'Busca na web indisponível nesta chamada — não foi possível confirmar a liga.';
+    return resultado;
+  }
   if (Array.isArray(resultado.analisesEventos)) {
     resultado.analisesEventos = resultado.analisesEventos.map((ev) => ({
       ...ev,
@@ -774,7 +827,7 @@ async function tentarModelosGemini({ apiKey, systemInstrucoes, partesConteudo, u
 }
 
 // ==================== PROVEDOR: ANTHROPIC ====================
-async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes }) {
+async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes, schemaTipo }) {
   const blocoConteudo = textoBilhete
     ? { type: 'text', text: textoBilhete }
     : { type: 'image', source: { type: 'base64', media_type: mediaType, data: imagemBase64 } };
@@ -841,7 +894,7 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
   if (comBusca) {
     const houveBuscaReal = (dados.content || []).some((b) => b.type === 'web_search_tool_result' || b.type === 'server_tool_use');
     if (!houveBuscaReal) {
-      return sanearRespostaSemBusca(resultado);
+      return sanearRespostaSemBusca(resultado, schemaTipo);
     }
   }
   return resultado;

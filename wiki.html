@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.14.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.15.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -230,6 +230,7 @@
     <a href="#data-hora" class="nav-link nav-link-sub">Data e Hora</a>
     <a href="#eventos" class="nav-link">Eventos</a>
     <a href="#multiplos-eventos" class="nav-link nav-link-sub">Múltiplos eventos</a>
+    <a href="#buscar-liga-ia" class="nav-link nav-link-sub">Buscar Liga (IA)</a>
     <a href="#preencher-por-foto" class="nav-link">Preencher por Foto (IA)</a>
     <a href="#correcoes-aprendidas" class="nav-link">Correções Aprendidas (IA)</a>
     <a href="#analisar-aposta" class="nav-link">Analisar Aposta (IA)</a>
@@ -449,6 +450,19 @@
     <div class="callout tip">
       <div class="callout-title">💡 Navegação por leitor de tela</div>
       Cada evento tem um cabeçalho de nível 3 ("Evento 1", "Evento 2"…). Use o atalho de navegação por cabeçalhos do seu leitor de tela para pular entre eventos.
+    </div>
+
+    <h3 id="buscar-liga-ia">🔍 Buscar Liga (IA)</h3>
+    <p>Útil ao preencher manualmente uma aposta antiga: em vez de procurar por conta própria em que liga um confronto aconteceu, a IA pode pesquisar isso na web.</p>
+    <ol class="steps">
+      <li><span class="step-num">1</span>Escolha o <strong>Esporte</strong> do evento.</li>
+      <li><span class="step-num">2</span>Preencha o campo <strong>Evento</strong> com o nome do confronto (ex: "Time A x Time B").</li>
+      <li><span class="step-num">3</span>Clique em <span class="btn-demo outline">🔍 Buscar Liga</span>, ao lado do campo Liga.</li>
+      <li><span class="step-num">4</span>Se a IA encontrar a liga com confiança razoável, o campo Liga é preenchido sozinho (selecionando uma liga já cadastrada, ou entrando no modo "✏️ Outro (digitar)…" se for uma liga nova) — confira o resultado antes de salvar.</li>
+    </ol>
+    <div class="callout tip">
+      <div class="callout-title">💡 Quando a IA não encontra</div>
+      Se a busca não encontrar o confronto com confiança suficiente (nome de time comum a várias ligas, informação insuficiente), o campo Liga é deixado como estava e um aviso explica o motivo — a IA nunca preenche uma liga "chutada".
     </div>
   </section>
 
@@ -720,17 +734,21 @@
     <table class="field-table" aria-label="Filtros disponíveis">
       <thead><tr><th>Filtro</th><th>O que faz</th></tr></thead>
       <tbody>
-        <tr><td class="field-name">Buscar ID ou Evento</td><td>Busca livre por texto no identificador ou nome do evento.</td></tr>
+        <tr><td class="field-name">Buscar (qualquer campo)</td><td>Busca livre por texto — compara o termo digitado contra ID, Evento, Casa, Tipster, Tipo, Status, Observação e, dentro de cada evento, Esporte, Liga, Mercado e Seleção.</td></tr>
         <tr><td class="field-name">Casa</td><td>Filtra por casa de apostas.</td></tr>
         <tr><td class="field-name">Tipster</td><td>Filtra por tipster.</td></tr>
         <tr><td class="field-name">Tipo</td><td>Filtra por tipo (Ao Vivo / Pré Live).</td></tr>
-        <tr><td class="field-name">Esporte</td><td>Filtra pelo esporte dos eventos.</td></tr>
+        <tr><td class="field-name">Esporte</td><td>Filtra pelo esporte dos eventos. Escolher um esporte aqui também restringe as opções de Liga e Mercado abaixo, mostrando só as cadastradas para esse esporte.</td></tr>
         <tr><td class="field-name">Liga</td><td>Filtra pela liga dos eventos.</td></tr>
         <tr><td class="field-name">Mercado</td><td>Filtra pelo mercado apostado em qualquer evento da aposta (Vencedor, Gols, Cartões…). Considera todos os mercados marcados, mesmo quando o evento tem mais de um.</td></tr>
         <tr><td class="field-name">Status</td><td>Filtra por estado: Aberto, Ganhou ou Perdeu.</td></tr>
         <tr><td class="field-name">Data Inicial / Final</td><td>Define um intervalo de datas para as apostas exibidas.</td></tr>
       </tbody>
     </table>
+    <div class="callout tip">
+      <div class="callout-title">💡 Liga e Mercado dependentes do Esporte</div>
+      Com nenhum Esporte escolhido, os combos de Liga e Mercado mostram todas as opções cadastradas. Ao escolher um Esporte, eles passam a mostrar só as ligas/mercados cadastrados para aquele esporte — se a Liga ou o Mercado já selecionados não pertencerem a ele, a seleção volta para "Todas"/"Todos".
+    </div>
     <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
       <li><span class="btn-demo outline">✕ Limpar Filtros</span> — remove todos os filtros e exibe todas as apostas</li>
       <li><span class="btn-demo success">📥 Exportar Filtro</span> — exporta para Excel apenas as apostas visíveis no filtro atual</li>
