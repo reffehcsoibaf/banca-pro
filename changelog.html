@@ -114,6 +114,20 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-16-0">v1.16.0</h2>
+  <p class="versao-data">27/07/2026</p>
+  <h3>Busca de Liga por IA — melhorias de precisão</h3>
+  <ul>
+    <li>A busca agora leva em conta a data/hora do registro da aposta (campo Data/Hora) como referência de temporada — importante porque um time pode ter mudado de divisão entre a época do confronto e hoje.</li>
+    <li>No fallback Anthropic (usado quando o Gemini falha), a busca é restrita de verdade às fontes sofascore.com e 365scores.com. No Gemini (provedor principal), a API pública não permite restringir a busca a domínios específicos — o prompt instrui o modelo a priorizar essas fontes quando possível, mas sem garantia.</li>
+  </ul>
+  <h3>Correções Aprendidas — validade por prazo (Liga)</h3>
+  <ul>
+    <li>Correções de Liga aprendidas a partir de leituras de bilhete agora expiram depois de ~14 meses e deixam de ser enviadas à IA automaticamente — um time pode voltar a mudar de divisão de uma temporada para outra.</li>
+    <li>Correções de Mercado continuam valendo indefinidamente (é só padronização de nome).</li>
+    <li>Na lista de Correções Aprendidas (Configurações), uma correção de Liga vencida agora mostra um aviso explicando que não está mais sendo usada.</li>
+  </ul>
+
   <h2 id="v1-15-0">v1.15.0</h2>
   <p class="versao-data">27/07/2026</p>
   <h3>Busca de Liga por IA (preenchimento manual de apostas antigas)</h3>

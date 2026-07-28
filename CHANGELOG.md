@@ -4,6 +4,29 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.16.0 — 27/07/2026
+
+### Busca de Liga por IA — melhorias de precisão
+- A busca agora leva em conta a data/hora do registro da aposta (campo Data/Hora) como
+  referência de temporada — importante porque um time pode ter mudado de divisão entre a
+  época do confronto e hoje. Sem essa data, a IA já era instruída a não confiar apenas no
+  nome do time; com ela, a busca fica mais precisa para apostas antigas.
+- No fallback Anthropic (usado quando o Gemini falha), a busca é restrita de verdade às
+  fontes sofascore.com e 365scores.com. No provedor principal (Gemini), a API pública não
+  permite restringir a busca a domínios específicos (só excluir) — o prompt instrui o
+  modelo a priorizar essas fontes quando possível, mas sem garantia, já que a ferramenta de
+  busca do Gemini decide sozinha onde pesquisar.
+
+### Correções Aprendidas — validade por prazo (Liga)
+- Correções de **Liga** aprendidas a partir de leituras de bilhete agora expiram depois de
+  ~14 meses e deixam de ser enviadas à IA automaticamente — um time pode ter sido corrigido
+  de uma divisão para outra numa temporada e voltar a mudar na seguinte, então uma correção
+  antiga poderia levar a IA a repetir o erro no sentido contrário.
+- Correções de **Mercado** continuam valendo indefinidamente (é só padronização de nome, não
+  muda com o calendário esportivo).
+- Na lista de Correções Aprendidas (Configurações), uma correção de Liga vencida agora mostra
+  um aviso explicando que não está mais sendo usada, para você decidir se quer excluí-la.
+
 ## v1.15.0 — 27/07/2026
 
 ### Busca de Liga por IA (preenchimento manual de apostas antigas)

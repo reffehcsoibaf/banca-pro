@@ -1354,7 +1354,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.15.0 · 27/07/2026
+  Banca Pro · v1.16.0 · 27/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2083,6 +2083,28 @@ async function carregarCorrecoesIA() {
     correcoesIA = (data || []).map(linhaParaCorrecao);
 }
 
+// Correções de "liga" têm validade limitada: um time pode ter sido corrigido de
+// "Inglaterra - Championship" para "Inglaterra - Premier League" numa temporada,
+// mas cair de divisão de novo na seguinte — aplicar essa correção para sempre
+// arriscaria repetir um erro no sentido contrário. Correções de "mercado" não têm
+// esse problema (é só padronização de nome, não muda com o calendário esportivo),
+// então essas continuam valendo indefinidamente.
+const LIGA_CORRECAO_VALIDADE_DIAS = 425; // ~14 meses: cobre 1 temporada completa + folga
+
+function correcaoEstaValida(c) {
+    if (c.campo !== 'liga') return true; // mercado: sem prazo de validade
+    if (!c.criadoEm) return true; // sem data registrada (dado antigo) — não bloqueia, só não teria como avaliar
+    const dias = (Date.now() - new Date(c.criadoEm).getTime()) / 86400000;
+    return dias <= LIGA_CORRECAO_VALIDADE_DIAS;
+}
+
+// Lista de correções realmente enviada à IA nas chamadas de leitura de bilhete —
+// filtra fora correções de liga vencidas (ver correcaoEstaValida), para não repetir
+// para a IA uma associação time↔liga que pode já não valer mais.
+function correcoesParaEnviarIA() {
+    return correcoesIA.filter(correcaoEstaValida);
+}
+
 // Evita duplicar a mesma correção exata (campo+esporte+errado+correto) — se já
 // existir, apenas ignora silenciosamente em vez de criar linhas repetidas.
 async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, contexto) {
@@ -2807,6 +2829,10 @@ async function buscarLigaEvento(botao) {
         showToast('⚠️ Preencha o nome do Evento (ex: Time A x Time B) antes de buscar a liga.', 'info');
         return;
     }
+    // Data/hora em que a aposta foi registrada — ajuda a IA a achar a temporada
+    // certa do confronto (times mudam de divisão de um ano para outro).
+    const campoDataHora = document.getElementById('dataHora');
+    const dataReferencia = campoDataHora && campoDataHora.value ? campoDataHora.value : null;
 
     const textoOriginal = botao.innerHTML;
     botao.disabled = true;
@@ -2816,7 +2842,7 @@ async function buscarLigaEvento(botao) {
         const resposta = await fetch('/api/buscar-liga', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ esporte, evento })
+            body: JSON.stringify({ esporte, evento, dataReferencia })
         });
         const json = await resposta.json();
         if (!resposta.ok) throw new Error(json.error || 'Erro ao buscar a liga.');
@@ -3065,7 +3091,7 @@ async function processarFotoBilhete(event) {
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ imagemBase64: base64, mediaType, correcoesConhecidas: correcoesIA })
+            body: JSON.stringify({ imagemBase64: base64, mediaType, correcoesConhecidas: correcoesParaEnviarIA() })
         });
 
         const dados = await resposta.json();
@@ -3137,7 +3163,7 @@ async function processarTextoBilhete() {
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ textoBilhete: texto, correcoesConhecidas: correcoesIA })
+            body: JSON.stringify({ textoBilhete: texto, correcoesConhecidas: correcoesParaEnviarIA() })
         });
 
         const dados = await resposta.json();
@@ -4428,13 +4454,18 @@ function renderCorrecoesIA() {
     const ordenadas = correcoesIA.slice().sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
     container.innerHTML = ordenadas.map(c => {
         const campoLabel = c.campo === 'liga' ? 'Liga' : 'Mercado';
+        const vencida = !correcaoEstaValida(c);
+        const avisoVencida = vencida
+            ? `<br><small style="color:var(--danger,#c0392b);">⚠️ Correção de liga com mais de ${Math.round(LIGA_CORRECAO_VALIDADE_DIAS/30)} meses — não está mais sendo usada pela IA, pois o time pode ter mudado de divisão. Revise ou exclua se não fizer mais sentido.</small>`
+            : '';
         return `
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-light);">
             <div>
                 <strong>${escapeHtml(campoLabel)}</strong> (${escapeHtml(c.esporte)}): "${escapeHtml(c.valorErrado)}" → "${escapeHtml(c.valorCorreto)}"
                 ${c.contexto ? `<br><small style="color:var(--text-secondary);">${escapeHtml(c.contexto)}</small>` : ''}
+                ${avisoVencida}
             </div>
-            <button class="btn-xs btn-danger" onclick="excluirCorrecaoIA(${c.id})" aria-label="Excluir esta correção aprendida">🗑️</button>
+            <button class="btn-xs btn-danger" onclick="excluirCorrecaoIA(${c.id})" aria-label="Excluir esta correção aprendida${vencida ? ', vencida' : ''}">🗑️</button>
         </div>`;
     }).join('');
 }

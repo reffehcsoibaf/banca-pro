@@ -405,13 +405,17 @@ const SCHEMA_BUSCAR_LIGA = `
   "observacao": "string curta — se encontrado=true, cite brevemente a base (ex: 'confirmado via tabela do campeonato atual'). Se encontrado=false, explique objetivamente por que (ex: 'não encontrei esse confronto específico nas competições em andamento')"
 }`;
 
-const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, usando a ferramenta de busca na web disponível. Você vai receber o esporte e o nome do evento/confronto (ex: "Time A x Time B") em formato JSON.
+const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, usando a ferramenta de busca na web disponível. Você vai receber o esporte, o nome do evento/confronto (ex: "Time A x Time B") e, quando disponível, uma data de referência (data em que a aposta foi registrada — o confronto costuma ter sido disputado próximo dessa data), em formato JSON.
+
+USO DA DATA DE REFERÊNCIA — MUITO IMPORTANTE:
+- Quando "dataReferencia" vier preenchida, use-a para achar a temporada/rodada certa do confronto, não a mais recente disponível hoje. Times mudam de divisão entre temporadas (acesso/rebaixamento) — a liga de um time HOJE pode não ser a mesma de quando o confronto aconteceu.
+- Sem "dataReferencia", assuma que o confronto é recente/atual e busque a temporada em andamento.
 
 USO DA BUSCA NA WEB — MUITO IMPORTANTE:
-- Pesquise o confronto informado para descobrir a liga/competição/campeonato em que ele está sendo ou foi disputado. Priorize a temporada/rodada mais recente ou em andamento.
-- Nomes de time podem ser ambíguos (o mesmo nome existe em várias ligas/países diferentes) — use o contexto disponível (esporte informado, outros times mencionados) para reduzir ambiguidade, mas NUNCA garanta uma resposta apenas por familiaridade com um nome de time conhecido sem confirmar via busca.
-- Times mudam de divisão entre temporadas (acesso/rebaixamento) — não confie em conhecimento antigo sobre em que divisão um time jogava; confirme a temporada atual/mais recente pela busca.
-- Se não encontrar o confronto específico com confiança razoável (ex: nome de time comum a várias ligas, informação insuficiente, evento não encontrado), defina "encontrado": false e "liga": "" — NUNCA invente ou "chute" uma liga só para preencher o campo.
+- Pesquise o confronto informado (times + data de referência, se houver) para descobrir a liga/competição/campeonato em que ele foi disputado.
+- Ao formular suas buscas, dê preferência a fontes como sofascore.com e 365scores.com quando fizer sentido — costumam ter esse tipo de informação de forma organizada — mas use qualquer fonte confiável que encontrar.
+- Nomes de time podem ser ambíguos (o mesmo nome existe em várias ligas/países diferentes) — use o contexto disponível (esporte informado, data de referência, outros times mencionados) para reduzir ambiguidade, mas NUNCA garanta uma resposta apenas por familiaridade com um nome de time conhecido sem confirmar via busca.
+- Se não encontrar o confronto específico com confiança razoável (ex: nome de time comum a várias ligas, informação insuficiente, evento não encontrado, data de referência ausente e ambiguidade alta), defina "encontrado": false e "liga": "" — NUNCA invente ou "chute" uma liga só para preencher o campo.
 
 REGRAS DE FORMATO:
 - A liga deve seguir o padrão "País - Divisão" (ex: "Brasil - Série A", "Inglaterra - Premier League", "Espanha - La Liga"), EXCETO torneios internacionais/continentais, que mantêm o nome padrão sem prefixo de país (ex: "Champions League", "Copa Libertadores", "Copa do Mundo").
@@ -567,12 +571,12 @@ async function handleFetch(request, env, ctx) {
       textoBilhete = JSON.stringify(aposta); // reaproveita o caminho de "texto" das funções de provedor abaixo
     } else if (url.pathname === '/api/buscar-liga') {
       // ---- Rota de busca de liga por IA (usada no preenchimento manual de apostas antigas) ----
-      const { esporte, evento } = payload || {};
+      const { esporte, evento, dataReferencia } = payload || {};
       if (!esporte || !evento) {
         return new Response(JSON.stringify({ error: 'Envie "esporte" e "evento" para buscar a liga.' }), { status: 400, headers });
       }
       systemInstrucoes = PROMPT_BUSCAR_LIGA;
-      textoBilhete = JSON.stringify({ esporte, evento });
+      textoBilhete = JSON.stringify({ esporte, evento, dataReferencia: dataReferencia || null });
     } else {
       // ---- Rota original: leitor de bilhete por foto ou texto ----
       ({ imagemBase64, mediaType, textoBilhete } = payload || {});
@@ -849,10 +853,19 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     ],
     messages: [{ role: 'user', content: conteudoMensagem }],
   };
-  // Ferramenta de busca na web da própria Anthropic: usada só na rota de
-  // Analisar Aposta, para pesquisar estatísticas reais do confronto.
+  // Ferramenta de busca na web da própria Anthropic: usada na rota de Analisar
+  // Aposta (estatísticas) e na rota de Buscar Liga.
   if (comBusca) {
-    corpoRequisicao.tools = [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 }];
+    const ferramentaBusca = { type: 'web_search_20250305', name: 'web_search', max_uses: 5 };
+    // Só na Busca de Liga: restringe de verdade a fontes conhecidas por terem essa
+    // informação organizada (sofascore.com, 365scores.com). A API da Anthropic
+    // suporta essa restrição de domínio de forma real (allowed_domains); a API
+    // pública do Gemini usada no provedor primário NÃO suporta isso (só exclusão
+    // de domínio) — por isso essa restrição só existe aqui, no fallback.
+    if (schemaTipo === 'buscar-liga') {
+      ferramentaBusca.allowed_domains = ['sofascore.com', '365scores.com'];
+    }
+    corpoRequisicao.tools = [ferramentaBusca];
   }
 
   const resposta = await fetch('https://api.anthropic.com/v1/messages', {

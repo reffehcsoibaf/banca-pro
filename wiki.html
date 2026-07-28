@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.15.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.16.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -561,6 +561,10 @@
 
     <h3 id="gerenciar-correcoes">Gerenciar correções salvas</h3>
     <p>Em <a href="#configuracoes">Configurações → 🧠 Correções Aprendidas</a> fica a lista completa de correções já registradas, com a Liga/Mercado errado, o valor correto e o contexto (nome do confronto) de onde veio. Cada uma pode ser removida individualmente com o botão 🗑️, ou é possível apagar todas de uma vez com "🗑️ Apagar Todas as Correções" — útil se alguma correção antiga não fizer mais sentido.</p>
+    <div class="callout tip">
+      <div class="callout-title">💡 Correções de Liga expiram, Mercado não</div>
+      Um time pode mudar de divisão de uma temporada para outra, então uma correção de Liga com mais de ~14 meses deixa de ser enviada à IA automaticamente (evita repetir uma associação time↔liga que já pode não valer mais). Ela continua aparecendo na lista, com um aviso, para você decidir se exclui ou não. Correções de Mercado não têm esse problema — são só padronização de nome — e continuam valendo indefinidamente.
+    </div>
     <div class="callout info">
       <div class="callout-title">ℹ️ Isso não é uma regra rígida</div>
       A correção aprendida é enviada como uma preferência — a IA ainda usa julgamento para decidir se o contexto do bilhete atual realmente combina com uma correção salva anteriormente. Times, ligas ou mercados muito diferentes dos que geraram a correção original não são afetados por ela.
