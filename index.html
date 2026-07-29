@@ -1272,6 +1272,43 @@
         </div>
 
         <div class="card">
+            <h2>🤖 Provedor de IA</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Escolha qual provedor de IA usar em cada funcionalidade. "Ambas" é o padrão e mantém o
+                comportamento normal do app: tenta o Gemini primeiro (grátis) e, se ele falhar, cai
+                automaticamente para a Anthropic. Escolher "Somente Gemini" ou "Somente Anthropic" força o
+                uso exclusivo daquele provedor — se ele falhar, a ação falha também, sem tentar o outro.
+                A preferência fica salva neste dispositivo/navegador.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
+                <div>
+                    <label for="config-provedor-bilhete">Leitura de bilhete (foto e texto)</label>
+                    <select id="config-provedor-bilhete" onchange="alterarProvedorIA(CHAVE_PROVEDOR_BILHETE, this.value)" aria-label="Provedor de IA usado na leitura de bilhete">
+                        <option value="ambas">Ambas (Gemini com fallback para Anthropic)</option>
+                        <option value="gemini">Somente Gemini</option>
+                        <option value="anthropic">Somente Anthropic</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="config-provedor-estatisticas">Análise de aposta (busca de estatísticas)</label>
+                    <select id="config-provedor-estatisticas" onchange="alterarProvedorIA(CHAVE_PROVEDOR_ESTATISTICAS, this.value)" aria-label="Provedor de IA usado na busca de estatísticas da Análise de Aposta">
+                        <option value="ambas">Ambas (Gemini com fallback para Anthropic)</option>
+                        <option value="gemini">Somente Gemini</option>
+                        <option value="anthropic">Somente Anthropic</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="config-provedor-liga">Busca de liga</label>
+                    <select id="config-provedor-liga" onchange="alterarProvedorIA(CHAVE_PROVEDOR_LIGA, this.value)" aria-label="Provedor de IA usado na busca de liga">
+                        <option value="ambas">Ambas (Gemini com fallback para Anthropic)</option>
+                        <option value="gemini">Somente Gemini</option>
+                        <option value="anthropic">Somente Anthropic</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
             <h2>📋 Preferências da Lista</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Controla quantas apostas aparecem por página na aba Lista. Listas grandes carregam e navegam mais rápido com um número menor — a preferência fica salva neste dispositivo/navegador.
@@ -1354,7 +1391,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.16.0 · 27/07/2026
+  Banca Pro · v1.17.0 · 29/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1418,6 +1455,34 @@ function alterarAnaliseAutomatica(ativa) {
     analiseAutomaticaAtiva = !!ativa;
     localStorage.setItem(CHAVE_ANALISE_AUTOMATICA, String(analiseAutomaticaAtiva));
     showToast(analiseAutomaticaAtiva ? '✅ Análise automática ativada' : '✅ Análise automática desativada — use o botão manual quando quiser', 'success');
+}
+
+// ---- Provedor de IA por funcionalidade ----
+// Cada uma das três chamadas de IA do app (leitura de bilhete, busca de
+// estatísticas em "Analisar Aposta" e busca de liga) pode ter seu próprio
+// provedor preferido: "gemini", "anthropic" ou "ambas" (padrão — Gemini
+// primeiro, com fallback automático para Anthropic se o Gemini falhar, igual
+// ao comportamento original do app). Escolher "gemini" ou "anthropic" força o
+// uso exclusivo daquele provedor, sem fallback para o outro caso falhe. Fica
+// salvo neste dispositivo/navegador, igual à paginação e à análise automática.
+const CHAVE_PROVEDOR_BILHETE = 'bancapro_provedorBilhete';
+const CHAVE_PROVEDOR_ESTATISTICAS = 'bancapro_provedorEstatisticas';
+const CHAVE_PROVEDOR_LIGA = 'bancapro_provedorLiga';
+const NOMES_PROVEDOR_IA = { gemini: 'Somente Gemini', anthropic: 'Somente Anthropic', ambas: 'Ambas (Gemini com fallback para Anthropic)' };
+function lerProvedorIASalvo(chave) {
+    const salvo = localStorage.getItem(chave);
+    return (salvo === 'gemini' || salvo === 'anthropic') ? salvo : 'ambas';
+}
+let provedorBilhete = lerProvedorIASalvo(CHAVE_PROVEDOR_BILHETE);
+let provedorEstatisticas = lerProvedorIASalvo(CHAVE_PROVEDOR_ESTATISTICAS);
+let provedorLiga = lerProvedorIASalvo(CHAVE_PROVEDOR_LIGA);
+function alterarProvedorIA(chave, valor) {
+    const valido = (valor === 'gemini' || valor === 'anthropic') ? valor : 'ambas';
+    localStorage.setItem(chave, valido);
+    if (chave === CHAVE_PROVEDOR_BILHETE) provedorBilhete = valido;
+    else if (chave === CHAVE_PROVEDOR_ESTATISTICAS) provedorEstatisticas = valido;
+    else if (chave === CHAVE_PROVEDOR_LIGA) provedorLiga = valido;
+    showToast('✅ Provedor de IA atualizado: ' + NOMES_PROVEDOR_IA[valido], 'success');
 }
 
 // ---- Ligas vinculadas a um esporte ----
@@ -2842,7 +2907,7 @@ async function buscarLigaEvento(botao) {
         const resposta = await fetch('/api/buscar-liga', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ esporte, evento, dataReferencia })
+            body: JSON.stringify({ esporte, evento, dataReferencia, provedorPreferido: provedorLiga })
         });
         const json = await resposta.json();
         if (!resposta.ok) throw new Error(json.error || 'Erro ao buscar a liga.');
@@ -2958,7 +3023,7 @@ async function analisarApostaAtual(automatico) {
         const resposta = await fetch('/api/analisar-aposta', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ aposta: dados })
+            body: JSON.stringify({ aposta: dados, provedorPreferido: provedorEstatisticas })
         });
         const json = await resposta.json();
         if (!resposta.ok) throw new Error(json.error || 'Erro ao analisar a aposta.');
@@ -3091,7 +3156,7 @@ async function processarFotoBilhete(event) {
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ imagemBase64: base64, mediaType, correcoesConhecidas: correcoesParaEnviarIA() })
+            body: JSON.stringify({ imagemBase64: base64, mediaType, correcoesConhecidas: correcoesParaEnviarIA(), provedorPreferido: provedorBilhete })
         });
 
         const dados = await resposta.json();
@@ -3163,7 +3228,7 @@ async function processarTextoBilhete() {
         const resposta = await fetch('/api/ler-bilhete', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ textoBilhete: texto, correcoesConhecidas: correcoesParaEnviarIA() })
+            body: JSON.stringify({ textoBilhete: texto, correcoesConhecidas: correcoesParaEnviarIA(), provedorPreferido: provedorBilhete })
         });
 
         const dados = await resposta.json();
@@ -4476,6 +4541,13 @@ function renderConfiguracoes() {
 
     const chkAnaliseAuto = document.getElementById('config-analise-automatica');
     if (chkAnaliseAuto) chkAnaliseAuto.checked = analiseAutomaticaAtiva;
+
+    const selProvedorBilhete = document.getElementById('config-provedor-bilhete');
+    if (selProvedorBilhete) selProvedorBilhete.value = provedorBilhete;
+    const selProvedorEstatisticas = document.getElementById('config-provedor-estatisticas');
+    if (selProvedorEstatisticas) selProvedorEstatisticas.value = provedorEstatisticas;
+    const selProvedorLiga = document.getElementById('config-provedor-liga');
+    if (selProvedorLiga) selProvedorLiga.value = provedorLiga;
 
     renderCorrecoesIA();
 

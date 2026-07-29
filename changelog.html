@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-17-0">v1.17.0</h2>
+  <p class="versao-data">29/07/2026</p>
+  <h3>Provedor de IA configurável, por funcionalidade</h3>
+  <ul>
+    <li>Nova seção "🤖 Provedor de IA" em Configurações, com um seletor para cada uma das três funcionalidades que usam IA: Leitura de bilhete (foto e texto), Análise de Aposta (busca de estatísticas) e Busca de Liga.</li>
+    <li>Cada uma pode usar "Ambas" (padrão — Gemini primeiro, com fallback automático para Anthropic se falhar, igual ao comportamento original), "Somente Gemini" ou "Somente Anthropic" (uso exclusivo daquele provedor, sem fallback para o outro caso falhe).</li>
+    <li>A preferência fica salva neste dispositivo/navegador, igual à paginação da Lista e à análise automática — não é um dado da conta sincronizado entre aparelhos.</li>
+    <li>Se o provedor escolhido falhar, ou se a chave de API correspondente não estiver configurada no Cloudflare, o app mostra um erro explicando exatamente isso, em vez de cair silenciosamente para o outro provedor.</li>
+  </ul>
+
   <h2 id="v1-16-0">v1.16.0</h2>
   <p class="versao-data">27/07/2026</p>
   <h3>Busca de Liga por IA — melhorias de precisão</h3>

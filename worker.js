@@ -555,6 +555,16 @@ async function handleFetch(request, env, ctx) {
     const tipoUso = url.pathname === '/api/analisar-aposta' ? 'estatisticas'
       : url.pathname === '/api/buscar-liga' ? 'liga'
       : 'bilhete';
+
+    // ---- Preferência de provedor de IA (Configurações → 🤖 Provedor de IA) ----
+    // O app envia essa preferência por chamada, já que cada uma das três rotas
+    // (bilhete, estatísticas, liga) pode ter um provedor configurado separadamente.
+    // 'ambas' (padrão) mantém o comportamento original: Gemini primeiro, com
+    // fallback automático para Anthropic se falhar. 'gemini' ou 'anthropic' força
+    // o uso exclusivo daquele provedor, sem fallback para o outro.
+    const PROVEDORES_VALIDOS = ['gemini', 'anthropic', 'ambas'];
+    let provedorPreferido = (payload && typeof payload.provedorPreferido === 'string') ? payload.provedorPreferido : 'ambas';
+    if (!PROVEDORES_VALIDOS.includes(provedorPreferido)) provedorPreferido = 'ambas';
     // Controla qual schema usar ao sanitizar uma resposta que caiu no modo sem
     // busca (ver sanearRespostaSemBusca) — cada rota tem um formato de retorno diferente.
     const schemaTipo = url.pathname === '/api/buscar-liga' ? 'buscar-liga'
@@ -619,38 +629,60 @@ async function handleFetch(request, env, ctx) {
     }
 
     // ---- 1ª TENTATIVA: GEMINI (grátis) ----
+    // Só entra aqui se a preferência não for "Somente Anthropic".
+    const tentarGemini = provedorPreferido !== 'anthropic';
     let erroGeminiDetalhe = null;
-    if (env.GEMINI_API_KEY) {
-      try {
-        const extraido = await lerComGemini({
-          apiKey: env.GEMINI_API_KEY,
-          systemInstrucoes,
-          textoBilhete,
-          imagemBase64,
-          mediaType,
-          comBusca,
-          textoCorrecoes,
-          schemaTipo,
-        });
-        ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
-        return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
-      } catch (erroGemini) {
-        console.log('[fallback] Gemini falhou, tentando Anthropic:', erroGemini.message);
-        // Guarda o erro real (truncado) para devolver ao usuário se a Anthropic
-        // também falhar — assim dá para diagnosticar sem precisar de `wrangler tail`.
-        erroGeminiDetalhe = String(erroGemini.message || erroGemini).slice(0, 500);
+    if (tentarGemini) {
+      if (env.GEMINI_API_KEY) {
+        try {
+          const extraido = await lerComGemini({
+            apiKey: env.GEMINI_API_KEY,
+            systemInstrucoes,
+            textoBilhete,
+            imagemBase64,
+            mediaType,
+            comBusca,
+            textoCorrecoes,
+            schemaTipo,
+          });
+          ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
+          return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
+        } catch (erroGemini) {
+          // Guarda o erro real (truncado) para devolver ao usuário se a Anthropic
+          // também falhar — assim dá para diagnosticar sem precisar de `wrangler tail`.
+          erroGeminiDetalhe = String(erroGemini.message || erroGemini).slice(0, 500);
+          if (provedorPreferido === 'gemini') {
+            // Preferência do usuário é "Somente Gemini" — não cai para a Anthropic.
+            console.log('[provedor] Gemini falhou e o fallback está desativado (preferência: Somente Gemini):', erroGeminiDetalhe);
+            return new Response(
+              JSON.stringify({
+                error: 'O Gemini falhou e o provedor de IA está definido como "Somente Gemini" em Configurações → 🤖 Provedor de IA, então não foi tentado o fallback para a Anthropic. Detalhe: ' + erroGeminiDetalhe,
+              }),
+              { status: 502, headers }
+            );
+          }
+          console.log('[fallback] Gemini falhou, tentando Anthropic:', erroGeminiDetalhe);
+        }
+      } else {
+        erroGeminiDetalhe = 'GEMINI_API_KEY não configurada neste Worker.';
+        if (provedorPreferido === 'gemini') {
+          return new Response(
+            JSON.stringify({ error: 'O provedor de IA está definido como "Somente Gemini", mas a GEMINI_API_KEY não está configurada neste Worker.' }),
+            { status: 500, headers }
+          );
+        }
+        console.log('[fallback] GEMINI_API_KEY não configurada, indo direto para Anthropic.');
       }
-    } else {
-      console.log('[fallback] GEMINI_API_KEY não configurada, indo direto para Anthropic.');
-      erroGeminiDetalhe = 'GEMINI_API_KEY não configurada neste Worker.';
     }
 
-    // ---- 2ª TENTATIVA: ANTHROPIC (paga, fallback) ----
+    // ---- 2ª TENTATIVA: ANTHROPIC ----
+    // Entra aqui automaticamente no fallback (preferência "ambas"), ou diretamente
+    // quando a preferência é "Somente Anthropic" (tentarGemini = false, sem passar pelo Gemini).
     if (!env.ANTHROPIC_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'Nem GEMINI_API_KEY nem ANTHROPIC_API_KEY estão configuradas no Cloudflare.' }),
-        { status: 500, headers }
-      );
+      const mensagem = provedorPreferido === 'anthropic'
+        ? 'O provedor de IA está definido como "Somente Anthropic", mas a ANTHROPIC_API_KEY não está configurada neste Worker.'
+        : 'Nem GEMINI_API_KEY nem ANTHROPIC_API_KEY estão configuradas no Cloudflare.';
+      return new Response(JSON.stringify({ error: mensagem }), { status: 500, headers });
     }
 
     try {
@@ -669,7 +701,7 @@ async function handleFetch(request, env, ctx) {
     } catch (erroAnthropic) {
       return new Response(
         JSON.stringify({
-          error: 'Erro ao ler bilhete (Gemini e Anthropic falharam): ' + erroAnthropic.message +
+          error: 'Erro ao processar (Gemini e Anthropic falharam, ou Anthropic era o único provedor tentado): ' + erroAnthropic.message +
             (erroGeminiDetalhe ? ' | Detalhe do Gemini: ' + erroGeminiDetalhe : ''),
         }),
         { status: 502, headers }

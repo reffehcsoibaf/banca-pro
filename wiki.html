@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.16.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.17.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -256,6 +256,7 @@
   <div class="nav-section">
     <div class="nav-section-title">Configurações</div>
     <a href="#configuracoes" class="nav-link">Gerenciar Dados e Listas</a>
+    <a href="#config-provedor-ia" class="nav-link nav-link-sub">Provedor de IA</a>
     <a href="#config-preferencias-lista" class="nav-link nav-link-sub">Preferências da Lista</a>
     <a href="#config-recarregar-app" class="nav-link nav-link-sub">Recarregar Aplicativo</a>
     <a href="#config-manutencao-calculos" class="nav-link nav-link-sub">Auditoria e Precisão Decimal</a>
@@ -798,6 +799,25 @@
   <section id="configuracoes" class="wiki-section" aria-labelledby="h-configuracoes">
     <h2 id="h-configuracoes">⚙️ Configurações</h2>
     <p>A seção Configurações centraliza o gerenciamento das listas de opções e as operações globais de dados: exportar, importar e limpar.</p>
+
+    <h3 id="config-provedor-ia">🤖 Provedor de IA</h3>
+    <p>Define, separadamente para cada uma das três funcionalidades que usam IA no app, qual provedor deve ser usado:</p>
+    <ul>
+      <li><strong>Leitura de bilhete</strong> (foto e texto)</li>
+      <li><strong>Análise de Aposta</strong> (busca de estatísticas)</li>
+      <li><strong>Busca de Liga</strong></li>
+    </ul>
+    <p>Cada seletor tem três opções:</p>
+    <ul>
+      <li><strong>Ambas</strong> (padrão) — tenta o Gemini primeiro (grátis) e, se ele falhar, cai automaticamente para a Anthropic. É o mesmo comportamento que o app sempre teve.</li>
+      <li><strong>Somente Gemini</strong> — usa só o Gemini. Se ele falhar, a ação falha também; não há fallback para a Anthropic.</li>
+      <li><strong>Somente Anthropic</strong> — usa só a Anthropic diretamente, sem tentar o Gemini antes.</li>
+    </ul>
+    <p>A preferência de cada funcionalidade fica salva apenas neste dispositivo/navegador — não é sincronizada com a nuvem nem com outros aparelhos, igual à Preferência da Lista abaixo.</p>
+    <div class="callout tip">
+      <div class="callout-title">💡 Quando forçar um único provedor</div>
+      Útil para testar a qualidade das respostas de um provedor específico, para economizar cota de um deles, ou para diagnosticar se um problema de leitura/análise está vindo do Gemini ou da Anthropic. Se não houver motivo específico, "Ambas" é a opção mais confiável, já que garante uma segunda tentativa quando o primeiro provedor falha.
+    </div>
 
     <h3 id="config-preferencias-lista">📋 Preferências da Lista</h3>
     <p>Define quantas apostas aparecem por página na aba Lista: 10, 25, 50, 100, 200 ou Todas. Um número menor deixa a navegação mais rápida em bases grandes; a opção "Todas" mostra a lista inteira filtrada em uma página só, sem paginação (pode deixar a navegação mais lenta em bases muito grandes). Essa preferência fica salva apenas neste dispositivo/navegador — não é sincronizada com a nuvem nem com outros aparelhos.</p>

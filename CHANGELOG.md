@@ -4,6 +4,28 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.17.0 — 29/07/2026
+
+### Provedor de IA configurável, por funcionalidade
+
+- Nova seção **"🤖 Provedor de IA"** em Configurações, com um seletor para cada uma das três
+  funcionalidades que usam IA no app: **Leitura de bilhete** (foto e texto), **Análise de Aposta**
+  (busca de estatísticas) e **Busca de Liga**. Cada uma pode ser configurada de forma independente
+  para usar:
+  - **Ambas** (padrão): mantém o comportamento original do app — tenta o Gemini primeiro (grátis)
+    e, se ele falhar, cai automaticamente para a Anthropic.
+  - **Somente Gemini**: usa só o Gemini. Se falhar, a ação falha também — não tenta a Anthropic.
+  - **Somente Anthropic**: usa só a Anthropic diretamente, sem passar pelo Gemini.
+- A preferência fica salva neste dispositivo/navegador (igual à paginação da Lista e à análise
+  automática), não é um dado da conta sincronizado entre aparelhos.
+- No Worker, a rota correspondente (`/api/ler-bilhete`, `/api/analisar-aposta` ou
+  `/api/buscar-liga`) recebe a preferência a cada chamada e decide o fluxo: nenhuma mudança na
+  lógica de extração/análise em si, só em qual(is) provedor(es) são tentados e em que ordem.
+- Se a preferência escolhida for "Somente Gemini" ou "Somente Anthropic" e a respectiva chave de
+  API não estiver configurada no Cloudflare (`GEMINI_API_KEY`/`ANTHROPIC_API_KEY`), ou se o
+  provedor escolhido falhar, o app mostra um erro explicando exatamente isso — em vez de cair
+  silenciosamente para o outro provedor sem avisar.
+
 ## v1.16.0 — 27/07/2026
 
 ### Busca de Liga por IA — melhorias de precisão
