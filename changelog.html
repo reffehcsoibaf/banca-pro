@@ -114,7 +114,7 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
-  <h2 id="v1-17-1">v1.17.1</h2>
+  <h2 id="v1-17-2">v1.17.2</h2>
   <p class="versao-data">30/07/2026</p>
   <h3>Correções Aprendidas — calibragem (bug de deduplicação de Liga)</h3>
   <ul>
@@ -122,6 +122,11 @@
     <li>Agora, para correções de Liga, cada confronto (contexto) gera sua própria linha salva, já que times diferentes promovidos/rebaixados são fatos independentes mesmo compartilhando o mesmo valor errado e o mesmo valor correto. Correções de Mercado continuam sem considerar o contexto, pois são padronização de nome e valem para qualquer confronto.</li>
     <li>As correções agora são enviadas à IA das mais recentes para as mais antigas (antes eram enviadas na ordem de criação), para que o teto de 60 correções por leitura não descarte as mais relevantes à medida que a lista cresce.</li>
     <li>Reforçada a instrução enviada à IA para correções de Liga: quando o contexto do bilhete bater com uma correção já confirmada, ela deve prevalecer mesmo que o conhecimento de treinamento da IA "pareça" indicar outra coisa — times sobem e descem de divisão entre temporadas, e o conhecimento memorizado pode estar desatualizado.</li>
+  </ul>
+  <h3>Correções Aprendidas — não salva diferenças que não são correções de verdade</h3>
+  <ul>
+    <li>Quando o único ajuste feito num campo (Liga ou Mercado) é maiúscula/minúscula ou espaçamento (ex.: "Chutes no Gol da Equipe" → "Chutes no gol da equipe"), o app não salva mais isso como correção aprendida — esse tipo de diferença já é tratada como o mesmo valor pelo app (mesma lógica que evita duplicar itens no catálogo), então registrar como correção só gerava ruído na lista sem ganho nenhum de precisão.</li>
+    <li>Para Mercado combinado (ex.: "Gols, Chutes no gol do jogador"), a IA lista os itens na ordem em que aparecem no bilhete — que pode variar de bilhete pra bilhete mesmo sendo o mesmo conjunto de mercados. O app agora reconhece "Gols, Chutes no gol do jogador" e "Chutes no gol do jogador, Gols" (qualquer permutação do mesmo conjunto) como o mesmo valor e também não salva isso como correção.</li>
   </ul>
   <h3>Mercado "Ambas as equipes receberão cartão" (BTTC)</h3>
   <ul>

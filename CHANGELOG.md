@@ -4,7 +4,7 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
-## v1.17.1 — 30/07/2026
+## v1.17.2 — 30/07/2026
 
 ### Correções Aprendidas — calibragem (bug de deduplicação de Liga)
 
@@ -26,6 +26,21 @@ está publicada e comparar com o que está descrito aqui.
   do bilhete bater com uma correção já confirmada, ela deve prevalecer mesmo que o
   conhecimento de treinamento da IA "pareça" indicar outra coisa — times sobem e descem de
   divisão entre temporadas, e o conhecimento memorizado pode estar desatualizado.
+
+### Correções Aprendidas — não salva diferenças que não são correções de verdade
+
+- Quando o único ajuste feito num campo (Liga ou Mercado) é maiúscula/minúscula ou
+  espaçamento (ex.: "Chutes no Gol da Equipe" → "Chutes no gol da equipe"), o app não
+  salva mais isso como correção aprendida em `registrarCorrecaoIA`. Esse tipo de
+  diferença já é tratado como o mesmo valor pelo app (mesma lógica de normalização
+  usada por `buscarOuPrepararValor` para evitar duplicar itens no catálogo), então
+  registrar como correção só gerava ruído na lista sem ganho nenhum de precisão.
+- Para Mercado combinado (ex.: "Gols, Chutes no gol do jogador"), a IA lista os itens na
+  ordem em que aparecem no bilhete (regra explícita do `worker.js`) — que pode variar de
+  bilhete pra bilhete mesmo sendo o mesmo conjunto de mercados. `registrarCorrecaoIA`
+  agora compara mercados combinados ignorando a ordem dos itens, então "Gols, Chutes no
+  gol do jogador" e "Chutes no gol do jogador, Gols" (qualquer permutação do mesmo
+  conjunto) também não geram mais uma correção aprendida.
 
 ### Mercado "Ambas as equipes receberão cartão" (BTTC)
 

@@ -1391,7 +1391,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.17.1 · 30/07/2026
+  Banca Pro · v1.17.2 · 30/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2175,10 +2175,26 @@ function correcoesParaEnviarIA() {
         .sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
 }
 
+// Compara uma lista separada por ", " (usada em mercados combinados, ex.: "Gols,
+// Chutes no gol do jogador") ignorando a ordem dos itens e maiúscula/espaçamento —
+// a IA lista os mercados combinados na ordem em que aparecem no bilhete, que pode
+// variar de bilhete pra bilhete mesmo sendo o mesmo conjunto de mercados.
+function chaveNormalizadaLista(s) {
+    return String(s).split(',').map(chaveNormalizada).filter(Boolean).sort().join('|');
+}
+
 // Evita duplicar a mesma correção exata (campo+esporte+errado+correto) — se já
 // existir, apenas ignora silenciosamente em vez de criar linhas repetidas.
 async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, contexto) {
     if (!valorErrado || !valorCorreto || valorErrado === valorCorreto) return;
+    // Diferença só de maiúscula/minúscula, espaçamento, ou (no caso de mercado) só a
+    // ordem dos itens num combo, não é uma correção de verdade — o app já trata esses
+    // valores como o mesmo dado, então salvar isso só gera ruído na lista sem ganho
+    // nenhum de precisão.
+    const mesmoValor = campo === 'mercado'
+        ? chaveNormalizadaLista(valorErrado) === chaveNormalizadaLista(valorCorreto)
+        : chaveNormalizada(valorErrado) === chaveNormalizada(valorCorreto);
+    if (mesmoValor) return;
     const contextoNovo = (contexto || '').trim();
     // Para "liga", o mesmo par valorErrado→valorCorreto pode se repetir em confrontos
     // completamente diferentes (ex.: vários times promovidos de Série B pra Série A na
