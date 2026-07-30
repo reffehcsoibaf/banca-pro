@@ -4,6 +4,39 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.17.1 — 30/07/2026
+
+### Correções Aprendidas — calibragem (bug de deduplicação de Liga)
+
+- Corrigido bug em que uma correção de Liga (ex.: "Brasil - Série B" → "Brasil - Série A")
+  só era realmente salva para o **primeiro** confronto corrigido. Correções seguintes para
+  outros confrontos com o mesmo "de/para" (ex.: outro time promovido de divisão na mesma
+  temporada) eram descartadas silenciosamente, porque a checagem de duplicidade em
+  `registrarCorrecaoIA` não considerava o confronto (contexto), só o par de valores
+  errado→correto.
+- Agora, para correções de Liga, cada confronto (contexto) gera sua própria linha salva no
+  Supabase, já que times diferentes promovidos/rebaixados são fatos independentes mesmo
+  compartilhando o mesmo valor errado e o mesmo valor correto. Correções de Mercado
+  continuam sem considerar o contexto, pois são padronização de nome e valem para qualquer
+  confronto.
+- As correções agora são enviadas à IA das mais recentes para as mais antigas (antes eram
+  enviadas na ordem de criação no banco), para que o teto de 60 correções por leitura não
+  descarte as mais relevantes à medida que a lista cresce.
+- Reforçada a instrução enviada à IA (`worker.js`) para correções de Liga: quando o contexto
+  do bilhete bater com uma correção já confirmada, ela deve prevalecer mesmo que o
+  conhecimento de treinamento da IA "pareça" indicar outra coisa — times sobem e descem de
+  divisão entre temporadas, e o conhecimento memorizado pode estar desatualizado.
+
+### Mercado "Ambas as equipes receberão cartão" (BTTC)
+
+- Esse mercado nunca tinha sido mapeado nas regras de leitura de bilhete (`worker.js`) — a
+  IA precisava "adivinhar" o nome do mercado e o formato da seleção a cada leitura, o que
+  gerava resultados inconsistentes entre bilhetes (incluindo um caso em que inventou um
+  valor de referência "1.5 cartões" que não existe nesse mercado, que é binário Sim/Não).
+- Agora é mapeado de forma fixa para o mercado "Cartões" já existente, com seleção sempre
+  no formato "Ambas as equipes recebem cartão - Sim" ou "Ambas as equipes recebem cartão -
+  Não".
+
 ## v1.17.0 — 29/07/2026
 
 ### Provedor de IA configurável, por funcionalidade

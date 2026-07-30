@@ -1391,7 +1391,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.17.0 · 29/07/2026
+  Banca Pro · v1.17.1 · 30/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2165,18 +2165,33 @@ function correcaoEstaValida(c) {
 
 // Lista de correções realmente enviada à IA nas chamadas de leitura de bilhete —
 // filtra fora correções de liga vencidas (ver correcaoEstaValida), para não repetir
-// para a IA uma associação time↔liga que pode já não valer mais.
+// para a IA uma associação time↔liga que pode já não valer mais. Ordenada das mais
+// recentes pras mais antigas: o worker só usa as 60 primeiras, e correções recentes
+// têm mais chance de bater com o bilhete atual do que as mais antigas da lista.
 function correcoesParaEnviarIA() {
-    return correcoesIA.filter(correcaoEstaValida);
+    return correcoesIA
+        .filter(correcaoEstaValida)
+        .slice()
+        .sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
 }
 
 // Evita duplicar a mesma correção exata (campo+esporte+errado+correto) — se já
 // existir, apenas ignora silenciosamente em vez de criar linhas repetidas.
 async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, contexto) {
     if (!valorErrado || !valorCorreto || valorErrado === valorCorreto) return;
-    const jaExiste = correcoesIA.some(c => c.campo === campo && c.esporte === esporte && c.valorErrado === valorErrado && c.valorCorreto === valorCorreto);
+    const contextoNovo = (contexto || '').trim();
+    // Para "liga", o mesmo par valorErrado→valorCorreto pode se repetir em confrontos
+    // completamente diferentes (ex.: vários times promovidos de Série B pra Série A na
+    // mesma temporada) — cada confronto é um fato próprio e precisa da sua própria linha,
+    // senão só o primeiro registrado fica salvo e os demais são perdidos silenciosamente.
+    // Para "mercado" o contexto não importa: é padronização de nome, vale para qualquer confronto.
+    const jaExiste = correcoesIA.some(c => {
+        if (c.campo !== campo || c.esporte !== esporte || c.valorErrado !== valorErrado || c.valorCorreto !== valorCorreto) return false;
+        if (campo === 'liga') return (c.contexto || '').trim() === contextoNovo;
+        return true;
+    });
     if (jaExiste) return;
-    const nova = { campo, esporte, valorErrado, valorCorreto, contexto: contexto || '' };
+    const nova = { campo, esporte, valorErrado, valorCorreto, contexto: contextoNovo };
     const { data, error } = await sb.from('correcoes_ia').insert(correcaoParaLinha(nova)).select().single();
     if (error) { console.warn('Não foi possível salvar correção aprendida:', error.message); return; }
     nova.id = data.id;
