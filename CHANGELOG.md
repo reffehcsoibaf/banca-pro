@@ -4,6 +4,27 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.17.3 — 30/07/2026
+
+### Busca de Liga por IA — prompt expandido (cache e acurácia)
+
+- A Anthropic exige um tamanho mínimo de prompt (1.024 tokens no modelo
+  `claude-sonnet-4-6` usado aqui) para o prompt caching funcionar de verdade —
+  abaixo disso, o `cache_control` é ignorado silenciosamente, sem erro nem aviso.
+  O `PROMPT_BUSCAR_LIGA` estava abaixo desse mínimo (~850 tokens estimados), então
+  mesmo com o cache já configurado no código desde antes, provavelmente não estava
+  sendo aproveitado nas chamadas reais. Isso é relevante porque a Busca de Liga está
+  configurada para usar exclusivamente o provedor Anthropic (o Gemini não restringe
+  domínio de busca de forma confiável o suficiente para esse caso específico), ou
+  seja, é a rota que mais se beneficia de cache aqui.
+- O prompt foi expandido com conteúdo que também melhora a acurácia da busca, não
+  só o tamanho: exemplos reais de nomes de time ambíguos entre países/divisões
+  (América, Nacional, Independiente, nomes de cidade genéricos que se repetem entre
+  estados) e referência de nomenclatura oficial de divisão (sem nome comercial de
+  patrocínio) para mais países além do Brasil — Inglaterra, Espanha, Itália,
+  Alemanha, França, Portugal, Argentina. Isso levou o prompt para ~1.374 tokens
+  estimados, com folga acima do mínimo exigido para o cache funcionar.
+
 ## v1.17.2 — 30/07/2026
 
 ### Correções Aprendidas — calibragem (bug de deduplicação de Liga)

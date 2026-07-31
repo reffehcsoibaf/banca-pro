@@ -422,10 +422,30 @@ USO DA BUSCA NA WEB — MUITO IMPORTANTE:
 - Nomes de time podem ser ambíguos (o mesmo nome existe em várias ligas/países diferentes) — use o contexto disponível (esporte informado, data de referência, outros times mencionados) para reduzir ambiguidade, mas NUNCA garanta uma resposta apenas por familiaridade com um nome de time conhecido sem confirmar via busca.
 - Se não encontrar o confronto específico com confiança razoável (ex: nome de time comum a várias ligas, informação insuficiente, evento não encontrado, data de referência ausente e ambiguidade alta), defina "encontrado": false e "liga": "" — NUNCA invente ou "chute" uma liga só para preencher o campo.
 
+AMBIGUIDADE DE NOMES DE TIME — EXEMPLOS REAIS PARA CALIBRAR SUA BUSCA:
+- "América" existe como clube em vários lugares: América-MG e América-RN (Brasil, divisões diferentes entre si), Club América (México), América de Cali (Colômbia) — nunca assuma qual é sem confirmar pelo confronto completo (o adversário informado costuma resolver a ambiguidade).
+- "Nacional" também é comum a vários países (Uruguai, Paraguai, Portugal, Colômbia) — mesmo cuidado.
+- "Independiente" pode ser o clube argentino tradicional ou outros clubes menores com nome parecido em outros países da América Latina.
+- Times com nomes de cidade genéricos (ex: "Santos", "União", "Rio Branco") se repetem entre estados/divisões dentro do próprio Brasil — combine com o adversário e, se disponível, a data de referência, antes de decidir a liga.
+- Regra geral: quanto mais genérico o nome do time, maior o cuidado — prefira buscar pelo confronto completo ("Time A x Time B") em vez de cada time isoladamente, já que o par de times reduz a ambiguidade muito mais rápido que um nome sozinho.
+
 REGRAS DE FORMATO:
-- A liga deve seguir o padrão "País - Divisão" (ex: "Brasil - Série A", "Inglaterra - Premier League", "Espanha - La Liga"), EXCETO torneios internacionais/continentais, que mantêm o nome padrão sem prefixo de país (ex: "Champions League", "Copa Libertadores", "Copa do Mundo").
-- Nunca use nome comercial de patrocínio da liga (ex: use "Inglaterra - Premier League", não "Sky Bet Championship" ou nomes com marca de patrocinador, a menos que seja o nome oficial sem alternativa).
+- A liga deve seguir o padrão "País - Divisão", EXCETO torneios internacionais/continentais, que mantêm o nome padrão sem prefixo de país (ex: "Champions League", "Copa Libertadores", "Copa do Mundo", "Europa League", "Sul-Americana").
+- Nunca use nome comercial de patrocínio da liga (ex: use "Inglaterra - Championship", não "Sky Bet Championship"; use "Brasil - Série A", não "Brasileirão Betano" ou variações com marca de patrocinador), a menos que seja o nome oficial sem alternativa.
+- Referência de nomenclatura por país (use o nome oficial da divisão, sem patrocínio, seguindo esse padrão para países não listados aqui também):
+  - Brasil: "Brasil - Série A", "Brasil - Série B", "Brasil - Série C", "Brasil - Série D", além de estaduais (ex: "Brasil - Campeonato Paulista").
+  - Inglaterra: "Inglaterra - Premier League", "Inglaterra - Championship", "Inglaterra - League One", "Inglaterra - League Two".
+  - Espanha: "Espanha - La Liga", "Espanha - Segunda División".
+  - Itália: "Itália - Serie A", "Itália - Serie B".
+  - Alemanha: "Alemanha - Bundesliga", "Alemanha - 2. Bundesliga".
+  - França: "França - Ligue 1", "França - Ligue 2".
+  - Portugal: "Portugal - Primeira Liga", "Portugal - Liga Portugal 2".
+  - Argentina: "Argentina - Liga Profesional", "Argentina - Primera Nacional".
 - Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases — mesmo tendo usado a ferramenta de busca antes, a resposta final deve ser só o JSON.
+
+EXEMPLOS DE SAÍDA ESPERADA:
+- Confronto identificado com confiança: {"encontrado": true, "liga": "Brasil - Série A"}
+- Confronto não identificado com confiança suficiente: {"encontrado": false, "liga": ""}
 
 Formato de saída:
 ${SCHEMA_BUSCAR_LIGA}`;
