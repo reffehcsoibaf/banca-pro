@@ -988,6 +988,9 @@
                 <button class="btn btn-outline" id="btnEvento" onclick="addEvento()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Adicionar evento à aposta">
                     ＋ Adicionar Evento
                 </button>
+                <button class="btn btn-outline" id="btnBuscarLigaTodos" onclick="buscarLigaTodosEventos()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Buscar automaticamente com IA a liga de todos os eventos desta aposta que ainda estão sem liga preenchida">
+                    🔍 Buscar Liga de Todos os Eventos
+                </button>
             </div>
 
             <div class="grid" style="margin-top:16px;">
@@ -1184,7 +1187,12 @@
 
             <div class="config-categoria">
                 <h3>🏦 Casa</h3>
-                <div class="chip-list" id="chips-casa"></div>
+                <div class="table-wrap">
+                    <table role="grid" aria-label="Casas de aposta cadastradas">
+                        <thead><tr><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                        <tbody id="chips-casa"></tbody>
+                    </table>
+                </div>
                 <div class="config-add-row">
                     <input type="text" id="config-add-casa" placeholder="Nova casa..." aria-label="Nova casa">
                     <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('casa')">+ Adicionar</button>
@@ -1193,7 +1201,12 @@
 
             <div class="config-categoria">
                 <h3>👤 Tipster</h3>
-                <div class="chip-list" id="chips-tipster"></div>
+                <div class="table-wrap">
+                    <table role="grid" aria-label="Tipsters cadastrados">
+                        <thead><tr><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                        <tbody id="chips-tipster"></tbody>
+                    </table>
+                </div>
                 <div class="config-add-row">
                     <input type="text" id="config-add-tipster" placeholder="Novo tipster..." aria-label="Novo tipster">
                     <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('tipster')">+ Adicionar</button>
@@ -1202,7 +1215,12 @@
 
             <div class="config-categoria">
                 <h3>🏷️ Tipo</h3>
-                <div class="chip-list" id="chips-tipo"></div>
+                <div class="table-wrap">
+                    <table role="grid" aria-label="Tipos de aposta cadastrados">
+                        <thead><tr><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                        <tbody id="chips-tipo"></tbody>
+                    </table>
+                </div>
                 <div class="config-add-row">
                     <input type="text" id="config-add-tipo" placeholder="Novo tipo..." aria-label="Novo tipo">
                     <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('tipo')">+ Adicionar</button>
@@ -1211,7 +1229,12 @@
 
             <div class="config-categoria">
                 <h3>⚽ Esporte</h3>
-                <div class="chip-list" id="chips-esporte"></div>
+                <div class="table-wrap">
+                    <table role="grid" aria-label="Esportes cadastrados">
+                        <thead><tr><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                        <tbody id="chips-esporte"></tbody>
+                    </table>
+                </div>
                 <div class="config-add-row">
                     <input type="text" id="config-add-esporte" placeholder="Novo esporte..." aria-label="Novo esporte">
                     <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('esporte')">+ Adicionar</button>
@@ -1225,7 +1248,12 @@
                     <select id="config-liga-esporte" onchange="renderConfiguracoes()" aria-label="Filtrar ligas por esporte">
                     </select>
                 </div>
-                <div class="chip-list" id="chips-liga"></div>
+                <div class="table-wrap">
+                    <table role="grid" aria-label="Ligas cadastradas para o esporte selecionado">
+                        <thead><tr id="cabecalho-liga"><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                        <tbody id="chips-liga"></tbody>
+                    </table>
+                </div>
                 <div class="config-add-row">
                     <input type="text" id="config-add-liga" placeholder="Nova liga..." aria-label="Nova liga">
                     <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('liga')">+ Adicionar</button>
@@ -1239,7 +1267,12 @@
                     <select id="config-mercado-esporte" onchange="renderConfiguracoes()" aria-label="Filtrar mercados por esporte">
                     </select>
                 </div>
-                <div class="chip-list" id="chips-mercado"></div>
+                <div class="table-wrap">
+                    <table role="grid" aria-label="Mercados cadastrados para o esporte selecionado">
+                        <thead><tr id="cabecalho-mercado"><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                        <tbody id="chips-mercado"></tbody>
+                    </table>
+                </div>
                 <div class="config-add-row">
                     <input type="text" id="config-add-mercado" placeholder="Novo mercado..." aria-label="Novo mercado">
                     <button class="btn-sm btn-success" onclick="adicionarOpcaoConfig('mercado')">+ Adicionar</button>
@@ -1252,7 +1285,12 @@
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Sempre que você corrige a Liga ou o Mercado que a IA sugeriu numa leitura de bilhete (antes de salvar), o app memoriza essa correção aqui — nas próximas leituras, essa preferência é enviada para a IA priorizar em vez de repetir o mesmo erro. Nada manual necessário: basta editar o campo errado normalmente antes de salvar.
             </p>
-            <div id="listaCorrecoesIA" style="font-family:var(--font-ui);font-size:13px;"></div>
+            <div class="table-wrap">
+                <table role="grid" aria-label="Correções aprendidas pela IA">
+                    <thead><tr><th scope="col">Campo</th><th scope="col">Esporte</th><th scope="col">De → Para</th><th scope="col">Contexto</th><th scope="col">Ações</th></tr></thead>
+                    <tbody id="listaCorrecoesIA"></tbody>
+                </table>
+            </div>
             <div class="btn-row" style="margin-top:10px;">
                 <button class="btn btn-outline" onclick="limparTodasCorrecoesIA()" aria-label="Apagar todas as correções aprendidas" style="width:auto; color:#ef4444; border-color:#ef4444;">
                     🗑️ Apagar Todas as Correções
@@ -1391,7 +1429,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.17.3 · 30/07/2026
+  Banca Pro · v1.18.0 · 31/07/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1619,15 +1657,10 @@ async function aplicarVisibilidadeIA() {
         if (error) return; // em caso de erro, não esconde nada (evita falso negativo)
 
         const habilitado = !perfil || perfil.ai_enabled !== false;
-        const idsBotoesIA = ['btnPreencherFoto', 'btnPreencherTexto', 'btnAnalisarAposta'];
+        const idsBotoesIA = ['btnPreencherFoto', 'btnPreencherTexto', 'btnAnalisarAposta', 'btnBuscarLigaTodos'];
         idsBotoesIA.forEach(function (id) {
             const el = document.getElementById(id);
             if (el) el.style.display = habilitado ? '' : 'none';
-        });
-        // Botões "Buscar Liga" são recriados a cada evento adicionado (sem id fixo);
-        // escondidos/mostrados por classe.
-        document.querySelectorAll('.btnBuscarLigaIA').forEach(function (el) {
-            el.style.display = habilitado ? '' : 'none';
         });
     } catch (e) {
         // silencioso: não bloqueia o uso do app por falha nesta checagem visual
@@ -2221,6 +2254,45 @@ async function excluirCorrecaoIA(id) {
     correcoesIA = correcoesIA.filter(c => c.id !== id);
     renderCorrecoesIA();
     showToast('🗑️ Correção removida', 'info');
+}
+
+// Edição via prompts sequenciais (nativos, acessíveis por leitor de tela sem
+// precisar de gerenciamento de foco customizado) — mais simples e mais robusto
+// do que montar uma edição embutida na própria linha da tabela.
+async function editarCorrecaoIA(id) {
+    const c = correcoesIA.find(x => x.id === id);
+    if (!c) return;
+    const campoLabel = c.campo === 'liga' ? 'Liga' : 'Mercado';
+
+    const novoErrado = prompt(`Valor errado (${campoLabel}):`, c.valorErrado);
+    if (novoErrado === null) return; // cancelado
+    const novoCorreto = prompt(`Valor correto (${campoLabel}):`, c.valorCorreto);
+    if (novoCorreto === null) return;
+    const novoContexto = prompt('Contexto (opcional — ex: nomes dos times deste caso):', c.contexto || '');
+    if (novoContexto === null) return;
+
+    const valorErrado = novoErrado.trim();
+    const valorCorreto = novoCorreto.trim();
+    const contexto = novoContexto.trim();
+    if (!valorErrado || !valorCorreto) {
+        showToast('⚠️ Valor errado e valor correto não podem ficar vazios.', 'info');
+        return;
+    }
+    if (valorErrado === valorCorreto) {
+        showToast('⚠️ Valor errado e valor correto não podem ser iguais — se são a mesma coisa, exclua a correção em vez de editar.', 'info', 7000);
+        return;
+    }
+
+    const { error } = await sb.from('correcoes_ia')
+        .update({ valor_errado: valorErrado, valor_correto: valorCorreto, contexto: contexto || null })
+        .eq('id', id);
+    if (error) { showToast('❌ Erro ao atualizar correção: ' + error.message, 'error'); return; }
+
+    c.valorErrado = valorErrado;
+    c.valorCorreto = valorCorreto;
+    c.contexto = contexto;
+    renderCorrecoesIA();
+    showToast('✅ Correção atualizada', 'success');
 }
 
 async function limparTodasCorrecoesIA() {
@@ -2871,7 +2943,6 @@ function addEvento() {
             <input type="text" class="ligaEventoOutro" placeholder="Digite a liga..." style="display:none;margin-top:4px;" aria-label="Digite o nome da liga (uso avulso, não será salvo na lista)">
             <div class="inline" style="margin-top:4px;">
                 <button type="button" class="btn-xs btn-success" onclick="addDynamicOption('liga',this)" aria-label="Adicionar liga">+</button>
-                <button type="button" class="btn-xs btn-outline btnBuscarLigaIA" onclick="buscarLigaEvento(this)" aria-label="Buscar automaticamente com IA a liga deste evento, com base no esporte e no nome do evento já preenchidos">🔍 Buscar Liga</button>
             </div>
         </div>
         <div>
@@ -2904,79 +2975,132 @@ function addEvento() {
 function parseFloat2(v) { return parseFloat(v) || 0; }
 
 /* ==================== BUSCAR LIGA (IA) ====================
-   Usada ao preencher manualmente uma aposta antiga: com o Esporte e o nome do
-   Evento (ex: "Time A x Time B") já digitados, pesquisa na web em qual liga/
-   competição esse confronto foi disputado e preenche o campo Liga sozinho.
-   Nunca "chuta" uma liga sem confirmação — se a IA não encontrar com confiança
-   razoável, avisa e deixa o campo como estava para preenchimento manual. */
-async function buscarLigaEvento(botao) {
-    const div = botao.closest('.event');
-    if (!div) return;
-
-    const selEsp = div.querySelector('.esporteEvento');
-    const esporte = valorEfetivoComOutro(selEsp, 'esporteEventoOutro');
-    if (!esporte) {
-        showToast('⚠️ Escolha o Esporte deste evento antes de buscar a liga.', 'info');
-        return;
-    }
+   Pesquisa na web em qual liga/competição um confronto foi disputado, usando o
+   nome do Evento (ex: "Time A x Time B") e, se já preenchido, o Esporte do
+   evento. Quando o Esporte ainda não está definido, a busca também tenta
+   identificá-lo a partir dos competidores e preenche esse campo sozinha.
+   Nunca "chuta" uma liga (nem um esporte) sem confirmação — se a IA não
+   encontrar com confiança razoável, o evento fica como estava, para
+   preenchimento manual.
+   Núcleo silencioso (sem toast própria), reaproveitado pela busca em lote de
+   todos os eventos da aposta (botão "Buscar Liga de Todos os Eventos"). */
+async function _buscarLigaCore(div) {
     const inputEvento = div.querySelector('.evento');
     const evento = inputEvento ? inputEvento.value.trim() : '';
-    if (!evento) {
-        showToast('⚠️ Preencha o nome do Evento (ex: Time A x Time B) antes de buscar a liga.', 'info');
-        return;
-    }
+    if (!evento) return { status: 'sem-evento' };
+
+    const selEsp = div.querySelector('.esporteEvento');
+    const esporteAtual = valorEfetivoComOutro(selEsp, 'esporteEventoOutro');
+
     // Data/hora em que a aposta foi registrada — ajuda a IA a achar a temporada
-    // certa do confronto (times mudam de divisão de um ano para outro).
+    // certa do confronto (times mudam de divisão de um ano para outro) e a
+    // desambiguar qual data o confronto aconteceu.
     const campoDataHora = document.getElementById('dataHora');
     const dataReferencia = campoDataHora && campoDataHora.value ? campoDataHora.value : null;
 
-    const textoOriginal = botao.innerHTML;
-    botao.disabled = true;
-    botao.innerHTML = '⏳ Buscando...';
-
+    let json;
     try {
         const resposta = await fetch('/api/buscar-liga', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ esporte, evento, dataReferencia, provedorPreferido: provedorLiga })
+            body: JSON.stringify({ esporte: esporteAtual || null, evento, dataReferencia, provedorPreferido: provedorLiga })
         });
-        const json = await resposta.json();
+        json = await resposta.json();
         if (!resposta.ok) throw new Error(json.error || 'Erro ao buscar a liga.');
-
-        const selLig = div.querySelector('.ligaEvento');
-
-        if (!json.encontrado || !json.liga) {
-            anunciar('Não foi possível confirmar a liga deste evento com confiança. ' + (json.observacao || ''));
-            showToast('ℹ️ Não encontrei a liga com confiança suficiente' + (json.observacao ? ': ' + json.observacao : '.'), 'info', 7000);
-            return;
-        }
-
-        const r = buscarOuPrepararValor(ligasDoEsporte(esporte).map(ligaNomeExibicao), json.liga);
-        selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporte), ligaNomeExibicao, '— Liga —');
-        if (r.duplicado) {
-            // Já existe uma liga cadastrada com esse nome — seleciona normalmente.
-            selLig.value = r.valor;
-            toggleCampoOutro(selLig, 'ligaEventoOutro');
-        } else {
-            // Liga nova (ainda não cadastrada): entra em modo "Outro" com o texto já preenchido.
-            selLig.value = OUTRO_VALOR;
-            toggleCampoOutro(selLig, 'ligaEventoOutro');
-            const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
-            if (inputOutro) inputOutro.value = r.valor;
-        }
-
-        const baixaConfianca = json.confianca != null && json.confianca < LIMIAR_BAIXA_CONFIANCA;
-        if (baixaConfianca) marcarCampoBaixaConfianca(selLig);
-
-        anunciar('Liga encontrada: ' + r.valor + (baixaConfianca ? '. Confira este campo, confiança baixa.' : '.'));
-        showToast('✅ Liga preenchida: ' + r.valor, 'success');
     } catch (err) {
-        showToast('❌ Não foi possível buscar a liga: ' + err.message, 'error', 8000);
-        console.error('buscarLigaEvento erro:', err);
-    } finally {
-        botao.disabled = false;
-        botao.innerHTML = textoOriginal;
+        return { status: 'erro', mensagem: err.message };
     }
+
+    // O esporte "confirmado" é o que a IA retornou (identificado ou apenas ecoado
+    // de volta) — se nem a IA nem o campo já tinham um esporte, não dá pra montar
+    // o catálogo de ligas certo, então trata como não encontrado.
+    const esporteConfirmado = (json.esporte || esporteAtual || '').trim();
+    if (!json.encontrado || !json.liga || !esporteConfirmado) {
+        return { status: 'nao-encontrado', observacao: json.observacao || '' };
+    }
+
+    let esporteFoiPreenchidoAgora = false;
+    if (!esporteAtual && selEsp) {
+        const rEsp = buscarOuPrepararValor(defaults.esporte, esporteConfirmado);
+        selEsp.innerHTML = opcoesComOutro(defaults.esporte, '— Esporte —');
+        if (rEsp.duplicado) {
+            selEsp.value = rEsp.valor;
+            toggleCampoOutro(selEsp, 'esporteEventoOutro');
+        } else {
+            selEsp.value = OUTRO_VALOR;
+            toggleCampoOutro(selEsp, 'esporteEventoOutro');
+            const inputOutroEsp = selEsp.parentElement ? selEsp.parentElement.querySelector('.esporteEventoOutro') : null;
+            if (inputOutroEsp) inputOutroEsp.value = rEsp.valor;
+        }
+        // Recarrega as opções de Liga e Mercado deste evento para o esporte identificado agora.
+        atualizarLigasDoEvento(selEsp);
+        esporteFoiPreenchidoAgora = true;
+    }
+
+    const selLig = div.querySelector('.ligaEvento');
+    const r = buscarOuPrepararValor(ligasDoEsporte(esporteConfirmado).map(ligaNomeExibicao), json.liga);
+    selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporteConfirmado), ligaNomeExibicao, '— Liga —');
+    if (r.duplicado) {
+        selLig.value = r.valor;
+        toggleCampoOutro(selLig, 'ligaEventoOutro');
+    } else {
+        selLig.value = OUTRO_VALOR;
+        toggleCampoOutro(selLig, 'ligaEventoOutro');
+        const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
+        if (inputOutro) inputOutro.value = r.valor;
+    }
+
+    const baixaConfianca = json.confianca != null && json.confianca < LIMIAR_BAIXA_CONFIANCA;
+    if (baixaConfianca) marcarCampoBaixaConfianca(selLig);
+
+    return { status: 'encontrado', liga: r.valor, esporte: esporteConfirmado, esporteFoiPreenchidoAgora, baixaConfianca };
+}
+
+/* Busca a liga de TODOS os eventos da aposta de uma vez, um por vez (sequencial,
+   com anúncio de progresso para leitor de tela). Só considera eventos com o nome
+   do Evento preenchido E a Liga ainda vazia — eventos que já têm uma Liga
+   preenchida (lida certo ou já corrigida manualmente) são pulados e nunca
+   sobrescritos por esta busca. */
+async function buscarLigaTodosEventos() {
+    const todos = Array.from(document.querySelectorAll('.event'));
+    const elegiveis = todos.filter(function (div) {
+        const inputEvento = div.querySelector('.evento');
+        const evento = inputEvento ? inputEvento.value.trim() : '';
+        const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+        return !!evento && !ligaAtual;
+    });
+
+    if (elegiveis.length === 0) {
+        anunciar('Nenhum evento elegível para busca de liga: preencha o nome do Evento e deixe a Liga vazia.');
+        showToast('ℹ️ Nenhum evento elegível — a busca só considera eventos com o nome do Evento preenchido e a Liga ainda vazia.', 'info', 8000);
+        return;
+    }
+
+    const botao = document.getElementById('btnBuscarLigaTodos');
+    const textoOriginal = botao.innerHTML;
+    botao.disabled = true;
+
+    let encontrados = 0, naoEncontrados = 0, erros = 0;
+    for (let i = 0; i < elegiveis.length; i++) {
+        botao.innerHTML = `⏳ Buscando ${i + 1} de ${elegiveis.length}...`;
+        anunciar(`Buscando liga do evento ${i + 1} de ${elegiveis.length}.`);
+        const r = await _buscarLigaCore(elegiveis[i]);
+        if (r.status === 'encontrado') encontrados++;
+        else if (r.status === 'erro') erros++;
+        else naoEncontrados++;
+    }
+
+    botao.disabled = false;
+    botao.innerHTML = textoOriginal;
+
+    const pulados = todos.length - elegiveis.length;
+    const partes = [`${encontrados} liga(s) encontrada(s) e preenchida(s)`];
+    if (naoEncontrados > 0) partes.push(`${naoEncontrados} não confirmada(s) com confiança suficiente`);
+    if (erros > 0) partes.push(`${erros} com erro na busca`);
+    if (pulados > 0) partes.push(`${pulados} evento(s) pulado(s) (já tinham Liga preenchida ou o Evento estava vazio)`);
+    const resumo = 'Busca de ligas concluída: ' + partes.join(', ') + '.';
+    anunciar(resumo);
+    showToast((encontrados > 0 ? '✅ ' : 'ℹ️ ') + resumo, encontrados > 0 ? 'success' : 'info', 9000);
 }
 
 /* ==================== ANALISAR APOSTA (IA) ====================
@@ -4544,7 +4668,7 @@ function renderCorrecoesIA() {
     const container = document.getElementById('listaCorrecoesIA');
     if (!container) return;
     if (!correcoesIA.length) {
-        container.innerHTML = `<span style="color:var(--text-secondary);">Nenhuma correção aprendida ainda.</span>`;
+        container.innerHTML = `<tr><td colspan="5" style="color:var(--text-secondary);">Nenhuma correção aprendida ainda.</td></tr>`;
         return;
     }
     const ordenadas = correcoesIA.slice().sort((a, b) => (b.criadoEm || '').localeCompare(a.criadoEm || ''));
@@ -4552,17 +4676,19 @@ function renderCorrecoesIA() {
         const campoLabel = c.campo === 'liga' ? 'Liga' : 'Mercado';
         const vencida = !correcaoEstaValida(c);
         const avisoVencida = vencida
-            ? `<br><small style="color:var(--danger,#c0392b);">⚠️ Correção de liga com mais de ${Math.round(LIGA_CORRECAO_VALIDADE_DIAS/30)} meses — não está mais sendo usada pela IA, pois o time pode ter mudado de divisão. Revise ou exclua se não fizer mais sentido.</small>`
+            ? `<br><small style="color:var(--danger,#c0392b);">⚠️ Mais de ${Math.round(LIGA_CORRECAO_VALIDADE_DIAS/30)} meses — não está mais sendo usada pela IA. Revise ou exclua.</small>`
             : '';
         return `
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--border-light);">
-            <div>
-                <strong>${escapeHtml(campoLabel)}</strong> (${escapeHtml(c.esporte)}): "${escapeHtml(c.valorErrado)}" → "${escapeHtml(c.valorCorreto)}"
-                ${c.contexto ? `<br><small style="color:var(--text-secondary);">${escapeHtml(c.contexto)}</small>` : ''}
-                ${avisoVencida}
-            </div>
-            <button class="btn-xs btn-danger" onclick="excluirCorrecaoIA(${c.id})" aria-label="Excluir esta correção aprendida${vencida ? ', vencida' : ''}">🗑️</button>
-        </div>`;
+        <tr>
+            <td>${escapeHtml(campoLabel)}</td>
+            <td>${escapeHtml(c.esporte)}</td>
+            <td style="white-space:normal;min-width:200px;">"${escapeHtml(c.valorErrado)}" → "${escapeHtml(c.valorCorreto)}"${avisoVencida}</td>
+            <td style="white-space:normal;min-width:140px;">${c.contexto ? escapeHtml(c.contexto) : '<span style="color:var(--text-secondary);">—</span>'}</td>
+            <td>
+                <button class="btn-xs btn-primary" onclick="editarCorrecaoIA(${c.id})" aria-label="Editar esta correção aprendida">✏️</button>
+                <button class="btn-xs btn-danger" onclick="excluirCorrecaoIA(${c.id})" aria-label="Excluir esta correção aprendida${vencida ? ', vencida' : ''}">🗑️</button>
+            </td>
+        </tr>`;
     }).join('');
 }
 
@@ -4591,14 +4717,17 @@ function renderConfiguracoes() {
         if (!container) return;
         const valores = defaults[campo] || [];
         if (valores.length === 0) {
-            container.innerHTML = `<span style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);">Nenhum valor cadastrado ainda</span>`;
+            container.innerHTML = `<tr><td colspan="2" style="color:var(--text-secondary);">Nenhum valor cadastrado ainda</td></tr>`;
             return;
         }
         container.innerHTML = valores.map((v, i) => `
-            <span class="chip">
-                ${v}
-                <button type="button" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${v}">×</button>
-            </span>
+            <tr>
+                <td>${escapeHtml(v)}</td>
+                <td>
+                    <button type="button" class="btn-xs btn-primary" onclick="editarOpcaoConfig('${campo}', ${i})" aria-label="Editar ${escapeHtml(v)}">✏️</button>
+                    <button type="button" class="btn-xs btn-danger" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${escapeHtml(v)}">🗑️</button>
+                </td>
+            </tr>
         `).join('');
     });
 }
@@ -4621,36 +4750,49 @@ function renderSeletorEsporteELista(campo, selectId, doEsporteFn, nomeExibicaoFn
     }
 
     const container = document.getElementById('chips-' + campo);
+    const cabecalho = document.getElementById('cabecalho-' + campo);
     if (!container) return;
     const esporteAtual = selEsporte ? selEsporte.value : (defaults.esporte[0] || '');
     const valores = doEsporteFn(esporteAtual);
     const ehOrfao = esporteAtual === esporteIndefinido;
     const rotulo = campo === 'liga' ? 'liga' : 'mercado';
 
+    if (cabecalho) {
+        cabecalho.innerHTML = ehOrfao
+            ? `<th scope="col">Nome</th><th scope="col">Mover para</th><th scope="col">Ações</th>`
+            : `<th scope="col">Nome</th><th scope="col">Ações</th>`;
+    }
+    const colspan = ehOrfao ? 3 : 2;
+
     if (!esporteAtual) {
-        container.innerHTML = `<span style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);">Cadastre um esporte primeiro</span>`;
+        container.innerHTML = `<tr><td colspan="${colspan}" style="color:var(--text-secondary);">Cadastre um esporte primeiro</td></tr>`;
         return;
     }
     if (valores.length === 0) {
-        container.innerHTML = `<span style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);">Nenhum(a) ${rotulo} cadastrado(a) para ${esporteAtual}</span>`;
+        container.innerHTML = `<tr><td colspan="${colspan}" style="color:var(--text-secondary);">Nenhum(a) ${rotulo} cadastrado(a) para ${escapeHtml(esporteAtual)}</td></tr>`;
         return;
     }
     if (ehOrfao) {
-        container.innerHTML = `<div style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Estes itens foram cadastrados antes da vinculação por esporte. Escolha o esporte correto para cada um:</div>` +
+        container.innerHTML = `<tr><td colspan="${colspan}" style="color:var(--text-secondary);">Estes itens foram cadastrados antes da vinculação por esporte. Escolha o esporte correto para cada um:</td></tr>` +
             valores.map(v => {
                 const i = defaults[campo].indexOf(v);
                 const nome = nomeExibicaoFn(v);
                 const selectMoverId = `mover-${campo}-${i}`;
                 return `
-                <div class="chip" style="display:flex;align-items:center;gap:6px;">
-                    <span>${nome}</span>
-                    <select id="${selectMoverId}" aria-label="Mover ${nome} para o esporte" style="font-size:12px;padding:2px 6px;width:auto;">
-                        <option value="">Mover para...</option>
-                        ${defaults.esporte.map(e => `<option value="${e}">${e}</option>`).join('')}
-                    </select>
-                    <button type="button" class="btn-xs btn-success" onclick="${fnMoverNome}(${i}, document.getElementById('${selectMoverId}').value)" aria-label="Confirmar movimentação de ${nome}">✓</button>
-                    <button type="button" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${nome}">×</button>
-                </div>`;
+                <tr>
+                    <td>${escapeHtml(nome)}</td>
+                    <td>
+                        <select id="${selectMoverId}" aria-label="Mover ${escapeHtml(nome)} para o esporte" style="font-size:12px;padding:2px 6px;width:auto;">
+                            <option value="">Mover para...</option>
+                            ${defaults.esporte.map(e => `<option value="${e}">${e}</option>`).join('')}
+                        </select>
+                        <button type="button" class="btn-xs btn-success" onclick="${fnMoverNome}(${i}, document.getElementById('${selectMoverId}').value)" aria-label="Confirmar movimentação de ${escapeHtml(nome)}">✓</button>
+                    </td>
+                    <td>
+                        <button type="button" class="btn-xs btn-primary" onclick="editarLigaOuMercado('${campo}', ${i})" aria-label="Editar nome de ${escapeHtml(nome)}">✏️</button>
+                        <button type="button" class="btn-xs btn-danger" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${escapeHtml(nome)}">🗑️</button>
+                    </td>
+                </tr>`;
             }).join('');
         return;
     }
@@ -4658,10 +4800,13 @@ function renderSeletorEsporteELista(campo, selectId, doEsporteFn, nomeExibicaoFn
         const i = defaults[campo].indexOf(v);
         const nome = nomeExibicaoFn(v);
         return `
-        <span class="chip">
-            ${nome}
-            <button type="button" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${nome}">×</button>
-        </span>`;
+        <tr>
+            <td>${escapeHtml(nome)}</td>
+            <td>
+                <button type="button" class="btn-xs btn-primary" onclick="editarLigaOuMercado('${campo}', ${i})" aria-label="Editar nome de ${escapeHtml(nome)}">✏️</button>
+                <button type="button" class="btn-xs btn-danger" onclick="removerOpcaoConfig('${campo}', ${i})" aria-label="Remover ${escapeHtml(nome)}">🗑️</button>
+            </td>
+        </tr>`;
     }).join('');
 }
 
@@ -4777,6 +4922,61 @@ async function removerOpcaoConfig(campo, indice) {
     if (['esporte','liga','mercado'].includes(campo)) updateDynamicSelects(campo);
     renderConfiguracoes();
     showToast(`✅ "${nomeExibicao}" removido`, 'success');
+}
+
+// Renomeia um valor de catálogo simples (Casa, Tipster, Tipo ou Esporte). Assim
+// como o "mover" já existente para Liga/Mercado, isto só afeta a lista de opções
+// — apostas já salvas com o valor antigo continuam com o texto antigo, não são
+// alteradas retroativamente.
+async function editarOpcaoConfig(campo, indice) {
+    const valorAtual = (defaults[campo] || [])[indice];
+    if (!valorAtual) return;
+    const novoValor = prompt(`Editar valor de ${campo}:`, valorAtual);
+    if (novoValor === null) return; // cancelado
+    const novoValorLimpo = novoValor.trim();
+    if (!novoValorLimpo || novoValorLimpo === valorAtual) return;
+    const jaExiste = (defaults[campo] || []).some((v, i) => i !== indice && chaveNormalizada(v) === chaveNormalizada(novoValorLimpo));
+    if (jaExiste) { showToast(`⚠️ Já existe "${novoValorLimpo}" nessa lista.`, 'info'); return; }
+
+    await removerOpcaoDB(campo, valorAtual);
+    await adicionarOpcaoDB(campo, novoValorLimpo);
+    defaults[campo][indice] = novoValorLimpo;
+    fillSelects();
+    if (['esporte','liga','mercado'].includes(campo)) updateDynamicSelects(campo);
+    renderConfiguracoes();
+    showToast(`✅ Atualizado para "${novoValorLimpo}". Apostas já salvas com o valor antigo não são alteradas.`, 'success', 6000);
+}
+
+// Renomeia o nome de uma Liga ou Mercado, mantendo o mesmo esporte (para trocar
+// de esporte, use o "Mover para" já existente na lista de itens sem esporte
+// definido). Mesma regra do "editarOpcaoConfig": não altera eventos já salvos.
+async function editarLigaOuMercado(campo, indice) {
+    const valorAtual = (defaults[campo] || [])[indice];
+    if (!valorAtual) return;
+    const decomporFn = campo === 'liga' ? ligaDecompor : mercadoDecompor;
+    const comporFn = campo === 'liga' ? ligaCompor : mercadoCompor;
+    const nomeExibicaoFn = campo === 'liga' ? ligaNomeExibicao : mercadoNomeExibicao;
+    const doEsporteFn = campo === 'liga' ? ligasDoEsporte : mercadosDoEsporte;
+    const rotulo = campo === 'liga' ? 'liga' : 'mercado';
+
+    const { esporte } = decomporFn(valorAtual);
+    const nomeAtual = nomeExibicaoFn(valorAtual);
+    const novoNome = prompt(`Editar nome ${esporte ? `(esporte: ${esporte})` : ''} d${campo === 'liga' ? 'a liga' : 'o mercado'}:`, nomeAtual);
+    if (novoNome === null) return;
+    const novoNomeLimpo = novoNome.trim();
+    if (!novoNomeLimpo || novoNomeLimpo === nomeAtual) return;
+
+    const r = buscarOuPrepararValor(doEsporteFn(esporte).map(nomeExibicaoFn), novoNomeLimpo);
+    if (r.duplicado) { showToast(`⚠️ Já existe "${r.valor}" cadastrado(a) para ${esporte}.`, 'info'); return; }
+
+    const novoValor = comporFn(esporte, novoNomeLimpo);
+    await removerOpcaoDB(campo, valorAtual);
+    await adicionarOpcaoDB(campo, novoValor);
+    defaults[campo][indice] = novoValor;
+    fillSelects();
+    updateDynamicSelects(campo);
+    renderConfiguracoes();
+    showToast(`✅ ${rotulo === 'liga' ? 'Liga' : 'Mercado'} atualizado(a) para "${novoNomeLimpo}". Eventos já salvos com o valor antigo não são alterados.`, 'success', 6000);
 }
 
 

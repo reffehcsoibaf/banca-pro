@@ -406,14 +406,21 @@ const SCHEMA_BUSCAR_LIGA = `
 {
   "encontrado": "boolean — true somente se a busca na web confirmou com boa confiança em qual liga/competição esse confronto aconteceu ou está programado para acontecer",
   "liga": "string — nome da liga no formato 'País - Divisão' (ex: 'Brasil - Série A', 'Inglaterra - Premier League'); torneios internacionais mantêm o nome padrão sem prefixo de país (ex: 'Champions League', 'Copa Libertadores'). String vazia se encontrado=false",
+  "esporte": "string — o esporte do confronto (ex: 'Futebol', 'Basquete', 'Tênis'), confirmado pela busca. Preencha sempre que a busca identificar o confronto com confiança, mesmo que o esporte já tenha vindo preenchido na entrada (nesse caso, apenas confirme o mesmo valor). String vazia se não conseguir identificar",
   "confianca": "number de 0 a 1 — o quanto você confia nesse resultado (leve em conta ambiguidade de nomes de time repetidos em vários países)",
   "observacao": "string curta — se encontrado=true, cite brevemente a base (ex: 'confirmado via tabela do campeonato atual'). Se encontrado=false, explique objetivamente por que (ex: 'não encontrei esse confronto específico nas competições em andamento')"
 }`;
 
-const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, usando a ferramenta de busca na web disponível. Você vai receber o esporte, o nome do evento/confronto (ex: "Time A x Time B") e, quando disponível, uma data de referência (data em que a aposta foi registrada — o confronto costuma ter sido disputado próximo dessa data), em formato JSON.
+const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, usando a ferramenta de busca na web disponível. Você vai receber o nome do evento/confronto (ex: "Time A x Time B"), o esporte quando já for conhecido (pode vir null/ausente — nesse caso você também precisa identificar o esporte) e, quando disponível, uma data de referência (data em que a aposta foi registrada), em formato JSON.
+
+QUANDO O ESPORTE NÃO FOR INFORMADO (null/ausente):
+- Identifique o esporte a partir dos nomes dos competidores/times e do contexto encontrado na busca (ex: nomes de clube de futebol, duplas de tênis, franquias de basquete). Preencha o campo "esporte" da resposta com o que identificar.
+- Se não conseguir identificar o esporte com confiança, trate como não encontrado: "encontrado": false.
+- Quando o esporte JÁ vier informado, apenas confirme-o de volta no campo "esporte" da resposta (não precisa buscar isso, só ecoar).
 
 USO DA DATA DE REFERÊNCIA — MUITO IMPORTANTE:
 - Quando "dataReferencia" vier preenchida, use-a para achar a temporada/rodada certa do confronto, não a mais recente disponível hoje. Times mudam de divisão entre temporadas (acesso/rebaixamento) — a liga de um time HOJE pode não ser a mesma de quando o confronto aconteceu.
+- A dataReferencia é a data em que a APOSTA foi registrada, não necessariamente a data do jogo — o apostador costuma registrar a aposta no mesmo dia do jogo ou com alguns dias de antecedência (raramente depois). Ou seja, procure o confronto na dataReferencia ou em dias seguintes próximos a ela; considere uma data de jogo anterior à dataReferencia só se não encontrar nada em dataReferencia ou depois.
 - Sem "dataReferencia", assuma que o confronto é recente/atual e busque a temporada em andamento.
 
 USO DA BUSCA NA WEB — MUITO IMPORTANTE:
@@ -444,8 +451,9 @@ REGRAS DE FORMATO:
 - Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases — mesmo tendo usado a ferramenta de busca antes, a resposta final deve ser só o JSON.
 
 EXEMPLOS DE SAÍDA ESPERADA:
-- Confronto identificado com confiança: {"encontrado": true, "liga": "Brasil - Série A"}
-- Confronto não identificado com confiança suficiente: {"encontrado": false, "liga": ""}
+- Confronto identificado com confiança, esporte já informado na entrada: {"encontrado": true, "liga": "Brasil - Série A", "esporte": "Futebol"}
+- Confronto identificado com confiança, esporte NÃO informado na entrada (identificado pela busca): {"encontrado": true, "liga": "Inglaterra - Premier League", "esporte": "Futebol"}
+- Confronto não identificado com confiança suficiente: {"encontrado": false, "liga": "", "esporte": ""}
 
 Formato de saída:
 ${SCHEMA_BUSCAR_LIGA}`;
@@ -606,12 +614,14 @@ async function handleFetch(request, env, ctx) {
       textoBilhete = JSON.stringify(aposta); // reaproveita o caminho de "texto" das funções de provedor abaixo
     } else if (url.pathname === '/api/buscar-liga') {
       // ---- Rota de busca de liga por IA (usada no preenchimento manual de apostas antigas) ----
+      // "esporte" agora é opcional: quando ausente, a IA também tenta identificar o esporte
+      // a partir dos nomes dos competidores e da data de referência.
       const { esporte, evento, dataReferencia } = payload || {};
-      if (!esporte || !evento) {
-        return new Response(JSON.stringify({ error: 'Envie "esporte" e "evento" para buscar a liga.' }), { status: 400, headers });
+      if (!evento) {
+        return new Response(JSON.stringify({ error: 'Envie "evento" para buscar a liga.' }), { status: 400, headers });
       }
       systemInstrucoes = PROMPT_BUSCAR_LIGA;
-      textoBilhete = JSON.stringify({ esporte, evento, dataReferencia: dataReferencia || null });
+      textoBilhete = JSON.stringify({ esporte: esporte || null, evento, dataReferencia: dataReferencia || null });
     } else {
       // ---- Rota original: leitor de bilhete por foto ou texto ----
       ({ imagemBase64, mediaType, textoBilhete } = payload || {});

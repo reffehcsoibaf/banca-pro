@@ -114,6 +114,22 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-18-0">v1.18.0</h2>
+  <p class="versao-data">31/07/2026</p>
+  <h3>Busca de Liga de Todos os Eventos de uma vez</h3>
+  <ul>
+    <li>O botão individual "🔍 Buscar Liga" de cada evento foi substituído por um único botão "🔍 Buscar Liga de Todos os Eventos", ao lado de "Adicionar Evento". Ele busca a liga, um evento por vez (com anúncio de progresso para leitor de tela), de todos os eventos da aposta que tenham o nome do Evento preenchido e a Liga ainda vazia — eventos que já têm Liga preenchida são pulados e nunca sobrescritos.</li>
+    <li>O Esporte de cada evento agora é opcional para essa busca: se ainda não estiver definido, a IA tenta identificá-lo a partir dos competidores e da data do bilhete, e preenche esse campo sozinha junto com a Liga. Se não conseguir confirmar o esporte com confiança, o evento fica marcado como não encontrado, sem chutar nada.</li>
+    <li>A busca por data foi ajustada: como a aposta costuma ser registrada no mesmo dia do jogo ou com poucos dias de antecedência, a IA agora prioriza encontrar o confronto na data do bilhete ou em dias seguintes próximos a ela, em vez de considerar datas anteriores.</li>
+  </ul>
+  <h3>Configurações — listas em tabela, com botão de Editar</h3>
+  <ul>
+    <li>As listas de Casa, Tipster, Tipo, Esporte, Liga e Mercado, e a lista de Correções Aprendidas (IA), agora aparecem em formato de tabela em vez de "chips", com uma coluna de Ações.</li>
+    <li>Cada linha ganhou um botão ✏️ Editar, além do 🗑️ Excluir que já existia — útil para corrigir um erro de digitação sem precisar excluir e recadastrar do zero. A edição usa caixas de diálogo simples e nativas (bem compatíveis com leitor de tela).</li>
+    <li>Editar um valor de Casa, Tipster, Tipo, Esporte, Liga ou Mercado só renomeia a opção na lista — apostas e eventos já salvos com o valor antigo não são alterados retroativamente (mesmo comportamento que o "Mover para" que já existia para Liga/Mercado).</li>
+    <li>Editar uma Correção Aprendida permite ajustar o valor errado, o valor correto e o contexto, sem precisar excluir e a IA "esquecer" aquele aprendizado enquanto uma nova correção não é registrada.</li>
+  </ul>
+
   <h2 id="v1-17-3">v1.17.3</h2>
   <p class="versao-data">30/07/2026</p>
   <h3>Busca de Liga por IA — prompt expandido (cache e acurácia)</h3>

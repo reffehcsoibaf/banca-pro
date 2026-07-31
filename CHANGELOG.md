@@ -4,6 +4,49 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.18.0 — 31/07/2026
+
+### Busca de Liga de Todos os Eventos de uma vez
+
+- O botão individual "🔍 Buscar Liga" de cada evento foi substituído por um único
+  botão "🔍 Buscar Liga de Todos os Eventos", ao lado de "Adicionar Evento". Ele
+  busca a liga, um evento por vez (sequencialmente, com anúncio de progresso para
+  leitor de tela via `aria-live`), de todos os eventos da aposta que tenham o nome
+  do Evento preenchido e a Liga ainda vazia. Eventos que já têm Liga preenchida
+  (lida certo ou já corrigida manualmente) são pulados e nunca sobrescritos por
+  essa busca.
+- O Esporte de cada evento agora é opcional para essa busca (`/api/buscar-liga`
+  não exige mais `esporte` no corpo da requisição, só `evento`): se ainda não
+  estiver definido no evento, a IA tenta identificá-lo a partir dos nomes dos
+  competidores e do contexto encontrado na busca, e preenche o campo Esporte
+  sozinha junto com a Liga. Se não conseguir confirmar o esporte com confiança,
+  o evento fica marcado como não encontrado, sem chutar nada.
+- A instrução de busca por data foi ajustada: como a aposta costuma ser
+  registrada no mesmo dia do jogo ou com poucos dias de antecedência (raramente
+  depois), a IA agora prioriza encontrar o confronto na data de referência do
+  bilhete ou em dias seguintes próximos a ela, considerando uma data anterior só
+  se não encontrar nada a partir da data de referência.
+
+### Configurações — listas em tabela, com botão de Editar
+
+- As listas de Casa, Tipster, Tipo, Esporte, Liga e Mercado, e a lista de
+  Correções Aprendidas (IA), agora aparecem em formato de tabela (`<table
+  role="grid">`, com cabeçalho fixo) em vez de "chips", com uma coluna de Ações.
+- Cada linha ganhou um botão ✏️ Editar, além do 🗑️ Excluir que já existia — para
+  corrigir um erro de digitação sem precisar excluir e recadastrar do zero. A
+  edição usa `prompt()` nativo do navegador em vez de edição embutida na própria
+  linha, por ser mais simples de manter e naturalmente bem compatível com leitor
+  de tela, sem precisar de gerenciamento de foco customizado.
+- Editar um valor de Casa, Tipster, Tipo, Esporte, Liga ou Mercado só renomeia a
+  opção na lista de opções (`registrarCorrecaoIA`/tabela `opcoes` no Supabase) —
+  apostas e eventos já salvos com o valor antigo não são alterados
+  retroativamente, mesmo comportamento que o "Mover para" que já existia para
+  itens órfãos de Liga/Mercado.
+- Editar uma Correção Aprendida permite ajustar o valor errado, o valor correto
+  e o contexto diretamente (`UPDATE` na tabela `correcoes_ia`), sem precisar
+  excluir e a IA "esquecer" aquele aprendizado enquanto uma nova correção não é
+  registrada do zero.
+
 ## v1.17.3 — 30/07/2026
 
 ### Busca de Liga por IA — prompt expandido (cache e acurácia)
