@@ -480,7 +480,7 @@ async function checarAcessoIA(request, env) {
   const userData = await userResp.json();
 
   const profileResp = await fetch(
-    env.SUPABASE_URL + '/rest/v1/profiles?id=eq.' + userData.id + '&select=ai_enabled',
+    env.SUPABASE_URL + '/rest/v1/profiles_modulos?user_id=eq.' + userData.id + '&modulo=eq.banca&select=ai_enabled',
     { headers: { apikey: env.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + accessToken } }
   );
   if (!profileResp.ok) {
@@ -498,18 +498,18 @@ async function checarAcessoIA(request, env) {
 // (leitura de bilhete vs análise de estatísticas/risco). Melhor esforço:
 // nunca deve quebrar a resposta já obtida para o usuário.
 async function registrarUsoIA(accessToken, env, tipo) {
-  const funcaoRpc = tipo === 'estatisticas' ? 'increment_ai_calls_estatisticas'
-    : tipo === 'liga' ? 'increment_ai_calls_liga'
-    : 'increment_ai_calls_bilhete';
+  const categoria = tipo === 'estatisticas' ? 'estatisticas'
+    : tipo === 'liga' ? 'liga'
+    : 'bilhete';
   try {
-    await fetch(env.SUPABASE_URL + '/rest/v1/rpc/' + funcaoRpc, {
+    await fetch(env.SUPABASE_URL + '/rest/v1/rpc/banca_increment_ai_calls', {
       method: 'POST',
       headers: {
         apikey: env.SUPABASE_ANON_KEY,
         Authorization: 'Bearer ' + accessToken,
         'Content-Type': 'application/json'
       },
-      body: '{}'
+      body: JSON.stringify({ categoria })
     });
   } catch (e) {
     console.log('[uso-ia] falha ao registrar uso (ignorado):', e.message);

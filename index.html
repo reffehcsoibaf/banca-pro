@@ -1437,8 +1437,8 @@
 <!-- ========== SCRIPTS ========== -->
 <script>
 /* ==================== SUPABASE ==================== */
-const SUPABASE_URL = 'https://nccpmxavmwipsvzquzeg.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_XAjlhNGUMf9EzoqY4C3J9w_FJ1k-SxT';
+const SUPABASE_URL = 'https://zlclakzjktpsbpfkltxa.supabase.co'; // projeto Hub
+const SUPABASE_KEY = 'sb_publishable_o5Rn3Qp_C3boiYCRqQ5Ykw_2sNd3KiQ'; // Project Settings > API > anon/public
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Monta o header Authorization com o token da sessão atual, usado nas
@@ -2066,7 +2066,7 @@ async function selecionarTudo(tabela, ordenarPor, colunas) {
 }
 
 async function carregarOpcoes() {
-    const { data, error } = await selecionarTudo('opcoes', 'id', 'campo, valor');
+    const { data, error } = await selecionarTudo('banca_opcoes', 'id', 'campo, valor');
     if (error) { showToast('❌ Erro ao carregar listas: ' + error.message, 'error'); return; }
 
     if (!data || data.length === 0) {
@@ -2087,16 +2087,16 @@ async function semearOpcoesPadrao() {
         (defaults[campo] || []).forEach(valor => linhas.push({ campo, valor }));
     });
     if (linhas.length === 0) return;
-    const { error } = await sb.from('opcoes').insert(linhas);
+    const { error } = await sb.from('banca_opcoes').insert(linhas);
     if (error) showToast('❌ Erro ao criar listas iniciais: ' + error.message, 'error');
 }
 
 async function carregarApostas() {
-    const { data: apostasRows, error: e1 } = await selecionarTudo('apostas', 'id');
+    const { data: apostasRows, error: e1 } = await selecionarTudo('banca_apostas', 'id');
     if (e1) { showToast('❌ Erro ao carregar apostas: ' + e1.message, 'error'); apostas = []; return; }
 
     // Paginado por id (estável); a ordem correta dentro de cada aposta vem do campo "numero", reordenado abaixo
-    const { data: eventosRows, error: e2 } = await selecionarTudo('eventos', 'id');
+    const { data: eventosRows, error: e2 } = await selecionarTudo('banca_eventos', 'id');
     if (e2) { showToast('❌ Erro ao carregar eventos: ' + e2.message, 'error'); }
 
     const porAposta = {};
@@ -2129,20 +2129,20 @@ function linhaParaTransacao(row) {
 }
 
 async function carregarTransacoes() {
-    const { data, error } = await selecionarTudo('transacoes', 'id');
+    const { data, error } = await selecionarTudo('banca_transacoes', 'id');
     if (error) { showToast('❌ Erro ao carregar saldos: ' + error.message, 'error'); transacoes = []; return; }
     transacoes = (data || []).map(linhaParaTransacao);
 }
 
 async function inserirTransacaoDB(t) {
-    const { data, error } = await sb.from('transacoes').insert(transacaoParaLinha(t)).select().single();
+    const { data, error } = await sb.from('banca_transacoes').insert(transacaoParaLinha(t)).select().single();
     if (error) { showToast('❌ Erro ao lançar transação: ' + error.message, 'error'); return false; }
     t.id = data.id;
     return true;
 }
 
 async function excluirTransacaoDB(id) {
-    const { error } = await sb.from('transacoes').delete().eq('id', id);
+    const { error } = await sb.from('banca_transacoes').delete().eq('id', id);
     if (error) showToast('❌ Erro ao excluir transação: ' + error.message, 'error');
 }
 
@@ -2170,7 +2170,7 @@ function linhaParaCorrecao(row) {
 }
 
 async function carregarCorrecoesIA() {
-    const { data, error } = await selecionarTudo('correcoes_ia', 'id');
+    const { data, error } = await selecionarTudo('banca_correcoes_ia', 'id');
     if (error) {
         // Tabela pode ainda não existir se o usuário não rodou o SQL de criação —
         // falha silenciosa aqui não deve travar o app, só desativa esse recurso.
@@ -2241,7 +2241,7 @@ async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, co
     });
     if (jaExiste) return;
     const nova = { campo, esporte, valorErrado, valorCorreto, contexto: contextoNovo };
-    const { data, error } = await sb.from('correcoes_ia').insert(correcaoParaLinha(nova)).select().single();
+    const { data, error } = await sb.from('banca_correcoes_ia').insert(correcaoParaLinha(nova)).select().single();
     if (error) { console.warn('Não foi possível salvar correção aprendida:', error.message); return; }
     nova.id = data.id;
     nova.criadoEm = data.criado_em;
@@ -2249,7 +2249,7 @@ async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, co
 }
 
 async function excluirCorrecaoIA(id) {
-    const { error } = await sb.from('correcoes_ia').delete().eq('id', id);
+    const { error } = await sb.from('banca_correcoes_ia').delete().eq('id', id);
     if (error) { showToast('❌ Erro ao excluir correção: ' + error.message, 'error'); return; }
     correcoesIA = correcoesIA.filter(c => c.id !== id);
     renderCorrecoesIA();
@@ -2283,7 +2283,7 @@ async function editarCorrecaoIA(id) {
         return;
     }
 
-    const { error } = await sb.from('correcoes_ia')
+    const { error } = await sb.from('banca_correcoes_ia')
         .update({ valor_errado: valorErrado, valor_correto: valorCorreto, contexto: contexto || null })
         .eq('id', id);
     if (error) { showToast('❌ Erro ao atualizar correção: ' + error.message, 'error'); return; }
@@ -2298,7 +2298,7 @@ async function editarCorrecaoIA(id) {
 async function limparTodasCorrecoesIA() {
     if (!correcoesIA.length) return;
     if (!confirm(`Apagar todas as ${correcoesIA.length} correções aprendidas? A IA volta a inferir do zero, sem lembrar dos ajustes feitos até agora.`)) return;
-    const { error } = await sb.from('correcoes_ia').delete().not('id', 'is', null);
+    const { error } = await sb.from('banca_correcoes_ia').delete().not('id', 'is', null);
     if (error) { showToast('❌ Erro ao limpar correções: ' + error.message, 'error'); return; }
     correcoesIA = [];
     renderCorrecoesIA();
@@ -2330,7 +2330,7 @@ async function detectarECorrigirAprendizadoIA(listaEventosSalvos) {
     extracaoAtualDados = null;
 }
 
-// ---- Operações SEGURAS e incrementais sobre a tabela 'opcoes' ----
+// ---- Operações SEGURAS e incrementais sobre a tabela 'banca_opcoes' ----
 // IMPORTANTE: estas funções NUNCA apagam a lista inteira de um campo — cada uma
 // mexe em UMA linha só (inserir ou remover um valor específico). Isso evita que
 // uma aba/sessão com dados desatualizados na memória apague, sem querer, itens
@@ -2339,26 +2339,26 @@ async function detectarECorrigirAprendizadoIA(listaEventosSalvos) {
 async function adicionarOpcaoDB(campo, valor) {
     // Verifica no BANCO (não só na memória local) antes de inserir, para não
     // duplicar linhas caso outra sessão já tenha adicionado o mesmo valor.
-    const { data: existentes, error: eSel } = await sb.from('opcoes').select('id').eq('campo', campo).eq('valor', valor).limit(1);
+    const { data: existentes, error: eSel } = await sb.from('banca_opcoes').select('id').eq('campo', campo).eq('valor', valor).limit(1);
     if (eSel) { showToast('❌ Erro ao verificar opção existente: ' + eSel.message, 'error'); return; }
     if (existentes && existentes.length > 0) return; // já existe no banco — nada a fazer
-    const { error } = await sb.from('opcoes').insert({ campo, valor });
+    const { error } = await sb.from('banca_opcoes').insert({ campo, valor });
     if (error) showToast('❌ Erro ao salvar opção: ' + error.message, 'error');
 }
 
 async function removerOpcaoDB(campo, valor) {
-    const { error } = await sb.from('opcoes').delete().eq('campo', campo).eq('valor', valor);
+    const { error } = await sb.from('banca_opcoes').delete().eq('campo', campo).eq('valor', valor);
     if (error) showToast('❌ Erro ao remover opção: ' + error.message, 'error');
 }
 
 // ---- CRUD de uma aposta individual ----
 async function inserirApostaDB(aposta) {
-    const { data, error } = await sb.from('apostas').insert(apostaParaLinha(aposta)).select().single();
+    const { data, error } = await sb.from('banca_apostas').insert(apostaParaLinha(aposta)).select().single();
     if (error) { showToast('❌ Erro ao salvar aposta: ' + error.message, 'error'); return false; }
     aposta.id = data.id;
     if (aposta.eventos && aposta.eventos.length > 0) {
         const linhas = aposta.eventos.map(e => eventoParaLinha(e, data.id));
-        const { data: dataEv, error: e2 } = await sb.from('eventos').insert(linhas).select();
+        const { data: dataEv, error: e2 } = await sb.from('banca_eventos').insert(linhas).select();
         if (e2) { showToast('❌ Erro ao salvar eventos: ' + e2.message, 'error'); return false; }
         dataEv.forEach((row, i) => { aposta.eventos[i].id = row.id; });
     }
@@ -2366,14 +2366,14 @@ async function inserirApostaDB(aposta) {
 }
 
 async function atualizarApostaDB(aposta) {
-    const { error } = await sb.from('apostas').update(apostaParaLinha(aposta)).eq('id', aposta.id);
+    const { error } = await sb.from('banca_apostas').update(apostaParaLinha(aposta)).eq('id', aposta.id);
     if (error) { showToast('❌ Erro ao atualizar aposta: ' + error.message, 'error'); return false; }
     // Eventos: substitui todos (a tela de edição sempre reenvia a lista completa)
-    const { error: eDel } = await sb.from('eventos').delete().eq('aposta_id', aposta.id);
+    const { error: eDel } = await sb.from('banca_eventos').delete().eq('aposta_id', aposta.id);
     if (eDel) { showToast('❌ Erro ao atualizar eventos: ' + eDel.message, 'error'); return false; }
     if (aposta.eventos && aposta.eventos.length > 0) {
         const linhas = aposta.eventos.map(e => eventoParaLinha(e, aposta.id));
-        const { data: dataEv, error: eIns } = await sb.from('eventos').insert(linhas).select();
+        const { data: dataEv, error: eIns } = await sb.from('banca_eventos').insert(linhas).select();
         if (eIns) { showToast('❌ Erro ao salvar eventos: ' + eIns.message, 'error'); return false; }
         dataEv.forEach((row, i) => { aposta.eventos[i].id = row.id; });
     }
@@ -2381,7 +2381,7 @@ async function atualizarApostaDB(aposta) {
 }
 
 async function atualizarStatusApostaDB(aposta) {
-    const { error } = await sb.from('apostas').update({
+    const { error } = await sb.from('banca_apostas').update({
         status: aposta.status,
         recebido: aposta.recebido,
         lucro: aposta.lucro,
@@ -2392,7 +2392,7 @@ async function atualizarStatusApostaDB(aposta) {
 }
 
 async function excluirApostaDB(id) {
-    const { error } = await sb.from('apostas').delete().eq('id', id);
+    const { error } = await sb.from('banca_apostas').delete().eq('id', id);
     if (error) showToast('❌ Erro ao excluir aposta: ' + error.message, 'error');
 }
 
@@ -4598,11 +4598,11 @@ async function recalcularPrecisaoDecimal() {
     let falhas = 0, processadas = 0;
 
     async function regravarUma(a) {
-        const { error } = await sb.from('apostas').update(apostaParaLinha(a)).eq('id', a.id);
+        const { error } = await sb.from('banca_apostas').update(apostaParaLinha(a)).eq('id', a.id);
         if (error) { falhas++; return; }
         for (const e of (a.eventos || [])) {
             if (e.id) {
-                const { error: eOdd } = await sb.from('eventos').update({ odd: e.odd }).eq('id', e.id);
+                const { error: eOdd } = await sb.from('banca_eventos').update({ odd: e.odd }).eq('id', e.id);
                 if (eOdd) falhas++;
             }
         }
@@ -5019,11 +5019,11 @@ async function limparTodosDados() {
         mercado: ["Cartões","Chance Dupla","Empate","Gols","Handicap","Vencedor"].sort((a,b)=>a.localeCompare(b)),
         selecao: []
     });
-    const { error: eDel } = await sb.from('apostas').delete().not('id', 'is', null);
+    const { error: eDel } = await sb.from('banca_apostas').delete().not('id', 'is', null);
     if (eDel) showToast('❌ Erro ao apagar apostas na nuvem: ' + eDel.message, 'error');
-    const { error: eDelTrans } = await sb.from('transacoes').delete().not('id', 'is', null);
+    const { error: eDelTrans } = await sb.from('banca_transacoes').delete().not('id', 'is', null);
     if (eDelTrans) showToast('❌ Erro ao apagar lançamentos de saldo na nuvem: ' + eDelTrans.message, 'error');
-    const { error: eDelOp } = await sb.from('opcoes').delete().not('id', 'is', null);
+    const { error: eDelOp } = await sb.from('banca_opcoes').delete().not('id', 'is', null);
     if (eDelOp) showToast('❌ Erro ao apagar listas na nuvem: ' + eDelOp.message, 'error');
     await semearOpcoesPadrao();
     fillSelects();
@@ -5393,7 +5393,7 @@ function importarExcelCompleto(event) {
             // Insere apenas as apostas novas (cabeçalho) em lotes e recupera os ids gerados
             const linhasApostas = apostasNovas.map(apostaParaLinha);
             const resApostas = linhasApostas.length > 0
-                ? await inserirEmLotes('apostas', linhasApostas, true)
+                ? await inserirEmLotes('banca_apostas', linhasApostas, true)
                 : { error: null, inseridas: [] };
             if (resApostas.error) {
                 showToast(`❌ Erro ao importar apostas (${resApostas.inseridas.length} de ${linhasApostas.length} enviadas antes do erro): ` + resApostas.error.message, 'error', 10000);
@@ -5413,7 +5413,7 @@ function importarExcelCompleto(event) {
                 if (a.id) linhasEventos.push(eventoParaLinha(ev, a.id));
             }));
             if (linhasEventos.length > 0) {
-                const resEventos = await inserirEmLotes('eventos', linhasEventos, false);
+                const resEventos = await inserirEmLotes('banca_eventos', linhasEventos, false);
                 if (resEventos.error) {
                     showToast(`❌ Erro ao importar eventos (parte ficou sem enviar): ` + resEventos.error.message + ' — reimporte a planilha depois de resolver.', 'error', 12000);
                     return;
@@ -5448,15 +5448,15 @@ function importarExcelCompleto(event) {
 
             async function atualizarUmaAposta(a) {
                 const linha = apostaParaLinha(a);
-                const { error: errUpd } = await sb.from('apostas').update(linha).eq('id', a.id);
+                const { error: errUpd } = await sb.from('banca_apostas').update(linha).eq('id', a.id);
                 if (errUpd) { falhasAtualizacao++; return; }
 
                 // Recria os eventos: remove os antigos e insere os novos da planilha,
                 // já que as odds individuais por evento também podem ter sido corrigidas.
-                await sb.from('eventos').delete().eq('aposta_id', a.id);
+                await sb.from('banca_eventos').delete().eq('aposta_id', a.id);
                 const linhasEv = (a.eventos || []).map(ev => eventoParaLinha(ev, a.id));
                 if (linhasEv.length > 0) {
-                    const resEv = await inserirEmLotes('eventos', linhasEv, false);
+                    const resEv = await inserirEmLotes('banca_eventos', linhasEv, false);
                     if (resEv.error) falhasAtualizacao++;
                 }
             }
@@ -5486,7 +5486,7 @@ function importarExcelCompleto(event) {
 
                 if (transacoesNovas.length > 0) {
                     const linhasTransacoes = transacoesNovas.map(transacaoParaLinha);
-                    const resTrans = await inserirEmLotes('transacoes', linhasTransacoes, false);
+                    const resTrans = await inserirEmLotes('banca_transacoes', linhasTransacoes, false);
                     if (resTrans.error) {
                         showToast('❌ Erro ao importar transações: ' + resTrans.error.message, 'error', 10000);
                     } else {
