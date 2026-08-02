@@ -1562,7 +1562,20 @@ function mercadosDoEsporte(esporte) {
 /* ==================== INIT ==================== */
 let appJaIniciado = false;
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+    // Chegando do Hub? Consome o token de sessão embutido na URL (via #)
+    // e evita pedir login de novo. Um acesso direto ao endereço do app
+    // (sem vir do Hub) continua pedindo login normalmente.
+    if (location.hash && location.hash.includes('sso_access_token=')) {
+        const params = new URLSearchParams(location.hash.slice(1));
+        const access_token = params.get('sso_access_token');
+        const refresh_token = params.get('sso_refresh_token');
+        if (access_token && refresh_token) {
+            await sb.auth.setSession({ access_token, refresh_token });
+        }
+        history.replaceState(null, '', location.pathname + location.search);
+    }
+
     // Tema (aplica tanto na tela de login quanto no app)
     loadTheme();
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
