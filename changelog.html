@@ -114,6 +114,19 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-18-1">v1.18.1</h2>
+  <p class="versao-data">02/08/2026</p>
+  <h3>Correções Aprendidas (IA) — bug no casamento de eventos</h3>
+  <ul>
+    <li>Corrigido bug em que a comparação entre o que a IA sugeriu na leitura do bilhete e o que foi efetivamente salvo (usada para aprender correções de Liga/Mercado automaticamente) casava os eventos <strong>pela posição na lista</strong>, não pelo confronto em si. Sempre que um evento era removido ou adicionado manualmente no formulário antes de salvar (ex.: a IA leu um evento duplicado ou a mais), todos os eventos a partir dali passavam a ser comparados com o evento errado da extração — o app aprendia correções erradas (ruído na lista) ou deixava de aprender as certas, sem nenhum aviso.</li>
+    <li>Agora o casamento é feito pelo nome do confronto (campo Evento), que já existe nos dois lados da comparação. Continua funcionando corretamente mesmo quando há dois eventos diferentes para o mesmo confronto (ex.: duas apostas distintas no mesmo jogo), casando cada um na ordem em que aparece.</li>
+  </ul>
+  <h3>Janela de erro persistente (nova, para todo erro do app)</h3>
+  <ul>
+    <li>Toda mensagem de erro agora aparece numa janela fixa no topo da tela em vez de um toast que some sozinho em poucos segundos. A janela recebe foco automaticamente (leitor de tela anuncia assim que ela aparece), fica visível até o usuário clicar em Fechar, e tem um botão para copiar o texto exato da mensagem.</li>
+    <li>Isso corrige, entre outros casos, o comportamento anterior do carregamento e da gravação de Correções Aprendidas (IA): em caso de erro (falha de rede, RLS, tabela renomeada etc.) o app só registrava um aviso no console do navegador — invisível para quem usa leitor de tela. Agora qualquer falha nesses dois pontos aparece visivelmente, com o motivo exato retornado pelo Supabase.</li>
+  </ul>
+
   <h2 id="v1-18-0">v1.18.0</h2>
   <p class="versao-data">31/07/2026</p>
   <h3>Busca de Liga de Todos os Eventos de uma vez</h3>

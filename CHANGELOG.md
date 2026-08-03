@@ -4,6 +4,36 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.18.1 — 02/08/2026
+
+### Correções Aprendidas (IA) — bug no casamento de eventos (correção deixava de aprender ou aprendia errado)
+
+- Corrigido bug em que a comparação entre o que a IA sugeriu e o que foi
+  efetivamente salvo (usada para memorizar correções de Liga/Mercado
+  automaticamente) casava os eventos **pela posição na lista**, não pelo
+  confronto em si. Sempre que um evento era removido ou adicionado manualmente
+  no formulário antes de salvar (ex.: a IA leu um evento duplicado ou a mais),
+  todos os eventos a partir dali ficavam comparados com o evento errado da
+  extração — o que fazia o app aprender correções erradas (ruído na lista) ou
+  deixar de aprender as certas, sem nenhum aviso.
+- Agora o casamento é feito pelo **nome do confronto** (campo Evento), que já
+  existe nos dois lados da comparação. Continua funcionando corretamente
+  mesmo quando há dois eventos diferentes para o mesmo confronto (ex.: duas
+  apostas distintas no mesmo jogo), casando cada um na ordem em que aparece.
+
+### Janela de erro persistente (nova, para todo erro do app)
+
+- Toda mensagem de erro (`showToast(..., 'error')`) agora aparece numa janela
+  fixa no topo da tela em vez de um toast que some sozinho em poucos segundos.
+  A janela recebe foco automaticamente (leitor de tela anuncia assim que ela
+  aparece), fica visível até o usuário clicar em Fechar, e tem um botão para
+  copiar o texto exato da mensagem de erro.
+- Isso substitui, entre outros casos, o comportamento anterior do carregamento
+  e da gravação de Correções Aprendidas (IA), que em caso de erro (ex.: falha
+  de rede, RLS, tabela renomeada) só registrava um aviso no console do
+  navegador — invisível para quem usa leitor de tela. Agora qualquer falha
+  nesses dois pontos aparece visivelmente, com o motivo exato do Supabase.
+
 ## v1.18.0 — 31/07/2026
 
 ### Busca de Liga de Todos os Eventos de uma vez
