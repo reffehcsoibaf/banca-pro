@@ -1034,7 +1034,10 @@
     <!-- ===== SEÇÃO: LISTA ===== -->
     <section class="section" id="sec-lista" aria-label="Lista de apostas" role="tabpanel" aria-labelledby="tab-btn-lista">
         <div class="card">
-            <h2>📋 Apostas</h2>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <h2 style="margin:0;">📋 Apostas</h2>
+                <button type="button" class="btn btn-secondary" id="btnFiltroRapidoAbertas" onclick="alternarFiltroAbertas()" aria-keyshortcuts="Alt+A" aria-pressed="false" style="max-width:220px;">🟢 Somente Abertas</button>
+            </div>
             <div class="table-wrap">
                 <table role="grid" aria-label="Tabela de apostas registradas">
                     <thead>
@@ -1432,7 +1435,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.18.0 · 31/07/2026
+  Banca Pro · v1.19.0 · 05/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1938,10 +1941,41 @@ function localizarApostaPorIdentificador() {
     }, 80);
 }
 
-// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Localizar ----
+// ---- Filtro rápido "Somente Abertas" (Alt+A) ----
+// Alterna direto o filtro de Status para "Aberto" (ou remove, se já estiver
+// ativo) sem precisar ir até a aba Filtros escolher no <select> e depois
+// voltar pra aba Lista para ver o resultado. Mantém qualquer outro filtro já
+// aplicado (Casa, Tipster, Liga, datas etc.) — só liga/desliga o Status.
+// Funciona de qualquer aba: se você não estiver na Lista, já leva você pra lá.
+function alternarFiltroAbertas() {
+    const fStatus = document.getElementById('fStatus');
+    const vaiAtivar = fStatus.value !== 'Aberto';
+    fStatus.value = vaiAtivar ? 'Aberto' : '';
+    aplicarFiltros(); // já sincroniza o texto/aria-pressed do botão
+
+    const abaListaAtiva = document.getElementById('sec-lista').classList.contains('active');
+    if (!abaListaAtiva) {
+        irPara('lista', document.querySelector('.tab-btn[data-secao="lista"]'));
+    }
+
+    const qtd = apostasFiltradasAtuais.length;
+    if (vaiAtivar) {
+        anunciar(`Filtro rápido ativado: somente apostas Abertas. ${qtd} encontrada${qtd === 1 ? '' : 's'}.`);
+    } else {
+        anunciar(`Filtro rápido removido: mostrando todas as apostas. ${qtd} encontrada${qtd === 1 ? '' : 's'}.`);
+    }
+}
+
+// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Localizar, Filtro Abertas ----
 document.addEventListener('keydown', function(e) {
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
     const tecla = e.key.toLowerCase();
+
+    if (tecla === 'a') {
+        e.preventDefault();
+        alternarFiltroAbertas();
+        return;
+    }
 
     if (tecla === 's') {
         // Salvar (ou Atualizar, se já estiver editando) — só faz sentido na aba Cadastro
@@ -4260,6 +4294,17 @@ function aplicarFiltros() {
     apostasFiltradasAtuais.sort((a,b) => (a.dataHora > b.dataHora ? 1 : a.dataHora < b.dataHora ? -1 : 0));
     paginaAtualLista = 1; // novo filtro/busca sempre volta para a primeira página
     renderTabela(apostasFiltradasAtuais);
+
+    // Mantém o botão/atalho "Somente Abertas" sincronizado mesmo quando o
+    // Status é alterado por outro caminho (ex.: direto no <select> da aba
+    // Filtros, ou por "Limpar filtros") — não só pelo próprio atalho Alt+A.
+    const btnFiltroAbertas = document.getElementById('btnFiltroRapidoAbertas');
+    if (btnFiltroAbertas) {
+        const statusAtual = document.getElementById('fStatus').value;
+        const ativo = statusAtual === 'Aberto';
+        btnFiltroAbertas.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        btnFiltroAbertas.textContent = ativo ? '🟢 Mostrando só Abertas' : '🟢 Somente Abertas';
+    }
 }
 
 function limparFiltros() {

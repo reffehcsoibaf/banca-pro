@@ -4,6 +4,24 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.19.0 — 05/08/2026
+
+### Filtro rápido "Somente Abertas" (Alt+A)
+
+- Novo botão "🟢 Somente Abertas" no topo da aba Lista, com atalho de teclado
+  `Alt+A`. Liga (ou desliga, se apertado de novo) o filtro de Status = Aberto
+  direto na lista de apostas, sem precisar ir até a aba Filtros escolher no
+  campo Status e depois voltar para a Lista para ver o resultado.
+- Funciona de qualquer aba do app: se você não estiver na Lista quando aciona
+  o atalho, ele já leva você para lá com o filtro aplicado.
+- Mantém qualquer outro filtro já em uso (Casa, Tipster, Esporte, Liga,
+  Mercado, datas, busca livre) — só liga/desliga o Status. O botão reflete o
+  estado atual (`aria-pressed` e texto) mesmo quando o Status é alterado por
+  outro caminho, como diretamente no `<select>` da aba Filtros ou pelo botão
+  "Limpar filtros".
+- Um aviso sonoro (leitor de tela) confirma quando o filtro é ligado ou
+  desligado, e quantas apostas foram encontradas.
+
 ## v1.18.1 — 02/08/2026
 
 ### Correções Aprendidas (IA) — bug no casamento de eventos (correção deixava de aprender ou aprendia errado)
