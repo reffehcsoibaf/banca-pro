@@ -1116,7 +1116,7 @@
                 </div>
             </div>
             <div class="btn-row">
-                <button class="btn-sm btn-outline" onclick="limparFiltros()">✕ Limpar Filtros</button>
+                <button class="btn-sm btn-outline" onclick="limparFiltros()" aria-keyshortcuts="Alt+0">✕ Limpar Filtros</button>
                 <button class="btn-sm btn-success" onclick="exportarFiltrosExcel()">📥 Exportar Filtro</button>
                 <button class="btn-sm btn-primary" onclick="irPara('lista', document.querySelector('.tab-btn[data-secao=&quot;lista&quot;]'))" aria-label="Ver lista de apostas filtradas">📋 Ver Apostas</button>
             </div>
@@ -1966,7 +1966,7 @@ function alternarFiltroAbertas() {
     }
 }
 
-// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Localizar, Filtro Abertas ----
+// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Localizar, Filtro Abertas, Limpar Filtros ----
 document.addEventListener('keydown', function(e) {
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
     const tecla = e.key.toLowerCase();
@@ -1974,6 +1974,12 @@ document.addEventListener('keydown', function(e) {
     if (tecla === 'a') {
         e.preventDefault();
         alternarFiltroAbertas();
+        return;
+    }
+
+    if (tecla === '0') {
+        e.preventDefault();
+        limparFiltros();
         return;
     }
 

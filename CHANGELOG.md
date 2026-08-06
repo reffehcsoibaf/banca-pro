@@ -22,6 +22,16 @@ está publicada e comparar com o que está descrito aqui.
 - Um aviso sonoro (leitor de tela) confirma quando o filtro é ligado ou
   desligado, e quantas apostas foram encontradas.
 
+### Atalho para Limpar Filtros (Alt+0)
+
+- Novo atalho de teclado `Alt+0`, que limpa todos os filtros ativos (Casa,
+  Tipster, Tipo, Esporte, Liga, Mercado, Status, datas e busca livre) — mesmo
+  efeito do botão "✕ Limpar Filtros" na aba Filtros, mas acionável de
+  qualquer aba do app.
+- Diferente do Alt+A, o Alt+0 **não** troca de aba nem tira o foco de onde
+  você está — a lista é atualizada por baixo, pronta para quando você for
+  até a aba Lista.
+
 ## v1.18.1 — 02/08/2026
 
 ### Correções Aprendidas (IA) — bug no casamento de eventos (correção deixava de aprender ou aprendia errado)
