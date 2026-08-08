@@ -825,20 +825,9 @@
         <a href="wiki.html" target="_blank" class="login-guia-link">📖 O que é o Banca Pro? Veja o guia de uso</a>
         <a href="changelog.html" target="_blank" class="login-guia-link" style="margin-top:-16px;">🗒️ Ver histórico de versões</a>
 
-        <form id="formLogin" novalidate>
-            <div class="login-field">
-                <label for="loginEmail">E-mail</label>
-                <input type="email" id="loginEmail" autocomplete="email" required aria-required="true">
-            </div>
-            <div class="login-field">
-                <label for="loginSenha">Senha</label>
-                <input type="password" id="loginSenha" autocomplete="current-password" required aria-required="true" minlength="6">
-            </div>
-            <div id="loginErro" class="login-erro" role="alert"></div>
-            <button type="submit" id="btnEntrar" class="btn btn-primary login-btn">Entrar</button>
-            <button type="button" id="btnCriarConta" class="btn btn-outline login-btn">Criar conta</button>
-        </form>
-        <p class="login-hint" id="loginHint">Ainda não tem conta? Preencha e-mail e senha (mínimo 6 caracteres) e toque em "Criar conta".</p>
+        <p class="login-hint" style="margin-top:20px;">O login agora é feito pelo Hub. Entre por lá e clique no módulo Banca Pro para acessar.</p>
+        <div id="loginErro" class="login-erro" role="alert"></div>
+        <a href="https://hub.fabioscheffer.workers.dev" class="btn btn-primary login-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;">🏠 Ir para o Hub</a>
     </div>
 </div>
 
@@ -1601,50 +1590,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     sb.auth.onAuthStateChange((_evento, session) => {
         if (session) mostrarApp(); else mostrarTelaLogin();
     });
-
-    // Formulário de login / criação de conta
-    const form = document.getElementById('formLogin');
-    form.addEventListener('submit', async (ev) => {
-        ev.preventDefault();
-        exibirErroLogin('');
-        const email = document.getElementById('loginEmail').value.trim();
-        const senha = document.getElementById('loginSenha').value;
-        if (!email || !senha) { exibirErroLogin('Preencha e-mail e senha.'); return; }
-
-        const { error } = await sb.auth.signInWithPassword({ email, password: senha });
-        if (error) {
-            exibirErroLogin(error.message === 'Invalid login credentials'
-                ? 'E-mail ou senha incorretos.'
-                : error.message);
-        }
-        // Sucesso: onAuthStateChange chama mostrarApp() automaticamente
-    });
-
-    document.getElementById('btnCriarConta').addEventListener('click', async () => {
-        exibirErroLogin('');
-        const email = document.getElementById('loginEmail').value.trim();
-        const senha = document.getElementById('loginSenha').value;
-        if (!email || !senha) { exibirErroLogin('Preencha e-mail e senha.'); return; }
-        if (senha.length < 6) { exibirErroLogin('A senha precisa ter pelo menos 6 caracteres.'); return; }
-
-        const { data, error } = await sb.auth.signUp({ email, password: senha });
-        if (error) { exibirErroLogin(error.message); return; }
-
-        if (data.session) {
-            return; // Confirmação de e-mail desativada no projeto: onAuthStateChange já entra direto
-        }
-        document.getElementById('loginHint').textContent =
-            'Conta criada! Verifique seu e-mail (' + email + ') e clique no link de confirmação antes de entrar.';
-        exibirErroLogin('');
-    });
 });
 
 /* ==================== AUTENTICAÇÃO ==================== */
 function mostrarTelaLogin() {
     document.getElementById('appConteudo').style.display = 'none';
     document.getElementById('telaLogin').style.display = 'flex';
-    const email = document.getElementById('loginEmail');
-    if (email) email.focus();
 }
 
 async function mostrarApp() {
