@@ -654,7 +654,17 @@ async function handleFetch(request, env, ctx) {
       // e para não misturar dado específico do usuário com a instrução genérica.
       const correcoesConhecidas = Array.isArray(payload?.correcoesConhecidas) ? payload.correcoesConhecidas : [];
       if (correcoesConhecidas.length > 0) {
-        const linhas = correcoesConhecidas.slice(0, 60).map((c) => {
+        // Mercado é vocabulário pequeno e fixo (nomes de mercado de casa de
+        // apostas) e a correção não tem prazo de validade — por isso vai
+        // inteira, sem teto. Liga é o que cresce sem parar com o tempo (cada
+        // confronto/temporada gera correções novas) — aqui limitamos pelas
+        // mais recentes, para não estourar o prompt. Antes as duas listas
+        // eram cortadas juntas num teto único de 60, o que fazia correções de
+        // Mercado antigas (mas ainda válidas) serem empurradas pra fora pelo
+        // volume de correções de Liga acumuladas ao longo do tempo.
+        const correcoesMercado = correcoesConhecidas.filter((c) => c.campo === 'mercado');
+        const correcoesLiga = correcoesConhecidas.filter((c) => c.campo !== 'mercado').slice(0, 60);
+        const linhas = [...correcoesMercado, ...correcoesLiga].map((c) => {
           const campo = c.campo === 'liga' ? 'Liga' : c.campo === 'mercado' ? 'Mercado' : c.campo;
           const contexto = c.contexto ? ` (contexto: ${c.contexto})` : '';
           return `- [${campo}] Em vez de "${c.valorErrado}", o usuário já corrigiu para "${c.valorCorreto}" — esporte: ${c.esporte}${contexto}.`;

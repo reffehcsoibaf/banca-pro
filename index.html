@@ -529,6 +529,30 @@
             to { opacity: 0; transform: translateY(20px); }
         }
 
+        /* ========== JANELA DE ERRO PERSISTENTE ========== */
+        .error-banner {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1200;
+            background: var(--danger-bg);
+            color: var(--danger);
+            padding: 12px 16px;
+            padding-top: calc(12px + env(safe-area-inset-top));
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 8px 16px;
+            box-shadow: var(--shadow-lg);
+            border-bottom: 3px solid var(--danger);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .error-banner.hidden { display: none; }
+        .error-banner-texto { flex: 1 1 260px; text-align: left; }
+        .error-banner-acoes { display: flex; gap: 8px; flex-shrink: 0; }
+        .error-banner-acoes .btn { width: auto; }
+
         .guide-toc { list-style: none; padding: 0; margin: 0 0 24px 0; }
         .guide-toc li { padding: 0; }
         .guide-toc a {
@@ -813,6 +837,19 @@
 <!-- Aria live -->
 <div aria-live="polite" aria-atomic="true" class="sr-only"><span id="avisoSalvar"></span></div>
 <div aria-live="assertive" aria-atomic="true" class="sr-only"><span id="avisoExtracao"></span></div>
+
+<!-- Janela de erro persistente: usada para toda mensagem de erro do app (em vez
+     do toast, que some sozinho). Fica fixa no topo, recebe foco automaticamente
+     (leitor de tela anuncia na hora) e só some quando o usuário clicar em
+     Fechar — evita perder uma mensagem de erro importante. Tem botão para
+     copiar o texto exato, útil para relatar o problema. -->
+<div id="erroGlobal" class="error-banner hidden" role="alert" aria-live="assertive" tabindex="-1">
+    <span id="erroGlobalTexto" class="error-banner-texto"></span>
+    <span class="error-banner-acoes">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="copiarErroGlobal()">📋 Copiar mensagem</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="fecharErroGlobal()">✕ Fechar</button>
+    </span>
+</div>
 
 <!-- Skip link -->
 <a href="#main" class="skip-link">Ir para conteúdo principal</a>
@@ -1424,7 +1461,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.19.0 · 05/08/2026
+  Banca Pro · v1.19.1 · 09/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1982,7 +2019,16 @@ function navegarAbasTeclado(e) {
 }
 
 /* ==================== TOAST ==================== */
+// Toda mensagem de erro do app (type === 'error') passa pela janela
+// persistente em vez do toast comum, que some sozinho em poucos segundos —
+// um erro perdido pode significar um dado que não foi salvo, e isso precisa
+// ficar visível até o usuário decidir fechar. Sucesso e info continuam como
+// toast normal, que já é anunciado via aria-live em anunciar().
 function showToast(msg, type = 'info', duration = 3500) {
+    if (type === 'error') {
+        mostrarErroGlobal(msg);
+        return;
+    }
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -1995,6 +2041,32 @@ function showToast(msg, type = 'info', duration = 3500) {
     // Aria live para leitores de tela
     anunciar(msg);
 }
+
+// Mostra a janela de erro persistente no topo da tela: foca automaticamente
+// (o leitor de tela anuncia assim que ela aparece, sem precisar navegar até
+// ela) e só fecha quando o usuário clicar em Fechar.
+function mostrarErroGlobal(msg) {
+    const el = document.getElementById('erroGlobal');
+    const texto = document.getElementById('erroGlobalTexto');
+    if (!el || !texto) { alert(msg); return; } // salvaguarda, não deveria acontecer
+    texto.textContent = msg;
+    el.classList.remove('hidden');
+    el.focus();
+}
+
+window.fecharErroGlobal = function () {
+    document.getElementById('erroGlobal').classList.add('hidden');
+};
+
+window.copiarErroGlobal = async function () {
+    const texto = document.getElementById('erroGlobalTexto').textContent;
+    try {
+        await navigator.clipboard.writeText(texto);
+        showToast('📋 Mensagem de erro copiada.', 'success');
+    } catch (e) {
+        alert(texto); // navegador sem permissão/API de clipboard: mostra o texto pra copiar manualmente
+    }
+};
 
 function anunciar(msg) {
     const el = document.getElementById('avisoSalvar');
@@ -2203,9 +2275,10 @@ function linhaParaCorrecao(row) {
 async function carregarCorrecoesIA() {
     const { data, error } = await selecionarTudo('banca_correcoes_ia', 'id');
     if (error) {
-        // Tabela pode ainda não existir se o usuário não rodou o SQL de criação —
-        // falha silenciosa aqui não deve travar o app, só desativa esse recurso.
-        console.warn('Não foi possível carregar correções aprendidas (tabela pode não existir ainda):', error.message);
+        // Antes essa falha só ia pro console (invisível para leitor de tela) e o
+        // recurso ficava desativado em silêncio. Agora avisa visivelmente: se a
+        // IA parecer "esquecida" das correções, isso mostra o motivo na hora.
+        showToast('❌ Erro ao carregar correções aprendidas (IA): ' + error.message, 'error');
         correcoesIA = [];
         return;
     }
@@ -2259,24 +2332,48 @@ async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, co
         ? chaveNormalizadaLista(valorErrado) === chaveNormalizadaLista(valorCorreto)
         : chaveNormalizada(valorErrado) === chaveNormalizada(valorCorreto);
     if (mesmoValor) return;
-    const contextoNovo = (contexto || '').trim();
-    // Para "liga", o mesmo par valorErrado→valorCorreto pode se repetir em confrontos
-    // completamente diferentes (ex.: vários times promovidos de Série B pra Série A na
-    // mesma temporada) — cada confronto é um fato próprio e precisa da sua própria linha,
-    // senão só o primeiro registrado fica salvo e os demais são perdidos silenciosamente.
-    // Para "mercado" o contexto não importa: é padronização de nome, vale para qualquer confronto.
-    const jaExiste = correcoesIA.some(c => {
-        if (c.campo !== campo || c.esporte !== esporte || c.valorErrado !== valorErrado || c.valorCorreto !== valorCorreto) return false;
-        if (campo === 'liga') return (c.contexto || '').trim() === contextoNovo;
-        return true;
-    });
-    if (jaExiste) return;
-    const nova = { campo, esporte, valorErrado, valorCorreto, contexto: contextoNovo };
-    const { data, error } = await sb.from('banca_correcoes_ia').insert(correcaoParaLinha(nova)).select().single();
-    if (error) { console.warn('Não foi possível salvar correção aprendida:', error.message); return; }
-    nova.id = data.id;
-    nova.criadoEm = data.criado_em;
-    correcoesIA.push(nova);
+
+    // Para "liga", o contexto salvo passa a ser o(s) NOME(S) DO(S) TIME(S) do
+    // confronto (ex.: "Palmeiras" e "Internacional" viram duas checagens
+    // separadas), não mais o confronto inteiro. O mesmo time costuma jogar a
+    // mesma competição contra vários adversários diferentes — guardando por
+    // time, a correção é reaproveitada em qualquer confronto dele, em vez de
+    // precisar ser reaprendida a cada adversário novo. Antes, "Palmeiras"
+    // aparecendo em 10 bilhetes contra 10 times diferentes virava 10 linhas
+    // quase-idênticas, inflando a lista e empurrando correções válidas pra
+    // fora do teto enviado à IA a cada leitura. Se o mesmo time aparecer numa
+    // competição diferente da já registrada (ex.: copa em vez de liga
+    // nacional), uma segunda linha própria é criada — não sobrescreve a
+    // primeira, as duas convivem.
+    // Para "mercado" o contexto continua sem uso na deduplicação — é
+    // padronização de nome, vale para qualquer confronto.
+    const timesDoConfronto = String(contexto || '').split(' - ').map(t => t.trim()).filter(Boolean);
+    const contextos = campo === 'liga'
+        ? (timesDoConfronto.length ? timesDoConfronto : [(contexto || '').trim()])
+        : [(contexto || '').trim()];
+
+    // A comparação usa chaveNormalizada (chaveNormalizadaLista para mercado, que também
+    // ignora a ordem dos itens de um combo) em vez de string exata — antes, duas leituras
+    // da IA para o mesmo erro mas com maiúscula/espaçamento levemente diferentes (comum em
+    // OCR de foto) geravam uma linha nova a cada vez, poluindo a lista com quase-duplicatas
+    // que nunca eram reconhecidas como "já corrigido".
+    const comparar = campo === 'mercado' ? chaveNormalizadaLista : chaveNormalizada;
+
+    for (const contextoNovo of contextos) {
+        const jaExiste = correcoesIA.some(c => {
+            if (c.campo !== campo || c.esporte !== esporte) return false;
+            if (comparar(c.valorErrado) !== comparar(valorErrado) || comparar(c.valorCorreto) !== comparar(valorCorreto)) return false;
+            if (campo === 'liga') return chaveNormalizada(c.contexto || '') === chaveNormalizada(contextoNovo);
+            return true;
+        });
+        if (jaExiste) continue;
+        const nova = { campo, esporte, valorErrado, valorCorreto, contexto: contextoNovo };
+        const { data, error } = await sb.from('banca_correcoes_ia').insert(correcaoParaLinha(nova)).select().single();
+        if (error) { showToast('❌ Erro ao salvar correção aprendida (IA): ' + error.message, 'error'); continue; }
+        nova.id = data.id;
+        nova.criadoEm = data.criado_em;
+        correcoesIA.push(nova);
+    }
 }
 
 async function excluirCorrecaoIA(id) {
@@ -2343,11 +2440,22 @@ async function limparTodasCorrecoesIA() {
 // como já faria normalmente.
 async function detectarECorrigirAprendizadoIA(listaEventosSalvos) {
     if (!extracaoAtualDados || !Array.isArray(extracaoAtualDados.eventos)) return;
-    const eventosIA = extracaoAtualDados.eventos;
+    // Casa cada evento salvo com o evento correspondente da extração da IA pelo
+    // NOME DO CONFRONTO, não pela posição na lista. Antes era por posição (idx),
+    // o que quebrava o casamento inteiro sempre que um evento era removido ou
+    // adicionado manualmente no formulário antes de salvar — todo evento após o
+    // ponto da alteração ficava comparado com o evento errado da extração,
+    // gerando correções erradas (ruído) ou deixando de aprender as certas.
+    // Consome cada evento da IA só uma vez (via splice), na ordem em que
+    // aparecem, para lidar corretamente com o caso de dois eventos diferentes
+    // no mesmo confronto (ex.: duas apostas distintas no mesmo jogo).
+    const eventosIA = extracaoAtualDados.eventos.slice();
     const gravacoes = [];
-    listaEventosSalvos.forEach((evSalvo, idx) => {
-        const evIA = eventosIA[idx];
-        if (!evIA || !evSalvo.esporte) return;
+    listaEventosSalvos.forEach((evSalvo) => {
+        if (!evSalvo.esporte || !evSalvo.evento) return;
+        const idxIA = eventosIA.findIndex(e => e.evento && chaveNormalizada(e.evento) === chaveNormalizada(evSalvo.evento));
+        if (idxIA === -1) return;
+        const [evIA] = eventosIA.splice(idxIA, 1);
         const contexto = evSalvo.evento || '';
         if (evIA.liga && evSalvo.liga && evIA.liga !== evSalvo.liga) {
             gravacoes.push(registrarCorrecaoIA('liga', evSalvo.esporte, evIA.liga, evSalvo.liga, contexto));

@@ -4,6 +4,74 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.19.1 — 09/08/2026
+
+**Nota:** esta versão reaplica correções que já haviam sido descritas na
+entrada da v1.18.1 abaixo, mas que por algum motivo não chegaram a entrar no
+código publicado no repositório (o texto do changelog estava lá, o código
+não). Confirmado por conferência linha a linha antes desta entrega. Se você
+notou que o sistema de correções aprendidas parecia "voltar a errar" mesmo
+depois da v1.18.1, é por isso.
+
+### Correções Aprendidas (IA) — bug no casamento de eventos
+
+- Reaplicado: casamento de eventos pelo nome do confronto em vez da posição
+  na lista (ver detalhes na entrada v1.18.1 abaixo).
+
+### Correções Aprendidas (IA) — Liga agora guardada por time, não por confronto
+
+- Até aqui, cada correção de Liga era amarrada ao confronto inteiro (ex.:
+  "Palmeiras - Internacional"). Isso fazia o mesmo time gerar uma linha nova
+  a cada adversário diferente, mesmo sendo sempre o mesmo fato (a competição
+  em que aquele time joga) — inflando a lista rapidamente e reduzindo na
+  prática o alcance do teto de 60 correções enviadas à IA a cada leitura
+  (ver item acima).
+- Agora o contexto salvo é o nome de cada time do confronto, separadamente.
+  A mesma correção de Liga passa a valer para qualquer adversário daquele
+  time, sem precisar ser reaprendida — e se o mesmo time aparecer numa
+  competição diferente da já registrada (ex.: uma copa em vez do
+  campeonato nacional), uma segunda linha própria é criada, sem conflito.
+- Correções de Liga já salvas antes desta versão continuam com o contexto
+  antigo (confronto inteiro) até expirarem (~14 meses) ou serem editadas —
+  não foram migradas automaticamente. Isso não causa nenhum problema, só
+  reduz o efeito colateral até irem sendo naturalmente substituídas por
+  novas correções no formato por time.
+
+### Correções Aprendidas (IA) — correções de Mercado sendo empurradas para fora do envio à IA
+
+- Corrigido bug em que o teto de 60 correções enviadas à IA a cada leitura de
+  bilhete era compartilhado entre Liga e Mercado numa lista só, ordenada das
+  mais recentes para as mais antigas. Como correções de Liga são criadas com
+  muito mais frequência (cada confronto/temporada gera linhas novas) e
+  correções de Mercado não têm prazo de validade, o volume de Liga acumulado
+  ao longo do tempo empurrava correções de Mercado antigas — mas ainda
+  válidas — para fora do que era efetivamente enviado à IA, mesmo continuando
+  salvas no banco. Isso causava o efeito de "a IA esquece uma correção de
+  mercado já treinada" conforme a lista crescia.
+- Agora todas as correções de Mercado válidas são sempre enviadas por
+  completo (o vocabulário de nomes de mercado de casa de apostas é pequeno e
+  não deveria estourar prompt algum), e o teto de 60 passa a valer só para
+  Liga.
+
+### Correções Aprendidas (IA) — deduplicação ignorando maiúscula/espaçamento
+
+- A checagem que evita salvar uma correção repetida comparava o texto errado
+  e o texto corrigido de forma exata (letra por letra). Duas leituras da IA
+  para o mesmo erro, mas com maiúscula ou espaçamento levemente diferentes
+  (comum em leitura de foto), geravam uma linha nova a cada vez em vez de
+  serem reconhecidas como a mesma correção já registrada — poluindo a lista
+  em Configurações com quase-duplicatas ao longo do tempo.
+- Agora a comparação usa a mesma normalização já usada em outros pontos do
+  sistema (ignora maiúscula/espaçamento, e para Mercado também ignora a
+  ordem dos itens num combo).
+
+### Janela de erro persistente (nova, para todo erro do app)
+
+- Reaplicado: toda mensagem de erro agora aparece numa janela fixa no topo
+  da tela, com foco automático, botão de copiar e botão de fechar — em vez
+  de sumir sozinha em poucos segundos (ver detalhes na entrada v1.18.1
+  abaixo).
+
 ## v1.19.0 — 05/08/2026
 
 ### Filtro rápido "Somente Abertas" (Alt+A)
