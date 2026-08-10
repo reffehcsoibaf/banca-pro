@@ -2360,13 +2360,25 @@ async function registrarCorrecaoIA(campo, esporte, valorErrado, valorCorreto, co
     const comparar = campo === 'mercado' ? chaveNormalizadaLista : chaveNormalizada;
 
     for (const contextoNovo of contextos) {
-        const jaExiste = correcoesIA.some(c => {
+        const existente = correcoesIA.find(c => {
             if (c.campo !== campo || c.esporte !== esporte) return false;
             if (comparar(c.valorErrado) !== comparar(valorErrado) || comparar(c.valorCorreto) !== comparar(valorCorreto)) return false;
             if (campo === 'liga') return chaveNormalizada(c.contexto || '') === chaveNormalizada(contextoNovo);
             return true;
         });
-        if (jaExiste) continue;
+        if (existente) {
+            // Para "liga", "tocar" a data quando a correção é reconhecida de novo faz
+            // times realmente recorrentes continuarem entre os mais recentes — em vez de
+            // envelhecer e ser empurrados pra fora do teto de 60 enviado à IA só por
+            // terem sido aprendidos há muito tempo, mesmo continuando relevantes toda
+            // semana. Só se aplica a "liga" — "mercado" não tem teto, então não precisa.
+            if (campo === 'liga') {
+                const agora = new Date().toISOString();
+                const { error } = await sb.from('banca_correcoes_ia').update({ criado_em: agora }).eq('id', existente.id);
+                if (!error) existente.criadoEm = agora;
+            }
+            continue;
+        }
         const nova = { campo, esporte, valorErrado, valorCorreto, contexto: contextoNovo };
         const { data, error } = await sb.from('banca_correcoes_ia').insert(correcaoParaLinha(nova)).select().single();
         if (error) { showToast('❌ Erro ao salvar correção aprendida (IA): ' + error.message, 'error'); continue; }

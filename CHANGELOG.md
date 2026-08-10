@@ -18,6 +18,30 @@ depois da v1.18.1, é por isso.
 - Reaplicado: casamento de eventos pelo nome do confronto em vez da posição
   na lista (ver detalhes na entrada v1.18.1 abaixo).
 
+### Correções Aprendidas (IA) — data atualizada ao reconhecer uma correção já existente
+
+- Quando uma correção de Liga já registrada era reconhecida de novo num
+  bilhete novo, o app não fazia nada — a data de criação da correção
+  continuava a mesma de quando ela foi aprendida pela primeira vez. Como o
+  teto de 60 (ver item acima) corta pelas correções mais recentes, um time
+  que você aposta toda semana podia, mesmo sendo usado o tempo todo, ir
+  ficando "velho" e acabar cortado do que é enviado à IA.
+- Agora, ao reconhecer uma correção de Liga já existente, o app atualiza a
+  data dela para agora — times realmente recorrentes se mantêm sempre entre
+  os mais recentes, e só os que você não vê há tempo vão de fato envelhecendo
+  e saindo do teto naturalmente.
+
+### Migração de dados — correções de Liga já salvas convertidas para o formato por time
+
+- As correções de Liga que já existiam no banco (salvas por confronto
+  inteiro) foram migradas para o novo formato por time diretamente no
+  Supabase, com backup das linhas originais guardado antes da migração
+  (tabela `banca_correcoes_ia_liga_backup_20260810`). O total de linhas de
+  Liga foi de 62 para 120 nesta migração — o mesmo confronto com dois times
+  diferentes virou duas linhas — mas o ganho é de agora em diante: se
+  qualquer um desses times voltar a aparecer contra um adversário novo, a
+  correção já vai estar lá, sem gerar linha nova.
+
 ### Correções Aprendidas (IA) — Liga agora guardada por time, não por confronto
 
 - Até aqui, cada correção de Liga era amarrada ao confronto inteiro (ex.:
