@@ -114,6 +114,30 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-20-0">v1.20.0</h2>
+  <p class="versao-data">10/08/2026</p>
+  <h3>Nova funcionalidade: Aposta Grátis (Freebet)</h3>
+  <ul>
+    <li>Adicionada caixa de seleção "Aposta Grátis (Freebet)" logo abaixo do campo Stake, no formulário de cadastro. Quando marcada, o rótulo do campo muda para "Valor do Freebet (R$)" e o cálculo de retorno passa a considerar que a casa não devolve o valor apostado ao ganhar (regra padrão de freebet, conhecida como SNR — Stake Not Returned).</li>
+    <li>Motivação: apostas financiadas por freebet vinham sendo calculadas como se fossem apostas normais (stake × odd), o que inflava o valor de retorno em exatamente o valor do freebet toda vez que a aposta ganhava — problema identificado ao reconciliar o saldo real da casa com o saldo calculado pelo app.</li>
+  </ul>
+  <h3>Como funciona o cálculo com Aposta Grátis marcada, por status</h3>
+  <ul>
+    <li><strong>Ganhou:</strong> retorno = (odd − 1) × valor do freebet — só o lucro líquido, sem devolver o stake.</li>
+    <li><strong>Perdeu:</strong> retorno = R$0,00 (sem mudança — já era assim).</li>
+    <li><strong>Ganho Parcial:</strong> retorno = (valor do freebet ÷ 2) × (odd − 1) — a metade "devolvida" de uma aposta normal não existe em dinheiro real num freebet, e a metade paga segue a mesma regra do Ganhou.</li>
+    <li><strong>Perda Parcial:</strong> retorno = R$0,00 — a metade que seria devolvida numa aposta normal também não é dinheiro real aqui.</li>
+    <li><strong>Anulada:</strong> retorno = R$0,00 — cancelar um freebet não gera devolução em dinheiro real (diferente de uma aposta normal anulada, que devolve o stake integral).</li>
+    <li><strong>Cash Out:</strong> sem mudança — o valor informado manualmente já é o valor real recebido, independente de ser freebet ou não.</li>
+  </ul>
+  <h3>Outras mudanças desta versão</h3>
+  <ul>
+    <li>O estado da caixa é salvo por aposta (nova coluna <code>aposta_gratis</code> no Supabase) e é restaurado corretamente ao editar uma aposta já salva.</li>
+    <li>Exportação e importação por Excel atualizadas com a nova coluna "Aposta Grátis" (valores "Sim"/"Não").</li>
+    <li>Migração de banco necessária: <code>ALTER TABLE public.banca_apostas ADD COLUMN IF NOT EXISTS aposta_gratis BOOLEAN NOT NULL DEFAULT false;</code></li>
+    <li>Fora do escopo desta versão: a IA de leitura de bilhetes (worker.js) ainda não tenta detectar automaticamente se um bilhete é um freebet — a marcação continua manual por enquanto.</li>
+  </ul>
+
   <h2 id="v1-19-1">v1.19.1</h2>
   <p class="versao-data">09/08/2026</p>
   <p><em>Nota: esta versão reaplica correções que já haviam sido descritas na entrada da v1.18.1 abaixo, mas que por algum motivo não chegaram a entrar no código publicado no repositório (o texto do changelog estava lá, o código não). Confirmado por conferência linha a linha antes desta entrega.</em></p>

@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.19.1</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.20.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -398,8 +398,9 @@
         <tr><td class="field-name">Tipster <span class="req">*</span></td><td>Caixa combinada</td><td>Quem indicou a aposta. Use seu próprio nome para entradas próprias.</td></tr>
         <tr><td class="field-name">Tipo <span class="req">*</span></td><td>Caixa combinada</td><td>Momento da aposta: <em>Pré Live</em> (antes do jogo) ou <em>Ao Vivo</em>.</td></tr>
         <tr><td class="field-name">Status <span class="req">*</span></td><td>Radio button</td><td><em>Aberto</em> (aguardando resultado), <em>Ganhou</em>, <em>Perdeu</em>, <em>Ganho Parcial</em>, <em>Perda Parcial</em>, <em>Cash Out</em> ou <em>Anulada</em>.</td></tr>
-        <tr><td class="field-name">Stake <span class="req">*</span></td><td>Número</td><td>Valor em reais apostado nesta entrada.</td></tr>
-        <tr><td class="field-name">Bônus <span class="opt">opcional</span></td><td>Número</td><td>Valor de bônus aplicado pela casa (ex: free bet). Somado ao retornado quando a aposta ganha.</td></tr>
+        <tr><td class="field-name">Stake <span class="req">*</span></td><td>Número</td><td>Valor em reais apostado nesta entrada. Se "Aposta Grátis" estiver marcada, o rótulo muda para "Valor do Freebet" e este campo passa a representar o valor do freebet, não dinheiro próprio.</td></tr>
+        <tr><td class="field-name">Aposta Grátis <span class="opt">opcional</span></td><td>Caixa de seleção</td><td>Marque quando a aposta foi feita com um freebet/aposta grátis da casa. Muda a fórmula de Retornado para não devolver o valor do stake ao ganhar (a casa só paga o lucro líquido) — ver tabela de fórmulas por status abaixo.</td></tr>
+        <tr><td class="field-name">Bônus <span class="opt">opcional</span></td><td>Número</td><td>Valor de bônus aplicado pela casa (ex: promoção "SUPERMÚLTIPLA"). Somado ao retornado quando a aposta ganha. Independente do campo Aposta Grátis — os dois podem ser usados juntos.</td></tr>
         <tr><td class="field-name">ODD Total <span class="opt">opcional</span></td><td>Número</td><td>ODD final da aposta (produto das odds dos eventos em acumuladores). Calculado automaticamente.</td></tr>
         <tr><td class="field-name">Retornado <span class="opt">opcional</span></td><td>Número</td><td>Valor recebido de volta em caso de ganho.</td></tr>
         <tr><td class="field-name">Lucro</td><td>Calculado</td><td><em>Retornado − Stake</em>. Atualizado automaticamente.</td></tr>
@@ -637,9 +638,9 @@
   <!-- CÁLCULO AUTOMÁTICO -->
   <section id="calculo-automatico" class="wiki-section" aria-labelledby="h-calculo">
     <h2 id="h-calculo">🧮 Cálculo Automático</h2>
-    <p>Os campos de resultado são recalculados automaticamente sempre que Stake, ODD, Status ou Bônus são alterados. A fórmula de <strong>Retornado</strong> varia conforme o Status:</p>
+    <p>Os campos de resultado são recalculados automaticamente sempre que Stake, ODD, Status, Bônus ou Aposta Grátis são alterados. A fórmula de <strong>Retornado</strong> varia conforme o Status:</p>
     <table class="field-table" aria-label="Fórmulas de retorno por status">
-      <thead><tr><th>Status</th><th>Retornado</th><th>Lucro</th></tr></thead>
+      <thead><tr><th>Status</th><th>Retornado (normal)</th><th>Lucro</th></tr></thead>
       <tbody>
         <tr><td class="field-name">Ganhou</td><td><code>Stake × ODD Total + Bônus</code></td><td><code>Retornado − Stake</code></td></tr>
         <tr><td class="field-name">Perdeu</td><td><code>0</code></td><td><code>−Stake</code></td></tr>
@@ -648,6 +649,18 @@
         <tr><td class="field-name">Anulada</td><td><code>Stake</code> (devolução integral)</td><td><code>0</code></td></tr>
         <tr><td class="field-name">Cash Out</td><td>Valor informado manualmente no campo <em>Valor Cash Out</em></td><td><code>Retornado − Stake</code></td></tr>
         <tr><td class="field-name">Aberto</td><td><code>0</code> (sem retorno calculado)</td><td><code>0</code></td></tr>
+      </tbody>
+    </table>
+    <p>Quando a caixa <strong>Aposta Grátis</strong> está marcada, a casa não devolve o valor do freebet ao ganhar (regra SNR — <em>Stake Not Returned</em>), então as fórmulas de Ganhou, Ganho Parcial, Perda Parcial e Anulada mudam:</p>
+    <table class="field-table" aria-label="Fórmulas de retorno por status com Aposta Grátis marcada">
+      <thead><tr><th>Status</th><th>Retornado (Aposta Grátis)</th></tr></thead>
+      <tbody>
+        <tr><td class="field-name">Ganhou</td><td><code>(ODD Total − 1) × Valor do Freebet + Bônus</code></td></tr>
+        <tr><td class="field-name">Perdeu</td><td><code>0</code> (sem mudança)</td></tr>
+        <tr><td class="field-name">Ganho Parcial</td><td><code>(Valor do Freebet ÷ 2) × (ODD − 1) + Bônus</code></td></tr>
+        <tr><td class="field-name">Perda Parcial</td><td><code>0</code></td></tr>
+        <tr><td class="field-name">Anulada</td><td><code>0</code> (cancelar um freebet não devolve dinheiro real)</td></tr>
+        <tr><td class="field-name">Cash Out</td><td>Sem mudança — o valor informado manualmente já é o valor real recebido</td></tr>
       </tbody>
     </table>
     <table class="field-table" aria-label="Demais fórmulas calculadas">

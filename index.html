@@ -994,8 +994,15 @@
                     </div>
                 </div>
                 <div>
-                    <label for="stake">Stake (R$) <span class="field-required" aria-hidden="true">*</span></label>
+                    <label for="stake" id="labelStake">Stake (R$) <span class="field-required" aria-hidden="true">*</span></label>
                     <input type="number" step="0.01" id="stake" oninput="calcular()" aria-required="true" placeholder="0,00" inputmode="decimal">
+                    <label style="font-weight:400; margin-top:6px; display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="apostaGratis" onchange="toggleApostaGratis(); calcular();" aria-describedby="ajudaApostaGratis">
+                        <span>Aposta Grátis (Freebet)</span>
+                    </label>
+                    <small id="ajudaApostaGratis" style="font-weight:400; color:var(--text-secondary); display:block;">
+                        Marque se essa aposta foi feita com um freebet/aposta grátis da casa. O valor acima passa a ser o valor do freebet, e o retorno é calculado sem devolver o stake (a casa só paga o lucro líquido quando ganha).
+                    </small>
                 </div>
                 <div id="campoCashOut" style="display:none;" aria-hidden="true">
                     <label for="cashOutValor">Valor do Cash Out (R$)</label>
@@ -1461,7 +1468,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.19.1 · 09/08/2026
+  Banca Pro · v1.20.0 · 10/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2099,6 +2106,7 @@ function apostaParaLinha(a) {
         unidades: a.unidades,
         roi: a.roi,
         bonus: a.bonus || 0,
+        aposta_gratis: !!a.apostaGratis,
         observacao: a.observacao || null,
         cash_out_valor: a.cashOutValor || null
     };
@@ -2119,6 +2127,7 @@ function linhaParaAposta(row) {
         unidades: Number(row.unidades),
         roi: Number(row.roi),
         bonus: row.bonus != null ? Number(row.bonus) : 0,
+        apostaGratis: !!row.aposta_gratis,
         observacao: row.observacao || '',
         cashOutValor: row.cash_out_valor != null ? Number(row.cash_out_valor) : null,
         eventos: []
@@ -4011,24 +4020,33 @@ function preencherFormularioComExtracao(dados, origem) {
 
 // Regra única de cálculo de Retornado/Lucro para cada status — usada no formulário,
 // ao salvar e ao trocar o status rapidamente na tabela. Mantém todo o app consistente.
-function calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor) {
+function calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor, apostaGratis) {
     bonus = bonus || 0;
     let retornado = 0;
     if (status === "Ganhou") {
-        retornado = stake * oddTotal + bonus;
+        // Freebet: a casa não devolve o valor apostado (SNR — Stake Not Returned),
+        // só paga o lucro líquido. Sem freebet, o retorno inclui o stake de volta.
+        retornado = apostaGratis ? (stake * (oddTotal - 1)) + bonus : (stake * oddTotal) + bonus;
     } else if (status === "Perdeu") {
         retornado = 0;
     } else if (status === "Ganho Parcial") {
-        // Meio ganho: metade do stake é paga à odd cheia, a outra metade é devolvida
-        retornado = (stake / 2) * oddTotal + (stake / 2) + bonus;
+        // Meio ganho: metade do stake é paga à odd cheia, a outra metade é devolvida.
+        // Em freebet, nenhuma das duas metades é dinheiro real: a "devolvida" nunca existiu
+        // de fato, e a "paga à odd cheia" também não devolve o stake (mesma lógica do Ganhou).
+        retornado = apostaGratis
+            ? (stake / 2) * (oddTotal - 1) + bonus
+            : (stake / 2) * oddTotal + (stake / 2) + bonus;
     } else if (status === "Perda Parcial") {
-        // Meia perda: metade do stake é perdida, a outra metade é devolvida
-        retornado = stake / 2;
+        // Meia perda: metade do stake é perdida, a outra metade é devolvida.
+        // Em freebet, essa "metade devolvida" também não é dinheiro real.
+        retornado = apostaGratis ? 0 : stake / 2;
     } else if (status === "Anulada") {
-        // Void: devolução total do stake, lucro zero
-        retornado = stake;
+        // Void: devolução total do stake, lucro zero.
+        // Freebet anulado não gera devolução em dinheiro real (a casa só cancela o freebet).
+        retornado = apostaGratis ? 0 : stake;
     } else if (status === "Cash Out") {
-        // Valor informado manualmente pelo usuário ao encerrar a aposta antes do fim
+        // Valor informado manualmente pelo usuário ao encerrar a aposta antes do fim —
+        // já é o valor real recebido, independe de ser freebet ou não.
         retornado = parseFloat2(cashOutValor);
     } else {
         // Aberto (ou qualquer status desconhecido): sem retorno calculado ainda
@@ -4056,11 +4074,12 @@ function calcular() {
     const status = getRadioValue('rg-status');
     const bonus = parseFloat2(document.getElementById("bonus").value);
     const cashOutValor = document.getElementById("cashOutValor") ? document.getElementById("cashOutValor").value : 0;
+    const apostaGratis = document.getElementById("apostaGratis") ? document.getElementById("apostaGratis").checked : false;
     const odds = document.querySelectorAll(".odd");
     let oddTotal = 1, temOdd = false;
     odds.forEach(el => { const o = parseFloat2(el.value); if (o > 0) { oddTotal *= o; temOdd = true; } });
     if (!temOdd) oddTotal = 0;
-    const { retornado, lucro } = calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor);
+    const { retornado, lucro } = calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor, apostaGratis);
     const unidades = stake > 0 ? lucro / stake : 0;
     const roi = stake > 0 ? (lucro / stake) * 100 : 0;
     document.getElementById("oddTotal").value = formatarOdd(oddTotal);
@@ -4070,10 +4089,18 @@ function calcular() {
     document.getElementById("roi").value = formatarDecimal(roi) + "%";
 }
 
+function toggleApostaGratis() {
+    const marcado = document.getElementById("apostaGratis").checked;
+    document.getElementById("labelStake").innerHTML = marcado
+        ? 'Valor do Freebet (R$) <span class="field-required" aria-hidden="true">*</span>'
+        : 'Stake (R$) <span class="field-required" aria-hidden="true">*</span>';
+}
+
 /* ==================== SALVAR ==================== */
 async function salvar() {
     const stake = parseFloat2(document.getElementById("stake").value);
-    if (stake <= 0) { showToast('⚠️ Digite um valor válido de stake.', 'error'); return; }
+    const apostaGratis = document.getElementById("apostaGratis") ? document.getElementById("apostaGratis").checked : false;
+    if (stake <= 0) { showToast(apostaGratis ? '⚠️ Digite um valor válido de freebet.' : '⚠️ Digite um valor válido de stake.', 'error'); return; }
 
     const divsEventos = document.querySelectorAll(".event");
     const listaEventos = [];
@@ -4101,7 +4128,7 @@ async function salvar() {
     const cashOutValor = document.getElementById("cashOutValor") ? parseFloat2(document.getElementById("cashOutValor").value) : 0;
     if (status === "Cash Out" && cashOutValor <= 0) { showToast('⚠️ Digite o valor recebido no Cash Out.', 'error'); return; }
     const observacao = document.getElementById("observacao").value.trim();
-    const { retornado: recebido, lucro } = calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor);
+    const { retornado: recebido, lucro } = calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor, apostaGratis);
 
     const identificador = document.getElementById("identificador").value.trim() || ("ID-" + Date.now().toString().slice(-4));
 
@@ -4120,6 +4147,7 @@ async function salvar() {
         unidades: stake > 0 ? lucro / stake : 0,
         roi: stake > 0 ? (lucro / stake) * 100 : 0,
         bonus,
+        apostaGratis,
         observacao,
         cashOutValor: status === "Cash Out" ? cashOutValor : null,
         eventos: listaEventos
@@ -4166,6 +4194,8 @@ function editar(idx) {
     document.getElementById("dataHora").value = (a.dataHora || "").slice(0,16);
     document.getElementById("stake").value = a.stake;
     document.getElementById("bonus").value = a.bonus || '';
+    if (document.getElementById("apostaGratis")) document.getElementById("apostaGratis").checked = !!a.apostaGratis;
+    toggleApostaGratis();
     document.getElementById("observacao").value = a.observacao || '';
     atualizarVisibilidadeCampoCashOut();
     if (document.getElementById("cashOutValor")) document.getElementById("cashOutValor").value = a.cashOutValor || '';
@@ -4228,7 +4258,7 @@ async function marcarStatusAposta(i, novoStatus) {
     }
     a.status = novoStatus;
     a.cashOutValor = novoStatus === "Cash Out" ? cashOutValor : null;
-    const { retornado, lucro } = calcularRetornoLucro(novoStatus, stake, oddTotal, a.bonus || 0, cashOutValor);
+    const { retornado, lucro } = calcularRetornoLucro(novoStatus, stake, oddTotal, a.bonus || 0, cashOutValor, a.apostaGratis);
     a.recebido = retornado;
     a.lucro    = lucro;
     a.roi      = stake > 0 ? (lucro / stake) * 100 : 0;
@@ -4284,6 +4314,8 @@ function limparFormulario() {
     document.getElementById("identificador").value = "";
     document.getElementById("stake").value = "";
     document.getElementById("bonus").value = "";
+    if (document.getElementById("apostaGratis")) document.getElementById("apostaGratis").checked = false;
+    toggleApostaGratis();
     document.getElementById("observacao").value = "";
     if (document.getElementById("cashOutValor")) document.getElementById("cashOutValor").value = "";
     // Preencher com data/hora atual (formato ISO para datetime-local)
@@ -4658,7 +4690,7 @@ function auditarCalculos() {
 
     apostas.forEach(a => {
         const { retornado: retornadoEsperado, lucro: lucroEsperado } = calcularRetornoLucro(
-            a.status, a.stake, a.oddTotal, a.bonus, a.cashOutValor
+            a.status, a.stake, a.oddTotal, a.bonus, a.cashOutValor, a.apostaGratis
         );
         const recebidoSalvo = parseFloat2(a.recebido);
         const lucroSalvo = parseFloat2(a.lucro);
@@ -4726,7 +4758,7 @@ async function recalcularPrecisaoDecimal() {
         if (!temOdd) oddTotal = arredondar4(parseFloat2(a.oddTotal));
 
         const cashOutValor = a.cashOutValor != null ? arredondar4(parseFloat2(a.cashOutValor)) : null;
-        const { retornado, lucro } = calcularRetornoLucro(a.status, stake, oddTotal, bonus, cashOutValor);
+        const { retornado, lucro } = calcularRetornoLucro(a.status, stake, oddTotal, bonus, cashOutValor, a.apostaGratis);
         const recebido  = arredondar4(retornado);
         const lucroCalc = arredondar4(lucro);
         const unidades  = stake > 0 ? arredondar4(lucroCalc / stake) : 0;
@@ -5231,6 +5263,7 @@ function exportarConjuntoDadosExcel(lista, nome, incluirTransacoes) {
                     "Retornado": a.recebido, "Lucro": a.lucro,
                     "Unidades": a.unidades, "ROI (%)": a.roi,
                     "Bônus": a.bonus || 0,
+                    "Aposta Grátis": a.apostaGratis ? "Sim" : "Não",
                     "Valor Cash Out": a.cashOutValor || '',
                     "Observação": a.observacao || '',
                     "Evento": e.evento, "Esporte": e.esporte,
@@ -5350,6 +5383,7 @@ function importarExcelCompleto(event) {
                         unidades:      stake > 0 ? lucro / stake : 0,
                         roi:           stake > 0 ? (lucro / stake) * 100 : 0,
                         bonus:         toNum(row['Bônus'] || row['Bonus'] || 0),
+                        apostaGratis:  ['sim','true','1'].includes((row['Aposta Grátis'] || row['Aposta Gratis'] || '').toString().trim().toLowerCase()),
                         observacao:    (row['Observação'] || row['Observacao'] || '').toString().trim(),
                         cashOutValor:  row['Valor Cash Out'] != null && row['Valor Cash Out'] !== '' ? toNum(row['Valor Cash Out']) : null,
                         eventos:       []

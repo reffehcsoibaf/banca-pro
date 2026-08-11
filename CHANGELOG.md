@@ -4,6 +4,44 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.20.0 — 10/08/2026
+
+### Nova funcionalidade: Aposta Grátis (Freebet)
+
+- Adicionada caixa de seleção **"Aposta Grátis (Freebet)"** logo abaixo do
+  campo Stake, no formulário de cadastro. Quando marcada, o rótulo do campo
+  muda para "Valor do Freebet (R$)" e o cálculo de retorno passa a considerar
+  que a casa **não devolve o valor apostado** ao ganhar (regra padrão de
+  freebet, conhecida como SNR — *Stake Not Returned*).
+- **Motivação:** apostas financiadas por freebet vinham sendo calculadas
+  como se fossem apostas normais (`stake × odd`), o que inflava o valor de
+  retorno em exatamente o valor do freebet toda vez que a aposta ganhava —
+  problema identificado ao reconciliar o saldo real da casa com o saldo
+  calculado pelo app.
+- **Como funciona o cálculo com Aposta Grátis marcada, por status:**
+  - **Ganhou:** retorno = `(odd − 1) × valor do freebet` — só o lucro
+    líquido, sem devolver o stake.
+  - **Perdeu:** retorno = R$0,00 (sem mudança — já era assim).
+  - **Ganho Parcial:** retorno = `(valor do freebet ÷ 2) × (odd − 1)` — a
+    metade "devolvida" de uma aposta normal não existe em dinheiro real
+    num freebet, e a metade paga segue a mesma regra do Ganhou.
+  - **Perda Parcial:** retorno = R$0,00 — a metade que seria devolvida numa
+    aposta normal também não é dinheiro real aqui.
+  - **Anulada:** retorno = R$0,00 — cancelar um freebet não gera devolução
+    em dinheiro real (diferente de uma aposta normal anulada, que devolve
+    o stake integral).
+  - **Cash Out:** sem mudança — o valor informado manualmente já é o valor
+    real recebido, independente de ser freebet ou não.
+- O estado da caixa é salvo por aposta (nova coluna `aposta_gratis` no
+  Supabase) e é restaurado corretamente ao editar uma aposta já salva.
+- Exportação e importação por Excel atualizadas com a nova coluna
+  "Aposta Grátis" (valores "Sim"/"Não").
+- **Migração de banco necessária:** `ALTER TABLE public.banca_apostas ADD
+  COLUMN IF NOT EXISTS aposta_gratis BOOLEAN NOT NULL DEFAULT false;`
+- **Fora do escopo desta versão:** a IA de leitura de bilhetes (worker.js)
+  ainda não tenta detectar automaticamente se um bilhete é um freebet — a
+  marcação continua manual por enquanto.
+
 ## v1.19.1 — 09/08/2026
 
 **Nota:** esta versão reaplica correções que já haviam sido descritas na
