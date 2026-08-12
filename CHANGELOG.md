@@ -4,6 +4,33 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.20.1 — 11/08/2026
+
+### Correção: lucro e saldo por casa com Aposta Grátis
+
+- **Motivação:** a v1.20.0 corrigiu o valor de **retornado** de uma aposta com
+  freebet (não devolver o stake ao ganhar), mas manteve a fórmula de **lucro**
+  igual à de qualquer aposta normal (`retornado − stake`). Como o stake de um
+  freebet nunca foi dinheiro real, subtraí-lo de novo no lucro contava esse
+  "não-gasto" duas vezes — gerando lucro/unidades artificialmente baixos numa
+  vitória (ex: odd 2,16 sobre freebet de R$10 dava lucro de apenas R$0,80 e
+  0,16 unidade, quando o correto é R$5,80 e 1,16 unidade — o ganho real
+  inteiro, já que nada foi gasto) e **lucro negativo numa Perda Parcial ou
+  Anulada** com freebet, quando o correto ali é sempre zero.
+- **Correção:** quando Aposta Grátis está marcada, `lucro` passa a ser igual a
+  `retornado` em qualquer status que não seja Aberto — sem subtrair o stake.
+- **Depósito fictício não é mais necessário.** Antes desta versão, a forma de
+  fazer o saldo por casa bater era lançar um depósito manual do valor do
+  freebet (compensando a subtração do stake na aposta). Isso deixou de ser
+  necessário: `calcularSaldosPorCasa()` agora **não conta o stake de apostas
+  marcadas como Aposta Grátis** na soma de "stake apostado", já que esse
+  dinheiro nunca saiu do seu bolso. O retornado (já calculado sem devolver o
+  stake) é a única entrada que precisa entrar na conta.
+- **Ação recomendada:** remova depósitos fictícios já lançados para
+  compensar freebets antigos — eles inflam o saldo calculado a partir de
+  agora, já que a exclusão do stake por si só resolve o balanceamento.
+- Nenhuma mudança de schema nesta versão.
+
 ## v1.20.0 — 10/08/2026
 
 ### Nova funcionalidade: Aposta Grátis (Freebet)

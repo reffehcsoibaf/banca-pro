@@ -114,6 +114,17 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-20-1">v1.20.1</h2>
+  <p class="versao-data">11/08/2026</p>
+  <h3>Correção: lucro e saldo por casa com Aposta Grátis</h3>
+  <ul>
+    <li>Motivação: a v1.20.0 corrigiu o valor de retornado de uma aposta com freebet (não devolver o stake ao ganhar), mas manteve a fórmula de lucro igual à de qualquer aposta normal (retornado − stake). Como o stake de um freebet nunca foi dinheiro real, subtraí-lo de novo no lucro contava esse "não-gasto" duas vezes — gerando lucro/unidades artificialmente baixos numa vitória (ex: odd 2,16 sobre freebet de R$10 dava lucro de apenas R$0,80 e 0,16 unidade, quando o correto é R$5,80 e 1,16 unidade) e lucro negativo numa Perda Parcial ou Anulada com freebet, quando o correto ali é sempre zero.</li>
+    <li>Correção: quando Aposta Grátis está marcada, lucro passa a ser igual a retornado em qualquer status que não seja Aberto — sem subtrair o stake.</li>
+    <li>Depósito fictício não é mais necessário. calcularSaldosPorCasa() agora não conta o stake de apostas marcadas como Aposta Grátis na soma de "stake apostado", já que esse dinheiro nunca saiu do bolso. O retornado (já calculado sem devolver o stake) é a única entrada que precisa entrar na conta.</li>
+    <li>Ação recomendada: remova depósitos fictícios já lançados para compensar freebets antigos — eles inflam o saldo calculado a partir de agora, já que a exclusão do stake por si só resolve o balanceamento.</li>
+    <li>Nenhuma mudança de schema nesta versão.</li>
+  </ul>
+
   <h2 id="v1-20-0">v1.20.0</h2>
   <p class="versao-data">10/08/2026</p>
   <h3>Nova funcionalidade: Aposta Grátis (Freebet)</h3>

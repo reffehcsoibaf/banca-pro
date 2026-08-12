@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.20.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.20.1</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -651,16 +651,16 @@
         <tr><td class="field-name">Aberto</td><td><code>0</code> (sem retorno calculado)</td><td><code>0</code></td></tr>
       </tbody>
     </table>
-    <p>Quando a caixa <strong>Aposta Grátis</strong> está marcada, a casa não devolve o valor do freebet ao ganhar (regra SNR — <em>Stake Not Returned</em>), então as fórmulas de Ganhou, Ganho Parcial, Perda Parcial e Anulada mudam:</p>
+    <p>Quando a caixa <strong>Aposta Grátis</strong> está marcada, a casa não devolve o valor do freebet ao ganhar (regra SNR — <em>Stake Not Returned</em>), então as fórmulas de Retornado mudam. Além disso, como o stake nunca foi dinheiro real (e nenhum depósito fictício precisa compensar isso), o <strong>Lucro passa a ser igual ao Retornado</strong> em qualquer status liquidado, sem subtrair o stake — e o stake dessas apostas não entra na conta de "stake apostado" do saldo por casa.</p>
     <table class="field-table" aria-label="Fórmulas de retorno por status com Aposta Grátis marcada">
-      <thead><tr><th>Status</th><th>Retornado (Aposta Grátis)</th></tr></thead>
+      <thead><tr><th>Status</th><th>Retornado (Aposta Grátis)</th><th>Lucro (Aposta Grátis)</th></tr></thead>
       <tbody>
-        <tr><td class="field-name">Ganhou</td><td><code>(ODD Total − 1) × Valor do Freebet + Bônus</code></td></tr>
-        <tr><td class="field-name">Perdeu</td><td><code>0</code> (sem mudança)</td></tr>
-        <tr><td class="field-name">Ganho Parcial</td><td><code>(Valor do Freebet ÷ 2) × (ODD − 1) + Bônus</code></td></tr>
-        <tr><td class="field-name">Perda Parcial</td><td><code>0</code></td></tr>
-        <tr><td class="field-name">Anulada</td><td><code>0</code> (cancelar um freebet não devolve dinheiro real)</td></tr>
-        <tr><td class="field-name">Cash Out</td><td>Sem mudança — o valor informado manualmente já é o valor real recebido</td></tr>
+        <tr><td class="field-name">Ganhou</td><td><code>(ODD Total − 1) × Valor do Freebet + Bônus</code></td><td>= Retornado</td></tr>
+        <tr><td class="field-name">Perdeu</td><td><code>0</code> (sem mudança)</td><td><code>0</code></td></tr>
+        <tr><td class="field-name">Ganho Parcial</td><td><code>(Valor do Freebet ÷ 2) × (ODD − 1) + Bônus</code></td><td>= Retornado</td></tr>
+        <tr><td class="field-name">Perda Parcial</td><td><code>0</code></td><td><code>0</code></td></tr>
+        <tr><td class="field-name">Anulada</td><td><code>0</code> (cancelar um freebet não devolve dinheiro real)</td><td><code>0</code></td></tr>
+        <tr><td class="field-name">Cash Out</td><td>Sem mudança — o valor informado manualmente já é o valor real recebido</td><td>= Retornado</td></tr>
       </tbody>
     </table>
     <table class="field-table" aria-label="Demais fórmulas calculadas">

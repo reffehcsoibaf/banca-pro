@@ -1468,7 +1468,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.20.0 · 10/08/2026
+  Banca Pro · v1.20.1 · 11/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -4052,7 +4052,17 @@ function calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor, apos
         // Aberto (ou qualquer status desconhecido): sem retorno calculado ainda
         retornado = 0;
     }
-    const lucro = (status === "Aberto") ? 0 : (retornado - stake);
+    let lucro;
+    if (status === "Aberto") {
+        lucro = 0;
+    } else if (apostaGratis) {
+        // Freebet: o stake nunca foi dinheiro real, e não lançamos mais um depósito
+        // fictício pra compensar — então o lucro é o próprio valor retornado, sem
+        // subtrair o stake de novo (senão contaria o "não-gasto" duas vezes).
+        lucro = retornado;
+    } else {
+        lucro = retornado - stake;
+    }
     return { retornado, lucro };
 }
 
@@ -4622,7 +4632,9 @@ function calcularSaldosPorCasa() {
     apostas.forEach(a => {
         const c = pegar(a.casa);
         if (!c) return;
-        c.stakeApostado += parseFloat2(a.stake);
+        // Freebet: o stake nunca foi dinheiro real e não há mais um depósito fictício
+        // pra compensar — então não entra na conta de "stake apostado" do saldo.
+        if (!a.apostaGratis) c.stakeApostado += parseFloat2(a.stake);
         if (a.status !== 'Aberto') c.recebidoGanho += parseFloat2(a.recebido);
     });
     transacoes.forEach(t => {
