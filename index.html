@@ -520,6 +520,7 @@
         }
         .toast.success { border-left: 4px solid #22c55e; }
         .toast.error { border-left: 4px solid #ef4444; }
+        .toast.warning { border-left: 4px solid #ef4444; }
         .toast.info { border-left: 4px solid #60a5fa; }
         @keyframes toastIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -1472,7 +1473,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.20.2 · 13/08/2026
+  Banca Pro · v1.20.3 · 13/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -4310,9 +4311,13 @@ async function marcarStatusAposta(i, novoStatus) {
     }
     renderTabela(apostasFiltradasAtuais);
 
-    // Feedback visual imediato — toast antes do await
+    // Feedback visual imediato — toast antes do await.
+    // "warning" (não "error"): visualmente igual a erro (vermelho), mas passa pelo
+    // toast comum, não pela janela persistente de erro — marcar uma aposta como
+    // Perdeu não é um erro do sistema, e a janela persistente rouba o foco do
+    // leitor de tela desnecessariamente a cada aposta perdida.
     const emojiMap = { 'Ganhou':'✅', 'Perdeu':'❌', 'Ganho Parcial':'🔼', 'Perda Parcial':'🔽', 'Cash Out':'💸', 'Anulada':'🚫', 'Aberto':'⏳' };
-    const tipo = (novoStatus === 'Ganhou' || novoStatus === 'Ganho Parcial') ? 'success' : (novoStatus === 'Perdeu' || novoStatus === 'Perda Parcial') ? 'error' : 'success';
+    const tipo = (novoStatus === 'Ganhou' || novoStatus === 'Ganho Parcial') ? 'success' : (novoStatus === 'Perdeu' || novoStatus === 'Perda Parcial') ? 'warning' : 'success';
     showToast(`${emojiMap[novoStatus] || ''} ${a.identificador} marcado como ${novoStatus}`, tipo);
 
     // Persistência no banco (após atualizar UI — não bloqueia a confirmação visual)

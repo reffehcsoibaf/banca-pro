@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-20-3">v1.20.3</h2>
+  <p class="versao-data">13/08/2026</p>
+  <h3>Correção: janela de erro roubava o foco ao marcar aposta como Perdeu</h3>
+  <ul>
+    <li>Motivação: os botões rápidos ✓/✗ da lista usavam type: 'error' no toast só para pintar a notificação de vermelho ao marcar uma aposta como Perdeu ou Perda Parcial — mas showToast trata qualquer type: 'error' como um erro de verdade e abre a janela persistente #erroGlobal, que recebe foco automaticamente e só fecha com clique manual em "Fechar". Resultado: marcar uma aposta como perdida (uma operação bem-sucedida, não um erro) roubava o foco do leitor de tela toda vez.</li>
+    <li>Correção: novo tipo de toast "warning" — mantém a mesma cor vermelha na borda esquerda, mas passa pelo toast comum (some sozinho, sem roubar foco), em vez de cair no tratamento especial de type === 'error'.</li>
+    <li>Conferidos todos os outros usos de type: 'error' no código — são erros de verdade (campo vazio, valor inválido, falha ao salvar/reimportar), então continuam corretamente usando a janela persistente.</li>
+    <li>Nenhuma mudança de banco de dados nesta versão.</li>
+  </ul>
+
   <h2 id="v1-20-2">v1.20.2</h2>
   <p class="versao-data">13/08/2026</p>
   <h3>Generalização: financiamento misto (freebet + dinheiro real)</h3>

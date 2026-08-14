@@ -4,6 +4,26 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.20.3 — 13/08/2026
+
+### Correção: janela de erro roubava o foco ao marcar aposta como Perdeu
+
+- **Motivação:** os botões rápidos ✓/✗ da lista usavam `type: 'error'` no
+  toast só para pintar a notificação de vermelho ao marcar uma aposta como
+  Perdeu ou Perda Parcial — mas `showToast` trata qualquer `type: 'error'`
+  como um erro de verdade e abre a janela persistente `#erroGlobal`, que
+  recebe foco automaticamente (`el.focus()`) e só fecha com clique manual
+  em "Fechar". Resultado: marcar uma aposta como perdida (uma operação bem
+  -sucedida, não um erro) roubava o foco do leitor de tela toda vez.
+- **Correção:** novo tipo de toast `warning` — mantém a mesma cor vermelha
+  na borda esquerda (`.toast.warning`), mas passa pelo toast comum (some
+  sozinho, sem roubar foco), em vez de cair no tratamento especial de
+  `type === 'error'`.
+- Conferidos todos os outros usos de `type: 'error'` no código — são erros
+  de verdade (campo vazio, valor inválido, falha ao salvar/reimportar),
+  então continuam corretamente usando a janela persistente.
+- Nenhuma mudança de banco de dados nesta versão.
+
 ## v1.20.2 — 13/08/2026
 
 ### Generalização: financiamento misto (freebet + dinheiro real)
