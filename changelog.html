@@ -114,6 +114,20 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-20-2">v1.20.2</h2>
+  <p class="versao-data">13/08/2026</p>
+  <h3>Generalização: financiamento misto (freebet + dinheiro real)</h3>
+  <ul>
+    <li>Motivação: as v1.20.0/v1.20.1 só cobriam apostas 100% financiadas por freebet (tudo ou nada). Na prática, a casa às vezes credita um freebet que não cobre o stake inteiro desejado, e o usuário completa com dinheiro próprio — um financiamento misto que a caixa booleana não conseguia representar.</li>
+    <li>Mudança de campo: a caixa "Aposta Grátis" agora se chama "Envolve Freebet" e, quando marcada, revela um campo numérico "Valor do Freebet Usado (R$)" — vem pré-preenchido com o valor total do Stake (caso mais comum, 100% freebet), mas é editável para financiamento misto.</li>
+    <li>Nova fórmula universal, para qualquer mistura (0% a 100% freebet), em todos os status: Lucro = Retornado − (Stake − Valor do Freebet Usado). O Retornado em si segue uma fórmula própria por status (ver Wiki para a tabela completa).</li>
+    <li>Casos-limite conferidos: com Valor do Freebet Usado = 0, reduz exatamente ao comportamento de uma aposta normal. Com Valor do Freebet Usado = Stake inteiro, reproduz exatamente o comportamento 100%-freebet da v1.20.0/v1.20.1.</li>
+    <li>Migração de banco: nova coluna valor_freebet (numeric, default 0) em banca_apostas. Registros já marcados como aposta_gratis=true foram migrados automaticamente com valor_freebet = stake.</li>
+    <li>calcularSaldosPorCasa() atualizado: subtrai apenas (stake − valor_freebet) da conta de "stake apostado", em vez de excluir o stake inteiro.</li>
+    <li>Exportação e importação por Excel atualizadas com a nova coluna "Valor Freebet Usado".</li>
+    <li>Todos os pontos que recalculam retorno/lucro (formulário, salvar, botões rápidos ✓/✗, auditoria, "Recalcular Precisão Decimal") atualizados para usar o valor numérico do freebet em vez do booleano.</li>
+  </ul>
+
   <h2 id="v1-20-1">v1.20.1</h2>
   <p class="versao-data">11/08/2026</p>
   <h3>Correção: lucro e saldo por casa com Aposta Grátis</h3>

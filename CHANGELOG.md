@@ -4,6 +4,45 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.20.2 — 13/08/2026
+
+### Generalização: financiamento misto (freebet + dinheiro real)
+
+- **Motivação:** as v1.20.0/v1.20.1 só cobriam apostas 100% financiadas por
+  freebet (tudo ou nada). Mas na prática, a casa às vezes credita um freebet
+  que não cobre o stake inteiro desejado, e o usuário completa com dinheiro
+  próprio — um financiamento misto que a caixa booleana não conseguia
+  representar.
+- **Mudança de campo:** a caixa "Aposta Grátis" agora se chama **"Envolve
+  Freebet"** e, quando marcada, revela um campo numérico **"Valor do Freebet
+  Usado (R$)"** — vem pré-preenchido com o valor total do Stake (cobrindo o
+  caso mais comum, 100% freebet, sem digitação extra), mas é editável pra
+  informar só a parte que veio de freebet num financiamento misto.
+- **Nova fórmula, universal para qualquer mistura (0% a 100% freebet), em
+  todos os status:**
+  `Lucro = Retornado − (Stake − Valor do Freebet Usado)`
+  — o Retornado em si segue uma fórmula própria por status (ver Wiki,
+  seção Cálculo Automático, para a tabela completa e a explicação de por
+  que Perdeu e Perda Parcial não seguem a subtração simples).
+- **Casos-limite conferidos:** com Valor do Freebet Usado = 0, a fórmula se
+  reduz exatamente ao comportamento de uma aposta normal (sem mudança). Com
+  Valor do Freebet Usado = Stake inteiro, reproduz exatamente o
+  comportamento 100%-freebet da v1.20.0/v1.20.1. As fórmulas antigas
+  passam a ser casos particulares da fórmula nova, não uma lógica à parte.
+- **Migração de banco:** nova coluna `valor_freebet` (numeric, default 0)
+  em `banca_apostas`. Registros já marcados como `aposta_gratis = true`
+  foram migrados automaticamente com `valor_freebet = stake` (preserva o
+  comportamento 100%-freebet que já tinham).
+- `calcularSaldosPorCasa()` atualizado: agora subtrai apenas `stake −
+  valor_freebet` da conta de "stake apostado" (a parte em dinheiro real),
+  em vez de excluir o stake inteiro sempre que a aposta fosse freebet.
+- Exportação e importação por Excel atualizadas com a nova coluna "Valor
+  Freebet Usado".
+- Todos os pontos que recalculam retorno/lucro (cálculo do formulário,
+  salvar, botões rápidos ✓/✗ da lista, auditoria de cálculos, "Recalcular
+  Precisão Decimal") foram atualizados para usar o valor numérico do
+  freebet em vez do booleano.
+
 ## v1.20.1 — 11/08/2026
 
 ### Correção: lucro e saldo por casa com Aposta Grátis
