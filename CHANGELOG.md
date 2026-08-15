@@ -4,6 +4,27 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.20.5 — 15/08/2026
+
+### Remoção do atalho Alt+L (Localizar por Identificador) e realocação do Alt+0 (Limpar Filtros)
+
+- **Motivação:** o atalho `Alt+L`, que abria uma caixa para digitar o
+  Identificador (ou parte dele) e localizar a aposta correspondente, nunca
+  chegou a ser usado na prática — na única vez em que foi testado, não se
+  mostrou útil o suficiente para justificar manter o código e a entrada na
+  Wiki.
+- Removida a função `localizarApostaPorIdentificador()` e toda a lógica do
+  atalho `Alt+L` associada a ela, incluindo a referência no toast de aviso
+  de "nenhuma aposta em foco".
+- O atalho `Alt+0` (Limpar Filtros) foi remapeado para `Alt+L`, ocupando a
+  tecla que ficou livre. Continua com o mesmo comportamento: limpa todos os
+  filtros ativos sem trocar de aba nem tirar o foco de onde o usuário está.
+- Atualizado `aria-keyshortcuts="Alt+L"` no botão "✕ Limpar Filtros" e a
+  documentação da Wiki (tabela de atalhos e o texto sobre as três formas de
+  definir a "aposta em foco", agora reduzido a duas: navegação por tabela do
+  NVDA e Tab).
+- Nenhuma mudança de banco de dados nesta versão.
+
 ## v1.20.4 — 14/08/2026
 
 ### Ajuste de acessibilidade: campos mais enxutos pra leitor de tela

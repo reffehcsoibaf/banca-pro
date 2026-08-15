@@ -1151,7 +1151,7 @@
                 </div>
             </div>
             <div class="btn-row">
-                <button class="btn-sm btn-outline" onclick="limparFiltros()" aria-keyshortcuts="Alt+0">✕ Limpar Filtros</button>
+                <button class="btn-sm btn-outline" onclick="limparFiltros()" aria-keyshortcuts="Alt+L">✕ Limpar Filtros</button>
                 <button class="btn-sm btn-success" onclick="exportarFiltrosExcel()">📥 Exportar Filtro</button>
                 <button class="btn-sm btn-primary" onclick="irPara('lista', document.querySelector('.tab-btn[data-secao=&quot;lista&quot;]'))" aria-label="Ver lista de apostas filtradas">📋 Ver Apostas</button>
             </div>
@@ -1470,7 +1470,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.20.4 · 14/08/2026
+  Banca Pro · v1.20.5 · 15/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1885,57 +1885,10 @@ document.addEventListener('focusin', function(e) {
 
 function obterApostaFocadaOuAvisar() {
     if (apostaFocadaIdx === null || !apostas[apostaFocadaIdx]) {
-        showToast('⚠️ Nenhuma aposta em foco. Na aba Lista, dê Tab até a linha desejada (ou use Alt+L para localizar por Identificador) e use o atalho novamente.', 'info', 7000);
+        showToast('⚠️ Nenhuma aposta em foco. Na aba Lista, dê Tab até a linha desejada e use o atalho novamente.', 'info', 7000);
         return null;
     }
     return apostaFocadaIdx;
-}
-
-// ---- Localizar aposta por Identificador (Alt+L) ----
-// Alternativa a navegar pela tabela: digite o Identificador (ou parte dele) e a aposta
-// correspondente vira a "aposta em foco" direto, pronta para os atalhos G/P/E/X — mesmo
-// sem ter passado pela tabela antes. A busca considera a lista atualmente filtrada
-// (aba Filtros), e leva você até a aba Lista com a linha em destaque e focada.
-function localizarApostaPorIdentificador() {
-    const termo = prompt('Digite o Identificador (ou parte dele) da aposta que deseja focar:');
-    if (termo === null) return; // cancelado
-    const busca = termo.trim().toLowerCase();
-    if (!busca) { showToast('⚠️ Digite algum texto para buscar.', 'info'); return; }
-
-    const base = apostasFiltradasAtuais.length ? apostasFiltradasAtuais : apostas;
-    const encontradas = base.filter(a => a.identificador.toLowerCase().includes(busca));
-
-    if (encontradas.length === 0) {
-        showToast(`⚠️ Nenhuma aposta encontrada com "${termo}" no Identificador.`, 'error', 6000);
-        return;
-    }
-    if (encontradas.length > 1) {
-        const exemplos = encontradas.slice(0, 8).map(a => a.identificador).join(', ');
-        showToast(`⚠️ ${encontradas.length} apostas encontradas — seja mais específico. Exemplos: ${exemplos}`, 'info', 9000);
-        return;
-    }
-
-    const alvo = encontradas[0];
-    const idxReal = apostas.findIndex(a => a.identificador === alvo.identificador);
-    if (idxReal === -1) { showToast('❌ Aposta não encontrada na base atual.', 'error'); return; }
-
-    // Garante que a aposta esteja visível na página atual da Lista antes de focar a linha
-    const idxNaListaFiltrada = apostasFiltradasAtuais.findIndex(a => a.identificador === alvo.identificador);
-    if (idxNaListaFiltrada !== -1 && itensPorPagina !== Infinity) {
-        paginaAtualLista = Math.floor(idxNaListaFiltrada / itensPorPagina) + 1;
-        renderTabela(apostasFiltradasAtuais);
-    }
-
-    irPara('lista', document.querySelector('.tab-btn[data-secao="lista"]'));
-    setTimeout(() => {
-        const tr = document.querySelector(`#tbody tr[data-idx="${idxReal}"]`);
-        if (tr) {
-            tr.focus();
-            tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-            showToast('⚠️ A aposta está fora da página atual da Lista.', 'info');
-        }
-    }, 80);
 }
 
 // ---- Filtro rápido "Somente Abertas" (Alt+A) ----
@@ -1963,7 +1916,7 @@ function alternarFiltroAbertas() {
     }
 }
 
-// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Localizar, Filtro Abertas, Limpar Filtros ----
+// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Filtro Abertas, Limpar Filtros ----
 document.addEventListener('keydown', function(e) {
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
     const tecla = e.key.toLowerCase();
@@ -1974,7 +1927,7 @@ document.addEventListener('keydown', function(e) {
         return;
     }
 
-    if (tecla === '0') {
+    if (tecla === 'l') {
         e.preventDefault();
         limparFiltros();
         return;
@@ -1989,12 +1942,6 @@ document.addEventListener('keydown', function(e) {
         }
         e.preventDefault();
         salvar();
-        return;
-    }
-
-    if (tecla === 'l') {
-        e.preventDefault();
-        localizarApostaPorIdentificador();
         return;
     }
 

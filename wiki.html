@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.20.4</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.20.5</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -727,7 +727,7 @@
     </div>
     <div class="callout tip">
       <div class="callout-title">⌨️ Atalhos para essas ações</div>
-      Todas essas ações também têm atalho de teclado: <kbd>Alt+G</kbd> (Ganhou), <kbd>Alt+P</kbd> (Perdeu), <kbd>Alt+E</kbd> (Editar) e <kbd>Alt+X</kbd> (Excluir), agindo sobre a "aposta em foco" — navegue até a linha com <kbd>Ctrl+Alt+Setas</kbd> (tabela do NVDA) e, já posicionado nela, aperte <kbd>Enter</kbd> sozinho; dê Tab até ela; ou use <kbd>Alt+L</kbd> para localizar direto pelo Identificador. Veja os detalhes em <a href="#atalhos">Atalhos de Teclado</a>.
+      Todas essas ações também têm atalho de teclado: <kbd>Alt+G</kbd> (Ganhou), <kbd>Alt+P</kbd> (Perdeu), <kbd>Alt+E</kbd> (Editar) e <kbd>Alt+X</kbd> (Excluir), agindo sobre a "aposta em foco" — navegue até a linha com <kbd>Ctrl+Alt+Setas</kbd> (tabela do NVDA) e, já posicionado nela, aperte <kbd>Enter</kbd> sozinho; ou dê Tab até ela. Veja os detalhes em <a href="#atalhos">Atalhos de Teclado</a>.
     </div>
     <div class="callout info">
       <div class="callout-title">🔄 A aposta some sozinha se sair do filtro</div>
@@ -972,9 +972,8 @@
         <tr><td><kbd>Alt</kbd> + <kbd>4</kbd></td><td>Vai direto para a aba Saldos.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>5</kbd></td><td>Vai direto para a aba Configurações.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>S</kbd></td><td>Salva a aposta em edição no formulário de Cadastro (mesmo botão "💾 Salvar Aposta"; se você estiver editando uma aposta existente, funciona como "Atualizar Aposta"). Só funciona com a aba Cadastro ativa — em qualquer outra aba, um aviso pede para ir até lá primeiro (Alt+1).</td></tr>
-        <tr><td><kbd>Alt</kbd> + <kbd>L</kbd></td><td>Localizar aposta pelo Identificador: abre uma caixa para digitar o Identificador (ou parte dele) e leva direto até a linha correspondente na aba Lista, já em foco — funciona de qualquer aba, sem precisar navegar pela tabela.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>A</kbd></td><td>Filtro rápido "Somente Abertas": liga (ou desliga, se apertado de novo) o filtro de Status = Aberto direto na lista, sem precisar ir até a aba Filtros. Funciona de qualquer aba — já leva você para a Lista com o resultado. Mantém qualquer outro filtro já ativo (Casa, Tipster, Liga, datas etc.), mexendo só no Status.</td></tr>
-        <tr><td><kbd>Alt</kbd> + <kbd>0</kbd></td><td>Limpa todos os filtros ativos (Casa, Tipster, Tipo, Esporte, Liga, Mercado, Status, datas e busca livre), voltando a mostrar todas as apostas — mesmo efeito do botão "✕ Limpar Filtros" na aba Filtros. Funciona de qualquer aba, sem trocar de aba nem tirar o foco de onde você está — a lista já fica atualizada por baixo, pronta para quando você for até a aba Lista.</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>L</kbd></td><td>Limpa todos os filtros ativos (Casa, Tipster, Tipo, Esporte, Liga, Mercado, Status, datas e busca livre), voltando a mostrar todas as apostas — mesmo efeito do botão "✕ Limpar Filtros" na aba Filtros. Funciona de qualquer aba, sem trocar de aba nem tirar o foco de onde você está — a lista já fica atualizada por baixo, pronta para quando você for até a aba Lista.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>G</kbd></td><td>Marca a "aposta em foco" (veja explicação abaixo) como Ganhou.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>P</kbd></td><td>Marca a "aposta em foco" como Perdida.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>E</kbd></td><td>Abre a "aposta em foco" para edição na aba Cadastro (equivale a clicar em ✏️).</td></tr>
@@ -987,11 +986,10 @@
     </div>
     <div class="callout info">
       <div class="callout-title">🎯 O que é a "aposta em foco"</div>
-      Os atalhos Alt+G, Alt+P, Alt+E e Alt+X agem sobre a "aposta em foco". Há três formas de defini-la:
+      Os atalhos Alt+G, Alt+P, Alt+E e Alt+X agem sobre a "aposta em foco". Há duas formas de defini-la:
       <ul style="margin:8px 0 0 1.2rem;">
         <li><strong>Navegação por tabela do NVDA:</strong> use <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Setas</kbd> para percorrer as células da tabela normalmente. Depois de já estar posicionado na linha da aposta desejada, aperte <kbd>Enter</kbd> sozinho (sem os outros modificadores, como um passo separado) — isso dá foco real à linha (um aviso sonoro confirma qual aposta ficou em foco) e libera os atalhos de ação para ela. É o jeito mais direto para quem já navega tabelas dessa forma.</li>
         <li><strong>Tab:</strong> cada linha inteira também é um único ponto de foco na ordem de tabulação — dê <kbd>Tab</kbd> até a linha desejada e use o atalho. Não é preciso entrar em nenhum botão específico.</li>
-        <li><strong>Atalho <kbd>Alt</kbd>+<kbd>L</kbd> (Localizar):</strong> abre uma caixa para digitar o Identificador (ou parte dele) da aposta. Funciona de qualquer aba, sem precisar navegar pela tabela — o app já leva você até a linha certa na aba Lista, focada e pronta para o atalho seguinte. Se mais de uma aposta corresponder ao texto digitado, o app pede um termo mais específico.</li>
       </ul>
       Se nenhuma aposta estiver em foco, o app avisa e nada é executado — não há risco de agir sobre a aposta errada por engano.
     </div>

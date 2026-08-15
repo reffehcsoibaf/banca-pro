@@ -114,6 +114,17 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-20-5">v1.20.5</h2>
+  <p class="versao-data">15/08/2026</p>
+  <h3>Remoção do atalho Alt+L (Localizar por Identificador) e realocação do Alt+0 (Limpar Filtros)</h3>
+  <ul>
+    <li>Motivação: o atalho Alt+L, que abria uma caixa para digitar o Identificador (ou parte dele) e localizar a aposta correspondente, nunca chegou a ser usado na prática e não se mostrou útil o suficiente para justificar manter o código e a entrada na Wiki.</li>
+    <li>Removida a função localizarApostaPorIdentificador() e toda a lógica do atalho Alt+L associada a ela, incluindo a referência no toast de aviso de "nenhuma aposta em foco".</li>
+    <li>O atalho Alt+0 (Limpar Filtros) foi remapeado para Alt+L, ocupando a tecla que ficou livre. Continua com o mesmo comportamento: limpa todos os filtros ativos sem trocar de aba nem tirar o foco de onde o usuário está.</li>
+    <li>Atualizado aria-keyshortcuts="Alt+L" no botão "✕ Limpar Filtros" e a documentação da Wiki (tabela de atalhos e o texto sobre as formas de definir a "aposta em foco", agora reduzido a duas: navegação por tabela do NVDA e Tab).</li>
+    <li>Nenhuma mudança de banco de dados nesta versão.</li>
+  </ul>
+
   <h2 id="v1-20-4">v1.20.4</h2>
   <p class="versao-data">14/08/2026</p>
   <h3>Ajuste de acessibilidade: campos mais enxutos pra leitor de tela</h3>
