@@ -114,6 +114,18 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-20-4">v1.20.4</h2>
+  <p class="versao-data">14/08/2026</p>
+  <h3>Ajuste de acessibilidade: campos mais enxutos pra leitor de tela</h3>
+  <ul>
+    <li>Motivação: o texto de ajuda embaixo da caixa de freebet e o aria-label verboso do campo Observação atrapalhavam a fluidez de navegação por leitor de tela — cada campo deve trazer só o essencial pra identificá-lo; explicação e exemplo ficam reservados para a Wiki e o Changelog.</li>
+    <li>Caixa "Envolve Freebet (Aposta Grátis)" renomeada de volta para só "Aposta Grátis"; removido o bloco de texto explicativo e o aria-describedby associado.</li>
+    <li>Campo derivado renomeado de "Valor do Freebet Usado" para "Valor do Freebet" (mais curto, mesmo campo/mesma função).</li>
+    <li>Removidos os aria-label redundantes/verbosos dos campos Observação, Bônus e Cash Out — o label visível já identifica cada um.</li>
+    <li>Placeholder do campo Observação simplificado para apenas "Opcional".</li>
+    <li>Nenhuma mudança de cálculo, banco de dados, ou nome de campo salvo — só texto de interface.</li>
+  </ul>
+
   <h2 id="v1-20-3">v1.20.3</h2>
   <p class="versao-data">13/08/2026</p>
   <h3>Correção: janela de erro roubava o foco ao marcar aposta como Perdeu</h3>

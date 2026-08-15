@@ -4,6 +4,29 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.20.4 — 14/08/2026
+
+### Ajuste de acessibilidade: campos mais enxutos pra leitor de tela
+
+- **Motivação:** o texto de ajuda embaixo da caixa de freebet (um parágrafo
+  inteiro explicando a mecânica de financiamento misto) e o `aria-label`
+  verboso do campo Observação atrapalhavam a fluidez de navegação por
+  leitor de tela — cada campo deve trazer só o essencial pra identificá-lo;
+  explicação e exemplo ficam reservados para a Wiki e o Changelog.
+- Caixa "Envolve Freebet (Aposta Grátis)" renomeada de volta para só
+  **"Aposta Grátis"**; removido o bloco de texto explicativo
+  (`#ajudaApostaGratis`) e o `aria-describedby` associado.
+- Campo derivado renomeado de "Valor do Freebet Usado" para **"Valor do
+  Freebet"** (mais curto, mesmo campo/mesma função).
+- Removidos os `aria-label` redundantes/verbosos dos campos Observação,
+  Bônus e Cash Out — o `<label>` visível já identifica cada um; manter os
+  dois duplicava a informação e alongava o que o leitor de tela lê a cada
+  passagem pelo campo.
+- Placeholder do campo Observação simplificado de uma lista de exemplos
+  para apenas "Opcional".
+- Nenhuma mudança de cálculo, banco de dados, ou nome de campo salvo — só
+  texto de interface.
+
 ## v1.20.3 — 13/08/2026
 
 ### Correção: janela de erro roubava o foco ao marcar aposta como Perdeu

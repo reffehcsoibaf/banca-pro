@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.20.3</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.20.4</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -399,8 +399,8 @@
         <tr><td class="field-name">Tipo <span class="req">*</span></td><td>Caixa combinada</td><td>Momento da aposta: <em>Pré Live</em> (antes do jogo) ou <em>Ao Vivo</em>.</td></tr>
         <tr><td class="field-name">Status <span class="req">*</span></td><td>Radio button</td><td><em>Aberto</em> (aguardando resultado), <em>Ganhou</em>, <em>Perdeu</em>, <em>Ganho Parcial</em>, <em>Perda Parcial</em>, <em>Cash Out</em> ou <em>Anulada</em>.</td></tr>
         <tr><td class="field-name">Stake <span class="req">*</span></td><td>Número</td><td>Valor total em reais apostado nesta entrada, incluindo qualquer parte financiada por freebet (ver campo abaixo).</td></tr>
-        <tr><td class="field-name">Envolve Freebet <span class="opt">opcional</span></td><td>Caixa de seleção</td><td>Marque quando parte ou todo o stake veio de um freebet/aposta grátis da casa. Ao marcar, aparece o campo "Valor do Freebet Usado" — ver tabela de fórmulas abaixo.</td></tr>
-        <tr><td class="field-name">Valor do Freebet Usado <span class="opt">condicional</span></td><td>Número</td><td>Só aparece quando "Envolve Freebet" está marcada. Quanto do Stake acima veio de freebet — de R$0,01 até o valor total do Stake (100% freebet). Vem pré-preenchido com o valor total do Stake (caso mais comum), editável para financiamento misto (freebet + dinheiro real na mesma aposta).</td></tr>
+        <tr><td class="field-name">Aposta Grátis <span class="opt">opcional</span></td><td>Caixa de seleção</td><td>Marque quando parte ou todo o stake veio de um freebet/aposta grátis da casa. Ao marcar, aparece o campo "Valor do Freebet" — ver tabela de fórmulas abaixo.</td></tr>
+        <tr><td class="field-name">Valor do Freebet <span class="opt">condicional</span></td><td>Número</td><td>Só aparece quando "Aposta Grátis" está marcada. Quanto do Stake acima veio de freebet — de R$0,01 até o valor total do Stake (100% freebet). Vem pré-preenchido com o valor total do Stake (caso mais comum), editável para financiamento misto (freebet + dinheiro real na mesma aposta).</td></tr>
         <tr><td class="field-name">Bônus <span class="opt">opcional</span></td><td>Número</td><td>Valor de bônus aplicado pela casa (ex: promoção "SUPERMÚLTIPLA"). Somado ao retornado quando a aposta ganha. Independente do campo Freebet — os dois podem ser usados juntos.</td></tr>
         <tr><td class="field-name">ODD Total <span class="opt">opcional</span></td><td>Número</td><td>ODD final da aposta (produto das odds dos eventos em acumuladores). Calculado automaticamente.</td></tr>
         <tr><td class="field-name">Retornado <span class="opt">opcional</span></td><td>Número</td><td>Valor recebido de volta em caso de ganho.</td></tr>
@@ -639,24 +639,24 @@
   <!-- CÁLCULO AUTOMÁTICO -->
   <section id="calculo-automatico" class="wiki-section" aria-labelledby="h-calculo">
     <h2 id="h-calculo">🧮 Cálculo Automático</h2>
-    <p>Os campos de resultado são recalculados automaticamente sempre que Stake, ODD, Status, Bônus, Envolve Freebet ou Valor do Freebet Usado são alterados.</p>
-    <p>Desde a v1.20.2, o campo <strong>Valor do Freebet Usado</strong> (0 até o Stake total) substitui o antigo "tudo ou nada": ele cobre tanto apostas 100% freebet quanto financiamento misto (parte freebet, parte dinheiro real) — e também o caso normal (freebet = 0). A regra que vale pra <strong>qualquer</strong> mistura, em todos os status, é:</p>
-    <p style="text-align:center;"><code>Lucro = Retornado − (Stake − Valor do Freebet Usado)</code></p>
+    <p>Os campos de resultado são recalculados automaticamente sempre que Stake, ODD, Status, Bônus, Aposta Grátis ou Valor do Freebet são alterados.</p>
+    <p>Desde a v1.20.2, o campo <strong>Valor do Freebet</strong> (0 até o Stake total) substitui o antigo "tudo ou nada": ele cobre tanto apostas 100% freebet quanto financiamento misto (parte freebet, parte dinheiro real) — e também o caso normal (freebet = 0). A regra que vale pra <strong>qualquer</strong> mistura, em todos os status, é:</p>
+    <p style="text-align:center;"><code>Lucro = Retornado − (Stake − Valor do Freebet)</code></p>
     <p>O <strong>Retornado</strong> em si varia por status, porque cada um devolve dinheiro de um jeito diferente:</p>
     <table class="field-table" aria-label="Fórmulas de retorno por status">
       <thead><tr><th>Status</th><th>Retornado</th></tr></thead>
       <tbody>
-        <tr><td class="field-name">Ganhou</td><td><code>(Stake × ODD Total) − Valor do Freebet Usado + Bônus</code></td></tr>
+        <tr><td class="field-name">Ganhou</td><td><code>(Stake × ODD Total) − Valor do Freebet + Bônus</code></td></tr>
         <tr><td class="field-name">Perdeu</td><td><code>0</code></td></tr>
-        <tr><td class="field-name">Ganho Parcial</td><td><code>(Stake ÷ 2) × ODD + (Stake ÷ 2) − Valor do Freebet Usado + Bônus</code></td></tr>
-        <tr><td class="field-name">Perda Parcial</td><td><code>(Stake ÷ 2) − (Valor do Freebet Usado ÷ 2)</code></td></tr>
-        <tr><td class="field-name">Anulada</td><td><code>Stake − Valor do Freebet Usado</code></td></tr>
+        <tr><td class="field-name">Ganho Parcial</td><td><code>(Stake ÷ 2) × ODD + (Stake ÷ 2) − Valor do Freebet + Bônus</code></td></tr>
+        <tr><td class="field-name">Perda Parcial</td><td><code>(Stake ÷ 2) − (Valor do Freebet ÷ 2)</code></td></tr>
+        <tr><td class="field-name">Anulada</td><td><code>Stake − Valor do Freebet</code></td></tr>
         <tr><td class="field-name">Cash Out</td><td>Valor informado manualmente no campo <em>Valor Cash Out</em> (já é o valor real recebido, independente da mistura de freebet)</td></tr>
         <tr><td class="field-name">Aberto</td><td><code>0</code> (sem retorno calculado)</td></tr>
       </tbody>
     </table>
     <p><strong>Por que o Retornado não é sempre "fórmula normal menos o freebet":</strong> em Perdeu, nada é devolvido de qualquer forma (a fórmula normal já dá zero, então não há o que subtrair). Em Perda Parcial, só metade do stake é estruturalmente devolvida — então só metade do freebet usado (proporcionalmente) está embutida nessa metade devolvida, daí dividir por 2 em vez de subtrair o valor inteiro.</p>
-    <p><strong>Dois casos-limite pra conferir a fórmula:</strong> com Valor do Freebet Usado = 0, tudo se reduz exatamente às fórmulas de uma aposta normal (nada muda em relação a antes da v1.20.0). Com Valor do Freebet Usado = Stake inteiro (100% freebet), Retornado e Lucro ficam iguais em qualquer status liquidado — o mesmo comportamento que a v1.20.0/v1.20.1 já tinham, só que agora é um caso particular da regra geral, não uma fórmula à parte.</p>
+    <p><strong>Dois casos-limite pra conferir a fórmula:</strong> com Valor do Freebet = 0, tudo se reduz exatamente às fórmulas de uma aposta normal (nada muda em relação a antes da v1.20.0). Com Valor do Freebet = Stake inteiro (100% freebet), Retornado e Lucro ficam iguais em qualquer status liquidado — o mesmo comportamento que a v1.20.0/v1.20.1 já tinham, só que agora é um caso particular da regra geral, não uma fórmula à parte.</p>
     <table class="field-table" aria-label="Demais fórmulas calculadas">
       <thead><tr><th>Campo</th><th>Fórmula</th></tr></thead>
       <tbody>

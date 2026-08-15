@@ -998,28 +998,25 @@
                     <label for="stake">Stake (R$) <span class="field-required" aria-hidden="true">*</span></label>
                     <input type="number" step="0.01" id="stake" oninput="calcular()" aria-required="true" placeholder="0,00" inputmode="decimal">
                     <label style="font-weight:400; margin-top:6px; display:flex; align-items:center; gap:6px;">
-                        <input type="checkbox" id="apostaGratis" onchange="toggleApostaGratis(); calcular();" aria-describedby="ajudaApostaGratis">
-                        <span>Envolve Freebet (Aposta Grátis)</span>
+                        <input type="checkbox" id="apostaGratis" onchange="toggleApostaGratis(); calcular();">
+                        <span>Aposta Grátis</span>
                     </label>
                     <div id="blocoValorFreebet" style="display:none; margin-top:6px;">
-                        <label for="valorFreebet" style="font-weight:400;">Valor do Freebet Usado (R$)</label>
+                        <label for="valorFreebet" style="font-weight:400;">Valor do Freebet (R$)</label>
                         <input type="number" step="0.01" id="valorFreebet" oninput="calcular()" placeholder="0,00" inputmode="decimal">
                     </div>
-                    <small id="ajudaApostaGratis" style="font-weight:400; color:var(--text-secondary); display:block;">
-                        Marque se parte ou todo o stake veio de um freebet/aposta grátis da casa. Informe quanto desse stake era freebet — pode ser o valor total (100% freebet) ou só uma parte (financiamento misto, freebet + dinheiro real). O retorno é calculado sem devolver a parte que veio do freebet (a casa só paga o lucro líquido sobre ela quando ganha).
-                    </small>
                 </div>
                 <div id="campoCashOut" style="display:none;" aria-hidden="true">
                     <label for="cashOutValor">Valor do Cash Out (R$)</label>
-                    <input type="number" step="0.01" id="cashOutValor" oninput="calcular()" placeholder="0,00" inputmode="decimal" aria-label="Valor recebido no cash out">
+                    <input type="number" step="0.01" id="cashOutValor" oninput="calcular()" placeholder="0,00" inputmode="decimal">
                 </div>
                 <div>
                     <label for="bonus">Bônus (R$) <small style="font-weight:400;color:var(--text-secondary);">opcional</small></label>
-                    <input type="number" step="0.01" id="bonus" oninput="calcular()" placeholder="0,00" inputmode="decimal" aria-label="Valor de bônus que incide sobre o ganho">
+                    <input type="number" step="0.01" id="bonus" oninput="calcular()" placeholder="0,00" inputmode="decimal">
                 </div>
                 <div style="grid-column: 1 / -1;">
                     <label for="observacao">Observação <small style="font-weight:400;color:var(--text-secondary);">opcional</small></label>
-                    <input type="text" id="observacao" placeholder="Ex: placar final, quantidade de pontos, por quanto ganhou/perdeu..." aria-label="Observação sobre o resultado da aposta">
+                    <input type="text" id="observacao" placeholder="Opcional">
                 </div>
             </div>
 
@@ -1473,7 +1470,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.20.3 · 13/08/2026
+  Banca Pro · v1.20.4 · 14/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
