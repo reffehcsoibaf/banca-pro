@@ -4,6 +4,32 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.20.6 — 16/08/2026
+
+### Correção: erro ao excluir aposta (violação de chave estrangeira)
+
+- **Bug:** ao excluir uma aposta, o app tentava apagar a linha em
+  `banca_apostas` antes de apagar os eventos ligados a ela em
+  `banca_eventos`, que dependem da aposta via chave estrangeira. O banco
+  rejeitava a exclusão com `violates foreign key constraint
+  "banca_eventos_aposta_id_fkey"`. Além disso, a aposta já tinha sido
+  removida da tela antes da confirmação do banco, então ela sumia da lista
+  mesmo com a exclusão falhando — e ao tentar salvar uma aposta nova com o
+  mesmo Identificador, o app acusava `duplicate key value violates unique
+  constraint "banca_apostas_user_identificador_unique"`, já que a aposta
+  "excluída" continuava no banco.
+- Corrigida a ordem de exclusão: os eventos da aposta agora são apagados
+  antes da aposta em si.
+- A aposta só é removida da lista na tela depois de confirmada a exclusão
+  no banco — se a exclusão falhar, a aposta permanece visível e o erro é
+  mostrado, evitando o estado "fantasma" (sumida da tela mas ainda no
+  banco).
+- **Banco de dados:** a chave estrangeira `banca_eventos_aposta_id_fkey`
+  passou a ter `ON DELETE CASCADE`, como reforço — apagar uma aposta agora
+  apaga automaticamente os eventos ligados a ela, mesmo em exclusões feitas
+  fora da tela de apostas (ex.: função "Apagar Tudo", que tinha o mesmo
+  problema em potencial).
+
 ## v1.20.5 — 15/08/2026
 
 ### Remoção do atalho Alt+L (Localizar por Identificador) e realocação do Alt+0 (Limpar Filtros)

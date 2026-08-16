@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-20-6">v1.20.6</h2>
+  <p class="versao-data">16/08/2026</p>
+  <h3>Correção: erro ao excluir aposta (violação de chave estrangeira)</h3>
+  <ul>
+    <li>Bug: ao excluir uma aposta, o app tentava apagar a linha em banca_apostas antes de apagar os eventos ligados a ela em banca_eventos, que dependem da aposta via chave estrangeira. O banco rejeitava a exclusão com erro de violação de chave estrangeira. Além disso, a aposta já tinha sido removida da tela antes da confirmação do banco, então ela sumia da lista mesmo com a exclusão falhando — e ao tentar salvar uma aposta nova com o mesmo Identificador, o app acusava erro de chave duplicada, já que a aposta "excluída" continuava no banco.</li>
+    <li>Corrigida a ordem de exclusão: os eventos da aposta agora são apagados antes da aposta em si.</li>
+    <li>A aposta só é removida da lista na tela depois de confirmada a exclusão no banco — se a exclusão falhar, a aposta permanece visível e o erro é mostrado, evitando o estado "fantasma" (sumida da tela mas ainda no banco).</li>
+    <li>Banco de dados: a chave estrangeira entre banca_eventos e banca_apostas passou a ter exclusão em cascata, como reforço — apagar uma aposta agora apaga automaticamente os eventos ligados a ela, mesmo em exclusões feitas fora da tela de apostas (ex.: função "Apagar Tudo", que tinha o mesmo problema em potencial).</li>
+  </ul>
+
   <h2 id="v1-20-5">v1.20.5</h2>
   <p class="versao-data">15/08/2026</p>
   <h3>Remoção do atalho Alt+L (Localizar por Identificador) e realocação do Alt+0 (Limpar Filtros)</h3>

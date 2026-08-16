@@ -1470,7 +1470,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.20.5 · 15/08/2026
+  Banca Pro · v1.20.6 · 16/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2503,8 +2503,15 @@ async function atualizarStatusApostaDB(aposta) {
 }
 
 async function excluirApostaDB(id) {
+    // Eventos referenciam a aposta via FK — apagar primeiro evita violação de
+    // chave estrangeira. O banco também tem ON DELETE CASCADE como reforço,
+    // mas a exclusão explícita aqui mantém o comportamento previsível mesmo
+    // se a constraint mudar no futuro.
+    const { error: eDel } = await sb.from('banca_eventos').delete().eq('aposta_id', id);
+    if (eDel) { showToast('❌ Erro ao excluir eventos da aposta: ' + eDel.message, 'error'); return false; }
     const { error } = await sb.from('banca_apostas').delete().eq('id', id);
-    if (error) showToast('❌ Erro ao excluir aposta: ' + error.message, 'error');
+    if (error) { showToast('❌ Erro ao excluir aposta: ' + error.message, 'error'); return false; }
+    return true;
 }
 
 // ---- Upsert em lote (usado por Limpar Duplicados e Recalcular Odds, que alteram várias apostas de uma vez) ----
@@ -4275,8 +4282,13 @@ async function deletar(idx) {
     const id = apostas[idx].identificador;
     const apostaId = apostas[idx].id;
     if (confirm(`Excluir aposta ${id}?`)) {
+        // Só remove da lista local depois de confirmar que a exclusão no banco
+        // deu certo — excluir da tela antes do await e a exclusão no banco falhar
+        // deixava a aposta "fantasma": sumida da tela mas ainda no banco, o que
+        // depois travava ao tentar salvar de novo com o mesmo Identificador.
+        const sucesso = await excluirApostaDB(apostaId);
+        if (!sucesso) return;
         apostas.splice(idx, 1);
-        await excluirApostaDB(apostaId);
         aplicarFiltros();
         renderSaldos();
         showToast(`🗑️ Aposta ${id} excluída`, 'info');
