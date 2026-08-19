@@ -4,6 +4,44 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.21.0 — 19/08/2026
+
+### Nova funcionalidade: Histórico de Análises (IA)
+
+- Toda vez que a **Análise de Aposta** (risco + estatística) é executada —
+  pelo botão manual "🔍 Analisar Aposta" ou automaticamente após preencher
+  por Foto/Texto — o resultado completo passa a ser guardado num histórico,
+  em vez de existir só enquanto a tela de Cadastro estiver aberta.
+- Novo card **"📜 Histórico de Análises (IA)"** em Configurações, com uma
+  tabela listando cada análise por **Data**, **Hora** e **Confronto**
+  (o(s) evento(s) analisados, ex.: "Time A - Time B" ou, em acumuladores,
+  "Time A - Time B + Time C - Time D").
+- Cada linha entra **retraída** por padrão. O botão **"🔽 Expandir análise"**
+  (com `aria-expanded` e `aria-controls` corretos para leitor de tela) revela
+  o texto completo da análise — nível de risco, resumo, alertas e a
+  estatística por evento — na mesma formatação já usada na tela de Cadastro.
+  "🔼 Recolher análise" esconde de novo.
+- Botão **"🗑️ Remover"** em cada linha apaga aquela análise específica do
+  histórico (com confirmação antes), sem afetar a aposta em si.
+- **Vínculo com o bilhete:** a análise agora é salva junto com o
+  Identificador do bilhete (o mesmo "ID" mostrado em toda a tela de Lista,
+  ex.: "891N-YJRJI3") e, quando a aposta já está salva no banco (modo
+  edição), também o id interno da aposta no Supabase — isso liga cada
+  análise ao bilhete correspondente de forma inequívoca. O Identificador
+  aparece diretamente dentro do texto da análise ("🎫 Bilhete: ..."), tanto
+  na exibição imediata em Cadastro quanto no histórico expandido. Se a
+  análise for feita antes do Identificador ser preenchido no formulário,
+  fica salva sem esse vínculo (não há erro, só não aparece a linha do
+  bilhete no texto).
+- Implementado com uma tabela nova de verdade (`<table>`/`<tr>`/`<td>`),
+  para a navegação por células do NVDA (Ctrl+Alt+Setas) funcionar
+  normalmente mesmo nas linhas de detalhe expandidas.
+- **Banco de dados:** nova tabela `banca_analises_ia` (`id`, `user_id`,
+  `titulo`, `resultado` em JSONB com o texto completo da análise,
+  `criado_em`, `aposta_id` — chave estrangeira para `banca_apostas.id`,
+  `ON DELETE SET NULL` — e `identificador`), com RLS restringindo cada
+  usuário às suas próprias análises.
+
 ## v1.20.6 — 16/08/2026
 
 ### Correção: erro ao excluir aposta (violação de chave estrangeira)

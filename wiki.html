@@ -609,6 +609,11 @@
 
     <h3 id="dados-usados-analise">Quais dados são enviados</h3>
     <p>São enviados apenas os dados já visíveis no formulário no momento do clique: casa, stake, status, bônus, ODD Total e os eventos (esporte, liga, evento, mercado, seleção e odd de cada um). Quando uma casa está selecionada, o saldo atual calculado dela (ver <a href="#saldos">Saldo por Casa</a>) também é enviado, para a IA avaliar que percentual da banca o stake representa. A partir desses dados, a IA formula buscas na web (ex: "média de gols Time A últimos jogos") para cada evento — nenhum dado sai do formulário além do que já está preenchido.</p>
+
+    <h3 id="historico-analises">📜 Histórico de Análises (IA)</h3>
+    <p>Toda análise executada — pelo botão manual ou automaticamente — fica salva num histórico, em <a href="#configuracoes">Configurações → 📜 Histórico de Análises (IA)</a>. A tabela lista cada análise por <strong>Data</strong>, <strong>Hora</strong> e <strong>Confronto</strong> (o(s) evento(s) analisados; num acumulador, os confrontos aparecem separados por "+").</p>
+    <p>Cada linha entra <strong>retraída</strong> por padrão. O botão <span class="btn-demo">🔽 Expandir análise</span> revela o texto completo — nível de risco, resumo, alertas e a estatística por evento, na mesma formatação da tela de Cadastro — logo abaixo da linha; <span class="btn-demo">🔼 Recolher análise</span> esconde de novo. O botão <span class="btn-demo danger">🗑️ Remover</span> apaga aquela entrada específica do histórico, com confirmação antes — isso não afeta a aposta em si, só o registro da análise.</p>
+    <p>Quando o campo Identificador do formulário já estiver preenchido no momento da análise, o bilhete correspondente fica vinculado: o Identificador aparece diretamente dentro do texto da análise ("🎫 Bilhete: ..."), tanto na exibição imediata em Cadastro quanto no histórico expandido. Se a aposta já estiver salva (modo edição), o vínculo também é gravado internamente pelo id da aposta no banco. Analisar antes de preencher o Identificador não gera erro — a entrada fica salva no histórico sem esse vínculo.</p>
   </section>
 
   <!-- LISTAS DINÂMICAS -->
@@ -829,6 +834,9 @@
       <div class="callout-title">💡 Quando forçar um único provedor</div>
       Útil para testar a qualidade das respostas de um provedor específico, para economizar cota de um deles, ou para diagnosticar se um problema de leitura/análise está vindo do Gemini ou da Anthropic. Se não houver motivo específico, "Ambas" é a opção mais confiável, já que garante uma segunda tentativa quando o primeiro provedor falha.
     </div>
+
+    <h3 id="config-historico-analises">📜 Histórico de Análises (IA)</h3>
+    <p>Lista todas as análises de risco/estatística já executadas (ver <a href="#analisar-aposta">Analisar Aposta (IA) → Histórico de Análises</a>), com Data, Hora, Confronto, e botões para expandir o texto completo ou remover a entrada.</p>
 
     <h3 id="config-preferencias-lista">📋 Preferências da Lista</h3>
     <p>Define quantas apostas aparecem por página na aba Lista: 10, 25, 50, 100, 200 ou Todas. Um número menor deixa a navegação mais rápida em bases grandes; a opção "Todas" mostra a lista inteira filtrada em uma página só, sem paginação (pode deixar a navegação mais lenta em bases muito grandes). Essa preferência fica salva apenas neste dispositivo/navegador — não é sincronizada com a nuvem nem com outros aparelhos.</p>

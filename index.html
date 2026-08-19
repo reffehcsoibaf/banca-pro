@@ -1351,6 +1351,19 @@
         </div>
 
         <div class="card">
+            <h2>📜 Histórico de Análises (IA)</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Toda vez que a Análise de Aposta é executada (pelo botão manual ou automaticamente), o resultado fica guardado aqui, com data, hora e o confronto analisado. A análise entra sempre retraída na tabela — use "Expandir análise" para ler o texto completo, ou "Remover" para apagar uma entrada que não precisa mais.
+            </p>
+            <div class="table-wrap">
+                <table role="grid" aria-label="Histórico de análises por estatísticas">
+                    <thead><tr><th scope="col">Data</th><th scope="col">Hora</th><th scope="col">Confronto</th><th scope="col">Ações</th></tr></thead>
+                    <tbody id="listaHistoricoAnalises"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
             <h2>🤖 Provedor de IA</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Escolha qual provedor de IA usar em cada funcionalidade. "Ambas" é o padrão e mantém o
@@ -1470,7 +1483,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.20.6 · 16/08/2026
+  Banca Pro · v1.21.0 · 19/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1726,6 +1739,7 @@ async function iniciarApp() {
     await carregarApostas();
     await carregarTransacoes();
     await carregarCorrecoesIA();
+    await carregarHistoricoAnalises();
     fillSelects();
     // Renderizar radio group do formulário principal
     renderRadioGroup('rg-casa', 'casa', null);
@@ -2252,6 +2266,123 @@ async function carregarCorrecoesIA() {
 // esse problema (é só padronização de nome, não muda com o calendário esportivo),
 // então essas continuam valendo indefinidamente.
 const LIGA_CORRECAO_VALIDADE_DIAS = 425; // ~14 meses: cobre 1 temporada completa + folga
+
+// ---- Histórico de Análises (IA) ----
+// Cada vez que a Análise de Aposta (risco + estatística) roda com sucesso —
+// manual ou automática —, o JSON devolvido pela IA é guardado aqui na íntegra
+// (tabela banca_analises_ia), junto com a data/hora e um título derivado dos
+// confrontos analisados. A tabela em Configurações lista as entradas sempre
+// retraídas; "Expandir análise" mostra o texto completo (reaproveitando
+// construirHtmlAnalise, a mesma função usada na exibição imediata em
+// Cadastro), e "Remover" apaga a entrada, uma a uma.
+let historicoAnalises = [];
+
+function historicoAnaliseParaLinha(h) {
+    return { titulo: h.titulo, resultado: h.resultado, aposta_id: h.apostaId || null, identificador: h.identificador || null };
+}
+function linhaParaHistoricoAnalise(row) {
+    return { id: row.id, titulo: row.titulo, resultado: row.resultado, criadoEm: row.criado_em, apostaId: row.aposta_id, identificador: row.identificador };
+}
+
+// Título da linha na tabela: junta o(s) confronto(s) analisados (ex.: em um
+// acumulador com vários eventos, "Time A - Time B + Time C - Time D").
+function construirTituloAnalise(dadosAnalise) {
+    const eventos = (dadosAnalise.analisesEventos || []).map(e => e && e.evento).filter(Boolean);
+    return eventos.length ? eventos.join(' + ') : 'Análise de aposta';
+}
+
+async function carregarHistoricoAnalises() {
+    const { data, error } = await sb.from('banca_analises_ia')
+        .select('id, titulo, resultado, criado_em, aposta_id, identificador')
+        .order('criado_em', { ascending: false });
+    if (error) {
+        showToast('❌ Erro ao carregar histórico de análises: ' + error.message, 'error');
+        historicoAnalises = [];
+        return;
+    }
+    historicoAnalises = (data || []).map(linhaParaHistoricoAnalise);
+}
+
+async function salvarAnaliseHistorico(dadosAnalise, vinculo) {
+    const linha = historicoAnaliseParaLinha({
+        titulo: construirTituloAnalise(dadosAnalise),
+        resultado: dadosAnalise,
+        apostaId: vinculo && vinculo.apostaId,
+        identificador: vinculo && vinculo.identificador
+    });
+    const { data, error } = await sb.from('banca_analises_ia').insert(linha).select().single();
+    if (error) {
+        // Não bloqueia nem alarma demais: a análise já está visível na tela,
+        // só o registro no histórico é que falhou.
+        showToast('⚠️ Análise exibida, mas não foi possível salvá-la no histórico: ' + error.message, 'info', 6000);
+        return;
+    }
+    historicoAnalises.unshift(linhaParaHistoricoAnalise(data));
+    renderHistoricoAnalises();
+}
+
+async function removerAnaliseHistorico(id) {
+    const item = historicoAnalises.find(h => h.id === id);
+    if (!item) return;
+    if (!confirm(`Remover a análise de "${item.titulo}" do histórico? Essa ação não pode ser desfeita.`)) return;
+    const { error } = await sb.from('banca_analises_ia').delete().eq('id', id);
+    if (error) { showToast('❌ Erro ao remover análise: ' + error.message, 'error'); return; }
+    historicoAnalises = historicoAnalises.filter(h => h.id !== id);
+    renderHistoricoAnalises();
+    showToast('🗑️ Análise removida do histórico', 'info');
+    anunciar('Análise removida do histórico.');
+}
+
+// Expande/recolhe o texto completo de uma análise do histórico, alternando
+// aria-expanded no botão e a visibilidade da linha de detalhe (colspan) logo
+// abaixo — padrão de "linha filha" acessível: continua sendo uma <table>
+// nativa de verdade, então a navegação por células do NVDA (Ctrl+Alt+Setas)
+// funciona normalmente.
+function toggleDetalheHistoricoAnalise(id) {
+    const linha = document.getElementById(`historico-analise-detalhe-${id}`);
+    const btn = document.getElementById(`btn-expandir-historico-${id}`);
+    if (!linha || !btn) return;
+    const expandido = btn.getAttribute('aria-expanded') === 'true';
+    if (expandido) {
+        linha.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+        btn.innerHTML = '🔽 Expandir análise';
+        anunciar('Análise recolhida.');
+    } else {
+        linha.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+        btn.innerHTML = '🔼 Recolher análise';
+        anunciar('Análise expandida. Texto completo disponível logo abaixo do botão.');
+    }
+}
+
+function renderHistoricoAnalises() {
+    const container = document.getElementById('listaHistoricoAnalises');
+    if (!container) return;
+    if (!historicoAnalises.length) {
+        container.innerHTML = `<tr><td colspan="4" style="color:var(--text-secondary);">Nenhuma análise registrada ainda.</td></tr>`;
+        return;
+    }
+    container.innerHTML = historicoAnalises.map(h => {
+        const dt = h.criadoEm ? new Date(h.criadoEm) : null;
+        const dataFmt = dt ? dt.toLocaleDateString('pt-BR') : '—';
+        const horaFmt = dt ? dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
+        const idDetalhe = `historico-analise-detalhe-${h.id}`;
+        return `
+        <tr>
+            <td>${escapeHtml(dataFmt)}</td>
+            <td>${escapeHtml(horaFmt)}</td>
+            <td style="white-space:normal;min-width:220px;">${escapeHtml(h.titulo)}</td>
+            <td style="white-space:normal;min-width:210px;">
+                <button type="button" class="btn-xs btn-primary" id="btn-expandir-historico-${h.id}" aria-expanded="false" aria-controls="${idDetalhe}" onclick="toggleDetalheHistoricoAnalise(${h.id})">🔽 Expandir análise</button>
+                <button type="button" class="btn-xs btn-danger" onclick="removerAnaliseHistorico(${h.id})" aria-label="Remover análise de ${escapeHtml(h.titulo)} de ${escapeHtml(dataFmt)} ${escapeHtml(horaFmt)}">🗑️ Remover</button>
+            </td>
+        </tr>
+        <tr id="${idDetalhe}" hidden>
+            <td colspan="4" style="white-space:normal;">${construirHtmlAnalise(h.resultado)}</td>
+        </tr>`;
+    }).join('');
+}
 
 function correcaoEstaValida(c) {
     if (c.campo !== 'liga') return true; // mercado: sem prazo de validade
@@ -3269,6 +3400,18 @@ function coletarDadosApostaParaAnalise() {
     return { casa, stake, oddTotal, status, bonus, eventos, saldoAtualCasa };
 }
 
+// Identifica a que aposta (bilhete) a análise atual se refere, para vincular
+// no histórico: o Identificador digitado no formulário (sempre que houver) e
+// o id interno do Supabase quando a aposta já estiver salva (modo edição) —
+// uma aposta nova, ainda não salva, não tem id de banco ainda, só o texto do
+// Identificador (se já preenchido).
+function pegarVinculoApostaAtual() {
+    const identificadorEl = document.getElementById('identificador');
+    const identificador = identificadorEl ? identificadorEl.value.trim() : '';
+    const apostaId = (editIndex !== null && apostas[editIndex]) ? apostas[editIndex].id : null;
+    return { apostaId: apostaId || null, identificador: identificador || null };
+}
+
 // Só vale a pena chamar a IA se houver o mínimo de dados preenchidos
 function dadosSuficientesParaAnalise(dados) {
     if (!(dados.stake > 0)) return false;
@@ -3300,7 +3443,17 @@ async function analisarApostaAtual(automatico) {
         });
         const json = await resposta.json();
         if (!resposta.ok) throw new Error(json.error || 'Erro ao analisar a aposta.');
+        // Marca no próprio resultado a que bilhete essa análise se refere (o
+        // Identificador do formulário, quando preenchido) — assim o vínculo
+        // aparece dentro do texto da análise em si, tanto agora quanto depois
+        // no Histórico de Análises, e não só como uma coluna solta na tabela.
+        const vinculo = pegarVinculoApostaAtual();
+        json._identificadorAposta = vinculo.identificador;
         renderizarAnaliseAposta(json);
+        // Salva no histórico em segundo plano — não atrasa o anúncio da análise
+        // ao leitor de tela, e uma eventual falha ao salvar não invalida a
+        // análise que já está visível na tela.
+        salvarAnaliseHistorico(json, vinculo);
         anunciar((json._buscaIndisponivel ? 'Busca de estatísticas indisponível no momento. ' : '') +
             'Análise da aposta disponível. Nível de risco: ' + (json.nivelRisco || '—') + '. ' + (json.resumo || ''));
     } catch (err) {
@@ -3314,7 +3467,15 @@ async function analisarApostaAtual(automatico) {
 function renderizarAnaliseAposta(dados) {
     const container = document.getElementById('analiseApostaResultado');
     if (!container) return;
+    container.innerHTML = construirHtmlAnalise(dados);
+}
 
+// Monta o HTML completo de uma análise (nível de risco, resumo, alertas e
+// estatística por evento) a partir do JSON devolvido pela IA. Reaproveitado
+// tanto na exibição imediata em Cadastro quanto no texto expandido do
+// Histórico de Análises (Configurações), para nunca haver duas versões do
+// mesmo texto divergindo entre si.
+function construirHtmlAnalise(dados) {
     const nivel = (dados.nivelRisco || '').toLowerCase();
     const corMap = {
         'baixo': { bg: 'var(--success-bg)', cor: 'var(--success)', emoji: '🟢' },
@@ -3357,11 +3518,12 @@ function renderizarAnaliseAposta(dados) {
         ? `<p style="margin:8px 0 0;font-size:12.5px;background:var(--warning-bg);color:var(--warning);padding:6px 10px;border-radius:6px;">⚠️ A busca de estatísticas reais não pôde ser feita agora (indisponibilidade temporária) — esta análise ficou limitada à probabilidade implícita da odd e aos alertas de risco gerais. Tente novamente em alguns minutos para a estimativa por estatística.</p>`
         : '';
 
-    container.innerHTML = `
+    return `
         <div style="background:${estilo.bg};border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border-light);">
             <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:${estilo.cor};font-size:13px;text-transform:uppercase;letter-spacing:.4px;">
                 ${estilo.emoji} Risco ${escapeHtml(dados.nivelRisco || '—')}
             </div>
+            ${dados._identificadorAposta ? `<p style="margin:4px 0 0;font-size:12px;color:var(--text-secondary);">🎫 Bilhete: <strong>${escapeHtml(dados._identificadorAposta)}</strong></p>` : ''}
             <p style="margin:8px 0 0;font-size:14px;line-height:1.6;">${escapeHtml(dados.resumo || '')}</p>
             ${alertasHtml}
             ${avisoBuscaIndisponivel}
@@ -4893,6 +5055,7 @@ function renderConfiguracoes() {
     if (selProvedorLiga) selProvedorLiga.value = provedorLiga;
 
     renderCorrecoesIA();
+    renderHistoricoAnalises();
 
     renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
     renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');
