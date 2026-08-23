@@ -114,6 +114,18 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-21-1">v1.21.1</h2>
+  <p class="versao-data">23/08/2026</p>
+  <h3>Correção: atalhos Alt+ não funcionavam com teclado Bluetooth no iPhone/iPad</h3>
+  <ul>
+    <li>Causa raiz: os atalhos globais (Alt+1 a Alt+5 para trocar de aba, e Alt+A, Alt+L, Alt+S, Alt+G, Alt+P, Alt+E, Alt+X) liam a tecla pressionada via e.key, que reflete o caractere produzido. No Windows isso não é problema, mas em teclados Apple a tecla Option — que faz o papel do Alt — troca o caractere gerado (ex.: Option+1 produz "¡", Option+G produz "©", Option+L produz "¬"). Resultado: nenhum atalho Alt+ funcionava no iPhone/iPad com teclado Bluetooth.</li>
+    <li>Correção: todos os atalhos Alt+ agora leem e.code em vez de e.key. e.code identifica a tecla física (ex.: "Digit1", "KeyG") e não é afetado por nenhum modificador ou layout de teclado — o mesmo atalho funciona de forma idêntica no Windows/NVDA e no iPhone/iPad/VoiceOver.</li>
+    <li>Nenhuma tecla de atalho mudou de lugar; apenas a forma de detectá-la.</li>
+    <li>Atualizada a Wiki com uma nota explicando a compatibilidade com teclado Bluetooth no iPhone/iPad e o motivo pelo qual o Option+letra não conflita com o VoiceOver (cujo modificador padrão é Control+Option, não Option sozinho).</li>
+    <li>Corrigida também uma menção residual a "Alt+0" na Wiki (seção Lista de Apostas) que não havia sido atualizada quando o atalho de Limpar Filtros passou a ser Alt+L, na v1.20.5.</li>
+    <li>Nenhuma mudança de banco de dados nesta versão.</li>
+  </ul>
+
   <h2 id="v1-21-0">v1.21.0</h2>
   <p class="versao-data">19/08/2026</p>
   <h3>Nova funcionalidade: Histórico de Análises (IA)</h3>

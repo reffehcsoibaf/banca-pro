@@ -1483,7 +1483,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.21.0 · 19/08/2026
+  Banca Pro · v1.21.1 · 23/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1867,10 +1867,15 @@ function irPara(secao, btn) {
 }
 
 // ---- Atalho global Alt+1..5 para trocar de aba de qualquer lugar da tela ----
+// Usa e.code (posição física da tecla) em vez de e.key (caractere produzido), porque
+// em teclados Apple (Mac/iPhone/iPad) a tecla Option troca o caractere gerado — por
+// exemplo Option+1 produz "¡", não "1" — o que quebraria a leitura por e.key. e.code
+// identifica a tecla física (ex.: "Digit1") e não muda com nenhum layout ou modificador,
+// então o atalho funciona igual no Windows/NVDA e no iPhone/VoiceOver com teclado Bluetooth.
 document.addEventListener('keydown', function(e) {
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
-    const mapa = { '1': 'cadastro', '2': 'lista', '3': 'filtros', '4': 'saldos', '5': 'config' };
-    const secao = mapa[e.key];
+    const mapa = { 'Digit1': 'cadastro', 'Digit2': 'lista', 'Digit3': 'filtros', 'Digit4': 'saldos', 'Digit5': 'config' };
+    const secao = mapa[e.code];
     if (!secao) return;
     e.preventDefault();
     const btn = document.querySelector('.tab-btn[data-secao="' + secao + '"]');
@@ -1931,9 +1936,17 @@ function alternarFiltroAbertas() {
 }
 
 // ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Filtro Abertas, Limpar Filtros ----
+// Usa e.code em vez de e.key pelo mesmo motivo do bloco de troca de abas acima: em
+// teclados Apple, Option+letra produz caracteres especiais (ex.: Option+G = "©",
+// Option+L = "¬", Option+E fica pendente esperando acento) em vez da letra pura, o que
+// quebraria a leitura por e.key. e.code (ex.: "KeyG") identifica a tecla física e não
+// muda com o modificador Option, então o atalho funciona igual no Windows/NVDA e no
+// iPhone/VoiceOver com teclado Bluetooth.
 document.addEventListener('keydown', function(e) {
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
-    const tecla = e.key.toLowerCase();
+    const mapaTeclas = { 'KeyA': 'a', 'KeyL': 'l', 'KeyS': 's', 'KeyG': 'g', 'KeyP': 'p', 'KeyE': 'e', 'KeyX': 'x' };
+    const tecla = mapaTeclas[e.code];
+    if (!tecla) return;
 
     if (tecla === 'a') {
         e.preventDefault();

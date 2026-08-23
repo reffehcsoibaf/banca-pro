@@ -4,6 +4,32 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.21.1 — 23/08/2026
+
+### Correção: atalhos Alt+ não funcionavam com teclado Bluetooth no iPhone/iPad
+
+- **Causa raiz:** os atalhos globais (`Alt+1` a `Alt+5` para trocar de aba, e
+  `Alt+A`, `Alt+L`, `Alt+S`, `Alt+G`, `Alt+P`, `Alt+E`, `Alt+X`) liam a tecla
+  pressionada via `e.key`, que reflete o **caractere produzido**. No Windows
+  isso não é problema, mas em teclados Apple a tecla Option — que faz o papel
+  do Alt — **troca o caractere gerado** (ex.: Option+1 produz "¡", Option+G
+  produz "©", Option+L produz "¬"). Resultado: nenhum atalho Alt+ funcionava
+  no iPhone/iPad com teclado Bluetooth, mesmo com o VoiceOver não interceptando
+  a combinação.
+- **Correção:** todos os atalhos Alt+ agora leem `e.code` em vez de `e.key`.
+  `e.code` identifica a **tecla física** (ex.: `"Digit1"`, `"KeyG"`) e não é
+  afetado por nenhum modificador ou layout de teclado — o mesmo atalho
+  funciona de forma idêntica no Windows/NVDA e no iPhone/iPad/VoiceOver.
+- Nenhuma tecla de atalho mudou de lugar; apenas a forma de detectá-la.
+- Atualizada a Wiki com uma nota explicando a compatibilidade com teclado
+  Bluetooth no iPhone/iPad e o motivo pelo qual o Option+letra não conflita
+  com o VoiceOver (cujo modificador padrão é Control+Option, não Option
+  sozinho).
+- Corrigida também uma menção residual a "Alt+0" na Wiki (seção Lista de
+  Apostas) que não havia sido atualizada quando o atalho de Limpar Filtros
+  passou a ser Alt+L, na v1.20.5.
+- Nenhuma mudança de banco de dados nesta versão.
+
 ## v1.21.0 — 19/08/2026
 
 ### Nova funcionalidade: Histórico de Análises (IA)
