@@ -114,6 +114,18 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-22-0">v1.22.0</h2>
+  <p class="versao-data">24/08/2026</p>
+  <h3>Nova funcionalidade: Painel de conferência da extração por IA</h3>
+  <ul>
+    <li>Assim que a IA termina de preencher o formulário (por Foto ou por Texto), abre automaticamente uma janela sobreposta com todos os dados identificados, um por linha, num campo de texto somente leitura: Casa, ID, Data, Hora, Status e Stake no topo, seguidos de um bloco por evento (Esporte, Liga, Evento, Mercados, Seleção e ODD).</li>
+    <li>Objetivo: permitir conferir tudo de uma vez, sem precisar navegar pelo formulário nem alternar entre abas para checar se cada campo foi preenchido corretamente.</li>
+    <li>Campos com baixa confiança na leitura são marcados com "⚠️ conferir" ao final da linha, o mesmo critério já usado nos destaques do formulário.</li>
+    <li>Janela persistente: só fecha pela tecla Esc ou pelo botão "✕"/"Fechar e revisar no formulário". Clicar fora dela não fecha, de propósito, para evitar fechamento acidental no meio da conferência.</li>
+    <li>Foco automático ao abrir, para o leitor de tela (NVDA) anunciar o conteúdo assim que a janela aparece.</li>
+    <li>Nenhuma mudança de banco de dados nesta versão.</li>
+  </ul>
+
   <h2 id="v1-21-1">v1.21.1</h2>
   <p class="versao-data">23/08/2026</p>
   <h3>Correção: atalhos Alt+ não funcionavam com teclado Bluetooth no iPhone/iPad</h3>

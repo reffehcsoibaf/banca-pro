@@ -499,6 +499,14 @@
     </table>
     <p>Ao final da extração, um único aviso sonoro resume o que foi feito e lista os campos que merecem atenção — útil para navegação com leitor de tela, sem precisar percorrer o formulário inteiro à procura de marcações.</p>
 
+    <h3 id="painel-conferencia">🪟 Painel de conferência</h3>
+    <p>Assim que a IA termina de preencher o formulário (por Foto ou por Texto), abre automaticamente uma janela sobreposta com todos os dados identificados, um por linha, num campo de texto somente leitura — Casa, ID, Data, Hora, Status e Stake no topo, seguidos de um bloco por evento (Esporte, Liga, Evento, Mercados, Seleção e ODD). O objetivo é permitir conferir tudo de uma vez, sem precisar navegar pelo formulário ou alternar entre abas para achar cada campo.</p>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li>Campos com baixa confiança na leitura aparecem com <strong>⚠️ conferir</strong> ao final da linha, o mesmo critério usado nos destaques do formulário.</li>
+      <li>A janela é <strong>persistente</strong>: só fecha pela tecla <kbd>Esc</kbd> ou pelo botão <span class="btn-demo outline">✕</span>/"Fechar e revisar no formulário". Clicar fora dela não fecha, para evitar fechar sem querer no meio da conferência.</li>
+      <li>O texto é selecionável e copiável, mas não editável — qualquer correção precisa ser feita nos campos do formulário, que continuam preenchidos por baixo da janela.</li>
+    </ul>
+
     <h3 id="identificador-por-foto">Reconhecimento do Identificador</h3>
     <p>O campo Identificador é tratado com regras específicas por casa, já que cada uma exibe essa informação de um jeito diferente:</p>
     <table class="field-table" aria-label="Reconhecimento do identificador por casa de apostas">

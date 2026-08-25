@@ -4,6 +4,24 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.22.0 — 24/08/2026
+
+### Nova funcionalidade: Painel de conferência da extração por IA
+
+- Assim que a IA termina de preencher o formulário (por **Foto** ou por **Texto**), abre
+  automaticamente uma janela sobreposta com todos os dados identificados, um por linha, num
+  campo de texto somente leitura: Casa, ID, Data, Hora, Status e Stake no topo, seguidos de um
+  bloco por evento (Esporte, Liga, Evento, Mercados, Seleção e ODD).
+- Objetivo: permitir conferir tudo de uma vez, sem precisar navegar pelo formulário nem alternar
+  entre abas para checar se cada campo foi preenchido corretamente.
+- Campos com baixa confiança na leitura são marcados com "⚠️ conferir" ao final da linha, o mesmo
+  critério já usado nos destaques do formulário.
+- Janela persistente: só fecha pela tecla Esc ou pelo botão "✕"/"Fechar e revisar no formulário".
+  Clicar fora dela não fecha, de propósito, para evitar fechamento acidental no meio da conferência.
+- Foco automático ao abrir, para o leitor de tela (NVDA) anunciar o conteúdo assim que a janela
+  aparece.
+- Nenhuma mudança de banco de dados nesta versão.
+
 ## v1.21.1 — 23/08/2026
 
 ### Correção: atalhos Alt+ não funcionavam com teclado Bluetooth no iPhone/iPad
