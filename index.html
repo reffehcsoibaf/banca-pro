@@ -477,6 +477,49 @@
         }
         .modal h3 { margin: 0 0 16px 0; font-size: 18px; color: var(--primary); }
 
+        /* ========== PAINEL DE CONFERÊNCIA (extração por IA) ========== */
+        .painel-conferencia { max-width: 640px; }
+        .painel-conferencia-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            position: sticky;
+            top: 0;
+            background: var(--card);
+            padding-bottom: 8px;
+        }
+        .painel-conferencia-header h3 { margin: 0; }
+        .painel-conferencia-fechar {
+            flex: 0 0 auto;
+            background: var(--muted-bg);
+            color: var(--text-secondary);
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .painel-conferencia-fechar:hover, .painel-conferencia-fechar:focus { background: var(--danger-bg); color: var(--danger); }
+        .painel-conferencia-texto {
+            width: 100%;
+            min-height: 320px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--muted-bg);
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
         /* ========== RODAPÉ: VERSÃO ========== */
         .app-footer {
             text-align: center;
@@ -4143,11 +4186,100 @@ function preencherFormularioComExtracao(dados, origem) {
     // Preenche o formulário imediatamente. Itens que ainda não existem nas
     // listas aparecem como chips de sugestão (não bloqueia o preenchimento).
     aplicarExtracao();
+    mostrarPainelConferencia(dados, origem);
     if (itensNovos.length > 0) {
         renderizarSugestoesNovosItens(itensNovos);
     } else {
         limparSugestoesNovosItens();
     }
+}
+
+/* ==================== PAINEL DE CONFERÊNCIA DA EXTRAÇÃO (IA) ====================
+   Janela persistente exibida assim que a IA termina de preencher o formulário por
+   Foto/Texto, mostrando de uma vez só todos os campos identificados (Casa, ID, Data,
+   Hora, Status, Stake, e por evento: Esporte, Liga, Evento, Mercados, Seleção, Odd).
+   Existe para permitir conferir tudo sem precisar navegar pelo formulário / abas.
+   Só fecha com ESC ou o botão "Fechar" — nunca ao clicar fora, para evitar fechamento
+   acidental antes da conferência ser concluída. */
+
+// Quebra "aaaa-mm-ddThh:mm" em {data: "dd/mm/aaaa", hora: "hh:mm"} para exibição.
+function separarDataHora(s) {
+    if (!s) return { data: '—', hora: '—' };
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+    if (!m) return { data: s, hora: '—' };
+    return { data: `${m[3]}/${m[2]}/${m[1]}`, hora: `${m[4]}:${m[5]}` };
+}
+
+function mostrarPainelConferencia(dados, origem) {
+    let overlay = document.getElementById('overlayPainelConferencia');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'overlayPainelConferencia';
+        overlay.className = 'modal-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'painelConferenciaTitulo');
+        document.body.appendChild(overlay);
+        // ESC fecha (o handler global de .modal-overlay.open na inicialização só
+        // cobre overlays que já existiam no HTML; este é criado dinamicamente,
+        // então tem seu próprio listener). Clique fora NÃO fecha, de propósito.
+        overlay.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') fecharPainelConferencia();
+        });
+    }
+
+    const conf = dados.confiancaGeral || {};
+    const baixa = (campo) => (conf[campo] ?? 1) < LIMIAR_BAIXA_CONFIANCA;
+    const { data, hora } = separarDataHora(dados.dataHora);
+
+    // Cada informação em uma linha, no formato "campo: valor;", para leitura rápida
+    // num textarea somente-leitura — sem precisar navegar pelo formulário.
+    const linha = (label, valor, revisar) => {
+        const v = (valor === null || valor === undefined || valor === '') ? '—' : valor;
+        return `${label}: ${v}${revisar ? ' ⚠️ conferir' : ''};`;
+    };
+
+    const linhasGerais = [
+        linha('Casa', dados.casa, baixa('casa')),
+        linha('ID', dados.identificador, baixa('identificador')),
+        linha('Data', data, baixa('dataHora')),
+        linha('Hora', hora, baixa('dataHora')),
+        linha('Status', dados.status, baixa('status')),
+        linha('Stake', dados.stake != null ? formatarMoeda(dados.stake) : null, baixa('stake')),
+    ];
+
+    const linhasEventos = (dados.eventos || []).flatMap((ev, i) => [
+        '',
+        `Evento ${i + 1}:`,
+        linha('Esporte', ev.esporte, false),
+        linha('Liga', ev.liga, ev.confiancaLiga != null && ev.confiancaLiga < LIMIAR_BAIXA_CONFIANCA),
+        linha('Evento', ev.evento, false),
+        linha('Mercados', ev.mercado, false),
+        linha('Seleção', ev.selecao, false),
+        linha('Odd', ev.odd, ev.confianca != null && ev.confianca < LIMIAR_BAIXA_CONFIANCA),
+    ]);
+
+    const textoCompleto = [...linhasGerais, ...linhasEventos].join('\n');
+
+    overlay.innerHTML = `
+        <div class="modal painel-conferencia" tabindex="-1">
+            <div class="painel-conferencia-header">
+                <h3 id="painelConferenciaTitulo">${origem === 'texto' ? '📋' : '📷'} Conferir dados preenchidos</h3>
+                <button type="button" class="painel-conferencia-fechar" id="btnFecharPainelConferencia" aria-label="Fechar painel de conferência">✕</button>
+            </div>
+            <textarea class="painel-conferencia-texto" id="painelConferenciaTexto" readonly aria-label="Dados preenchidos, um por linha, somente leitura">${textoCompleto}</textarea>
+            <button type="button" class="btn btn-outline" style="width:100%; margin-top:4px;" onclick="fecharPainelConferencia()">Fechar e revisar no formulário</button>
+        </div>`;
+
+    overlay.querySelector('#btnFecharPainelConferencia').addEventListener('click', fecharPainelConferencia);
+    overlay.classList.add('open');
+    // Foca o painel para o NVDA anunciar o conteúdo assim que ele aparece.
+    overlay.querySelector('.painel-conferencia').focus();
+}
+
+function fecharPainelConferencia() {
+    const overlay = document.getElementById('overlayPainelConferencia');
+    if (overlay) overlay.classList.remove('open');
 }
 
 
