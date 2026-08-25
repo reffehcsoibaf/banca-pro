@@ -4838,13 +4838,16 @@ function renderTabela(dados) {
             `<strong>${i+1}.</strong> ${e.evento} <small>(${e.esporte} ${e.liga})</small><br>`+
             `<small>└ ${e.mercado}: ${e.selecao} @${formatarOdd(parseFloat(e.odd))}</small>`
         ).join('<br>');
+        const evAriaLabel = evs.map((e,i) =>
+            `Evento ${i+1}: ${e.evento}, ${e.esporte} ${e.liga}, mercado ${e.mercado}: ${e.selecao} arroba ${formatarOdd(parseFloat(e.odd))}`
+        ).join('. ');
         rows[r] = `<tr data-idx="${idx}" tabindex="0" aria-label="Aposta ${a.identificador}, ${a.casa}, ${a.status}. Atalhos: Alt+G ganhou, Alt+P perdeu, Alt+E editar, Alt+X excluir.">`+
             `<td>${formatarData(a.dataHora)}</td>`+
             `<td><strong>${a.casa}</strong></td>`+
             `<td><small>${a.identificador}</small></td>`+
             `<td>${a.tipster||'-'}</td>`+
             `<td>${a.tipo}</td>`+
-            `<td>${evHtml}</td>`+
+            `<td aria-label="${escapeHtml(evAriaLabel)}">${evHtml}</td>`+
             `<td><strong>${formatarOdd(parseFloat(a.oddTotal))}</strong></td>`+
             `<td>${statusBadge}${obsHtml}${bonusHtml}</td>`+
             `<td>${formatarMoeda(a.stake)}</td>`+
