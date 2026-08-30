@@ -31,6 +31,7 @@ const SCHEMA_JSON = `
       "esporte": "string (ex: Futebol, Basquete, Tênis, Vôlei)",
       "liga": "string ou null (nome do campeonato/liga)",
       "evento": "string (nome do confronto, ex: Time A - Time B)",
+      "dataEvento": "string no formato AAAA-MM-DDTHH:MM ou null (DATA/HORA DO JOGO em si, distinta da data de registro do bilhete — ver regra DATA DO JOGO abaixo)",
       "mercado": "string — um nome da lista de mercados cadastrados (ver MAPEAMENTO DE MERCADOS). Se o evento combinar VÁRIAS condições cujos mercados são todos reconhecidos na lista, use os nomes reconhecidos separados por ', ' (ex.: \"Gols, Escanteios\") em vez de 'Criador de Apostas' — ver regra CRIADOR DE APOSTAS abaixo.",
       "selecao": "string (a seleção escolhida, ex: nome do time, Mais de 2.5, etc.)",
       "odd": "number (a odd daquele evento)",
@@ -62,6 +63,11 @@ Regra especial — DATA DE REGISTRO DO BILHETE (não confundir com a data do jog
   • Superbet (imagem, app mobile — tela "Cupom de Aposta"): o identificador e a data ficam lado a lado num cartão de resumo, SEM o texto "Criado em". Formato: "XXXX-XXXXXXX" à esquerda e "DD MMM. AAAA — HH:MM" à direita, na mesma linha. Exemplo real: "892N-1QNSK9" e "07 jul. 2026 — 10:38" — identificador "892N-1QNSK9", dataHora "2026-07-07T10:38". Esse cartão de resumo costuma ficar no fim da tela (role para baixo); se o print mostrar só os eventos e não esse cartão, deixe identificador e dataHora como null.
   • Superbet (texto colado): a data de registro fica logo abaixo do código identificador, no formato "D DE MÊS DE AAAA — HH:MM". Ex: 890I-QD3MXC → 1 DE JUL. DE 2026 — 09:56.
 - Se não encontrar a data de registro com clareza, deixe "dataHora" como null — não use a data do jogo.
+
+Regra especial — DATA DO JOGO (campo "dataEvento" de cada evento):
+- Diferente do campo "dataHora" (que é a data de REGISTRO do bilhete, único por aposta), "dataEvento" é a data/hora em que a PARTIDA acontece, e existe UM valor por evento (útil em bilhetes múltiplos com jogos em dias diferentes).
+- Normalmente aparece junto ao nome do confronto, no formato "DD/MM HH:MM", "DD/MM/AAAA HH:MM" ou similar, dependendo da casa. Assuma o ano da data de registro do bilhete quando o bilhete mostrar só dia/mês, exceto se isso resultar numa data de jogo muito distante da data de registro (ex.: bilhete registrado em dezembro para jogo em janeiro seguinte — nesse caso use o ano seguinte).
+- Se não encontrar a data/hora do jogo daquele evento específico com clareza, deixe "dataEvento" como null — não tente adivinhar nem reaproveitar a data de registro do bilhete.
 
 Regra especial — IDENTIFICADOR DO BILHETE:
 - Betano: vem com rótulo explícito "ID:" seguido de número longo. Ex: ID: 6416780725.
@@ -545,7 +551,7 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga'];
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-resultados'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -581,6 +587,14 @@ async function handleFetch(request, env, ctx) {
     let payload;
     try { payload = await request.json(); }
     catch (e) { return new Response(JSON.stringify({ error: 'Corpo da requisição inválido.' }), { status: 400, headers }); }
+
+    // ---- Rota de checagem automática de resultados (API-Football) ----
+    // Não usa nenhum provedor de IA — só consulta a API-Football e aplica
+    // lógica local de resolução de mercado — por isso é tratada à parte,
+    // sem entrar no pipeline de IA (comBusca/tipoUso/schemaTipo) abaixo.
+    if (url.pathname === '/api/checar-resultados') {
+      return await handleCheckResultados(payload, env, headers);
+    }
 
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
     // Busca real na web só nas rotas que precisam de dado atualizado/externo.
@@ -988,6 +1002,293 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     }
   }
   return resultado;
+}
+
+// ==================== CHECAGEM AUTOMÁTICA DE RESULTADOS (API-FOOTBALL) ====================
+// Rota: POST /api/checar-resultados
+// Entrada: { eventos: [{ idAposta, idEvento, esporte, evento, mercado, selecao, dataEvento }, ...] }
+// Só cobre Futebol, e só os mercados resolvíveis a partir do placar final
+// (ver MERCADOS_SUPORTADOS_RESULTADO abaixo) — o resto vem marcado como
+// "não suportado" para revisão manual, já que a API-Football (plano
+// gratuito) só garante placar final, não estatísticas como cartões/escanteios.
+//
+// Estratégia de cota: agrupa os eventos por DATA (não por evento/time) e faz
+// UMA chamada por data única (/fixtures?date=...), que já retorna TODOS os
+// jogos do mundo naquele dia — o casamento com o time apostado é feito
+// localmente depois, sem gastar requisições extras por jogo.
+
+const MERCADOS_SUPORTADOS_RESULTADO = [
+  'vencedor', 'empate', 'empate anula', 'chance dupla',
+  'gols', 'ambas equipes marcam', 'handicap', 'handicap asiatico', 'faixa de gols'
+];
+
+function normalizarTexto(s) {
+  return (s || '')
+    .toString()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .toLowerCase()
+    .trim();
+}
+
+// Tenta achar, num texto (ex.: a seleção do bilhete), qual dos dois times do
+// confronto está sendo referenciado — usando palavras significativas do nome
+// (ignora palavras curtas tipo "de", "do", "fc" para reduzir falso positivo).
+function identificarTimeNoTexto(texto, nomeTimeA, nomeTimeB) {
+  const norm = normalizarTexto(texto);
+  const palavrasSignificativas = (nome) => normalizarTexto(nome).split(/\s+/).filter(p => p.length >= 4);
+  const bateComTime = (nome) => {
+    const palavras = palavrasSignificativas(nome);
+    if (!palavras.length) return norm.includes(normalizarTexto(nome)) && normalizarTexto(nome).length >= 3;
+    return palavras.some(p => norm.includes(p));
+  };
+  const temA = bateComTime(nomeTimeA);
+  const temB = bateComTime(nomeTimeB);
+  if (temA && !temB) return 'A';
+  if (temB && !temA) return 'B';
+  return null;
+}
+
+// Casa dois nomes de time (o do nosso "evento" salvo vs. os da API-Football)
+// usando o mesmo critério de palavras significativas, nos dois sentidos.
+function nomesTimesBatem(nomeSalvo, nomeApi) {
+  const a = normalizarTexto(nomeSalvo);
+  const b = normalizarTexto(nomeApi);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const palavrasA = a.split(/\s+/).filter(p => p.length >= 4);
+  const palavrasB = b.split(/\s+/).filter(p => p.length >= 4);
+  if (palavrasA.some(p => b.includes(p))) return true;
+  if (palavrasB.some(p => a.includes(p))) return true;
+  return false;
+}
+
+// Resolve uma linha numérica (handicap ou total) que pode ser inteira, de
+// meio (.5) ou de quarto (.25/.75). Linhas de quarto são divididas em duas
+// linhas vizinhas e os dois resultados combinados (ex.: Ganhou + Anulada =
+// Ganho Parcial) — é o mesmo raciocínio usado por casas de apostas para
+// handicap asiático e totais de quarto de linha.
+function resolverLinhaNumerica(diferenca, linha) {
+  const linhaEm4 = Math.round(linha * 4);
+  const restoAbs = Math.abs(linhaEm4) % 4;
+
+  if (restoAbs === 0) { // linha inteira — pode empurrar (push)
+    const ajustado = diferenca + linha;
+    if (ajustado > 0) return 'Ganhou';
+    if (ajustado === 0) return 'Anulada';
+    return 'Perdeu';
+  }
+  if (restoAbs === 2) { // linha de meio — nunca empurra
+    return (diferenca + linha) > 0 ? 'Ganhou' : 'Perdeu';
+  }
+  // linha de quarto — divide nas duas linhas vizinhas (uma inteira/meio de cada lado)
+  const linha1 = (linhaEm4 - 1) / 4;
+  const linha2 = (linhaEm4 + 1) / 4;
+  const r1 = resolverLinhaNumerica(diferenca, linha1);
+  const r2 = resolverLinhaNumerica(diferenca, linha2);
+  const pontos = { Ganhou: 1, Anulada: 0, Perdeu: -1 };
+  const soma = pontos[r1] + pontos[r2];
+  if (soma === 2) return 'Ganhou';
+  if (soma === 1) return 'Ganho Parcial';
+  if (soma === -1) return 'Perda Parcial';
+  return 'Perdeu';
+}
+
+function resolverTotal(totalGols, valorLinha, direcaoMais) {
+  return direcaoMais
+    ? resolverLinhaNumerica(totalGols, -valorLinha)
+    : resolverLinhaNumerica(-totalGols, valorLinha);
+}
+
+// Extrai o time (A/B) e o valor numérico (com sinal) de uma seleção de
+// handicap, ex.: "River Plate -1.5" → { time:'A', linha:-1.5 }.
+// Também reconhece "Casa"/"Fora" quando o nome do time não aparece.
+function parseHandicapSelecao(selecao, nomeTimeA, nomeTimeB, timeAeCasa) {
+  const match = (selecao || '').match(/([+-]?\d+(?:[.,]\d+)?)/);
+  if (!match) return { time: null, linha: null };
+  const linha = parseFloat(match[1].replace(',', '.'));
+  const antes = selecao.slice(0, match.index);
+  let time = identificarTimeNoTexto(antes, nomeTimeA, nomeTimeB);
+  if (!time) {
+    const normAntes = normalizarTexto(antes);
+    if (normAntes.includes('casa') || normAntes.includes('mandante')) time = timeAeCasa ? 'A' : 'B';
+    else if (normAntes.includes('fora') || normAntes.includes('visitante')) time = timeAeCasa ? 'B' : 'A';
+  }
+  return { time, linha };
+}
+
+// ---- Resolução por mercado — recebe o placar já identificado e devolve
+// { suportado, resultado, detalhe }. "resultado" segue os status já usados
+// no app: Ganhou, Perdeu, Ganho Parcial, Perda Parcial, Anulada. ----
+function resolverMercadoFutebol(mercado, selecao, ctx) {
+  const { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora } = ctx;
+  const mercadoNorm = normalizarTexto(mercado);
+
+  if ((mercado || '').includes(',')) {
+    return { suportado: false, detalhe: 'Mercado combinado (múltiplas condições no mesmo evento) — revise manualmente.' };
+  }
+  if (!MERCADOS_SUPORTADOS_RESULTADO.includes(mercadoNorm)) {
+    return { suportado: false, detalhe: `Mercado "${mercado}" ainda não é suportado pela checagem automática (requer estatística além do placar final, como cartões/escanteios/finalizações).` };
+  }
+
+  const golsTimeA = timeAeCasa ? golsCasa : golsFora;
+  const golsTimeB = timeAeCasa ? golsFora : golsCasa;
+  const diferencaAB = golsTimeA - golsTimeB; // > 0 se A venceu
+
+  switch (mercadoNorm) {
+    case 'vencedor': {
+      const time = identificarTimeNoTexto(selecao, nomeTimeA, nomeTimeB);
+      if (!time) return { suportado: false, detalhe: `Não foi possível identificar o time apostado na seleção "${selecao}".` };
+      if (diferencaAB === 0) return { suportado: true, resultado: 'Perdeu', detalhe: 'Empate — mercado Vencedor não cobre empate.' };
+      const vencedor = diferencaAB > 0 ? 'A' : 'B';
+      return { suportado: true, resultado: vencedor === time ? 'Ganhou' : 'Perdeu' };
+    }
+    case 'empate': {
+      const invertido = normalizarTexto(selecao).includes('nao');
+      const empatou = diferencaAB === 0;
+      return { suportado: true, resultado: (empatou !== invertido) ? 'Ganhou' : 'Perdeu' };
+    }
+    case 'empate anula': {
+      const time = identificarTimeNoTexto(selecao, nomeTimeA, nomeTimeB);
+      if (!time) return { suportado: false, detalhe: `Não foi possível identificar o time apostado na seleção "${selecao}".` };
+      if (diferencaAB === 0) return { suportado: true, resultado: 'Anulada', detalhe: 'Empate — Draw No Bet devolve o stake.' };
+      const vencedor = diferencaAB > 0 ? 'A' : 'B';
+      return { suportado: true, resultado: vencedor === time ? 'Ganhou' : 'Perdeu' };
+    }
+    case 'chance dupla': {
+      const cobreA = identificarTimeNoTexto(selecao, nomeTimeA, '') === 'A';
+      const cobreB = identificarTimeNoTexto(selecao, '', nomeTimeB) === 'B';
+      const cobreEmpate = normalizarTexto(selecao).includes('empate');
+      if (!cobreA && !cobreB && !cobreEmpate) return { suportado: false, detalhe: `Não foi possível interpretar a seleção "${selecao}" como combinação de Chance Dupla.` };
+      const resultadoReal = diferencaAB === 0 ? 'empate' : (diferencaAB > 0 ? 'A' : 'B');
+      const coberto = resultadoReal === 'empate' ? cobreEmpate : (resultadoReal === 'A' ? cobreA : cobreB);
+      return { suportado: true, resultado: coberto ? 'Ganhou' : 'Perdeu' };
+    }
+    case 'ambas equipes marcam': {
+      const ambasMarcaram = golsCasa > 0 && golsFora > 0;
+      const apostaEmSim = !normalizarTexto(selecao).includes('nao');
+      return { suportado: true, resultado: (ambasMarcaram === apostaEmSim) ? 'Ganhou' : 'Perdeu' };
+    }
+    case 'gols': {
+      const m = (selecao || '').match(/(mais|menos|over|under)\s*de?\s*([\d.,]+)/i);
+      if (!m) return { suportado: false, detalhe: `Não foi possível extrair a linha de gols da seleção "${selecao}".` };
+      const direcaoMais = /mais|over/i.test(m[1]);
+      const valorLinha = parseFloat(m[2].replace(',', '.'));
+      const totalGols = golsCasa + golsFora;
+      return { suportado: true, resultado: resolverTotal(totalGols, valorLinha, direcaoMais) };
+    }
+    case 'handicap':
+    case 'handicap asiatico': {
+      const { time, linha } = parseHandicapSelecao(selecao, nomeTimeA, nomeTimeB, timeAeCasa);
+      if (!time || linha === null) return { suportado: false, detalhe: `Não foi possível interpretar time e linha na seleção "${selecao}".` };
+      const diferencaDoTime = time === 'A' ? diferencaAB : -diferencaAB;
+      return { suportado: true, resultado: resolverLinhaNumerica(diferencaDoTime, linha) };
+    }
+    case 'faixa de gols': {
+      const m = (selecao || '').match(/(\d+)\s*-\s*(\d+)/);
+      if (!m) return { suportado: false, detalhe: `Não foi possível extrair o intervalo da seleção "${selecao}".` };
+      const totalGols = golsCasa + golsFora;
+      const minimo = parseInt(m[1], 10), maximo = parseInt(m[2], 10);
+      return { suportado: true, resultado: (totalGols >= minimo && totalGols <= maximo) ? 'Ganhou' : 'Perdeu' };
+    }
+    default:
+      return { suportado: false, detalhe: `Mercado "${mercado}" não implementado.` };
+  }
+}
+
+// Separa "Time A - Time B" (ou "Time A x Time B", "Time A vs Time B") em duas partes.
+function separarTimesDoEvento(evento) {
+  const partes = (evento || '').split(/\s+(?:x|vs\.?|-)\s+/i);
+  if (partes.length !== 2) return null;
+  return { nomeTimeA: partes[0].trim(), nomeTimeB: partes[1].trim() };
+}
+
+async function handleCheckResultados(payload, env, headers) {
+  if (!env.API_FOOTBALL_KEY) {
+    return new Response(JSON.stringify({
+      error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
+    }), { status: 500, headers });
+  }
+
+  const eventos = (payload && Array.isArray(payload.eventos)) ? payload.eventos : [];
+  if (!eventos.length) {
+    return new Response(JSON.stringify({ error: 'Envie "eventos" (array) para checar.' }), { status: 400, headers });
+  }
+
+  const resultados = [];
+  const eventosValidos = [];
+  for (const ev of eventos) {
+    if (normalizarTexto(ev.esporte) !== 'futebol') {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem automática por enquanto.' });
+      continue;
+    }
+    if (!ev.dataEvento) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Evento sem data do jogo cadastrada — preencha "Data do Jogo" para habilitar a checagem.' });
+      continue;
+    }
+    if (!separarTimesDoEvento(ev.evento)) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Não foi possível separar os dois times a partir de "${ev.evento}".` });
+      continue;
+    }
+    eventosValidos.push(ev);
+  }
+
+  // Agrupa por data única (YYYY-MM-DD) — 1 chamada à API por dia, não por evento.
+  const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
+  const fixturesPorData = new Map();
+  for (const data of datasUnicas) {
+    try {
+      const resp = await fetch(
+        `https://v3.football.api-sports.io/fixtures?date=${data}&timezone=America/Sao_Paulo&status=FT-AET-PEN`,
+        { headers: { 'x-apisports-key': env.API_FOOTBALL_KEY } }
+      );
+      if (!resp.ok) {
+        const texto = await resp.text();
+        fixturesPorData.set(data, { erro: `API-Football retornou ${resp.status}: ${texto.slice(0, 200)}` });
+        continue;
+      }
+      const dados = await resp.json();
+      if (dados.errors && Object.keys(dados.errors).length) {
+        fixturesPorData.set(data, { erro: 'API-Football: ' + JSON.stringify(dados.errors) });
+        continue;
+      }
+      fixturesPorData.set(data, { fixtures: dados.response || [] });
+    } catch (e) {
+      fixturesPorData.set(data, { erro: 'Falha de rede ao consultar API-Football: ' + e.message });
+    }
+  }
+
+  for (const ev of eventosValidos) {
+    const data = String(ev.dataEvento).slice(0, 10);
+    const infoData = fixturesPorData.get(data);
+    if (infoData.erro) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: infoData.erro });
+      continue;
+    }
+    const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
+    const fixture = infoData.fixtures.find(f =>
+      (nomesTimesBatem(nomeTimeA, f.teams.home.name) && nomesTimesBatem(nomeTimeB, f.teams.away.name)) ||
+      (nomesTimesBatem(nomeTimeB, f.teams.home.name) && nomesTimesBatem(nomeTimeA, f.teams.away.name))
+    );
+    if (!fixture) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Confronto "${ev.evento}" não encontrado (ou ainda não finalizado) na data ${data}.` });
+      continue;
+    }
+    const timeAeCasa = nomesTimesBatem(nomeTimeA, fixture.teams.home.name);
+    const golsCasa = fixture.goals.home;
+    const golsFora = fixture.goals.away;
+    const placarTexto = `${fixture.teams.home.name} ${golsCasa}-${golsFora} ${fixture.teams.away.name}`;
+
+    const resolucao = resolverMercadoFutebol(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora });
+    resultados.push({
+      idAposta: ev.idAposta,
+      idEvento: ev.idEvento,
+      encontrado: true,
+      placar: placarTexto,
+      ...resolucao
+    });
+  }
+
+  return new Response(JSON.stringify({ resultados }), { status: 200, headers });
 }
 
 // ==================== AUXILIAR ====================

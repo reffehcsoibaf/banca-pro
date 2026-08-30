@@ -4,6 +4,45 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.23.0 — 30/08/2026
+
+### Nova funcionalidade: Checagem automática de resultados (API-Football)
+
+- Novo botão **"🔎 Checar Resultados"** na aba Lista, ao lado de "Somente Abertas": consulta
+  todas as apostas com status **Aberto**, busca o placar final dos jogos de **Futebol** via
+  **API-Football** e sugere Ganhou/Perdeu/Ganho Parcial/Perda Parcial/Anulada por evento — sem
+  aplicar nada automaticamente: cada sugestão só é gravada quando você toca em "✅ Aplicar" no
+  painel de revisão que abre com os resultados.
+- Novo campo opcional **"Data do Jogo"** em cada evento (diferente da Data/Hora da aposta, que é
+  a data de *registro* do bilhete) — necessário para localizar o confronto certo na API. É
+  preenchido automaticamente pela IA ao ler um bilhete novo (foto ou texto), ou pode ser digitado
+  à mão em bilhetes já cadastrados.
+- **Mercados cobertos nesta primeira versão:** Vencedor, Empate, Empate Anula (Draw No Bet),
+  Chance Dupla, Gols (total de gols da partida, incluindo linhas de quarto como 2.25/2.75),
+  Ambas Equipes Marcam, Handicap e Handicap Asiático (com resolução completa de linha de quarto,
+  gerando Ganho Parcial/Perda Parcial quando a linha cai "no meio"), e Faixa de Gols.
+- **Mercados fora do escopo por enquanto:** qualquer estatística que a API-Football não garanta
+  no plano gratuito (Cartões, Escanteios, Finalizações, Faltas, Defesas, Desarmes, Impedimentos,
+  estatísticas por tempo/quarto, "da Equipe", "Cada Equipe" etc.) e mercados combinados (mais de
+  um mercado no mesmo evento) — esses aparecem no painel marcados como "não suportado", para
+  marcação manual como sempre.
+- **Só Futebol** é suportado por enquanto — outros esportes (Basquete, Tênis, Vôlei) ficam de
+  fora até uma eventual integração com outra fonte de dados.
+- Bilhetes **combinados (múltiplos eventos)**: só recebe sugestão de status geral quando todos os
+  eventos da aposta forem resolvidos; se algum perder, a combinada inteira é sugerida como
+  Perdeu (regra padrão); se todos ganharem ou todos anularem, sugere isso; qualquer mistura de
+  resultados parciais fica sem sugestão automática, para revisão manual.
+- **Economia de cota:** os eventos pendentes são agrupados por data — uma única chamada à
+  API-Football cobre todos os jogos do mundo naquele dia, em vez de uma chamada por evento. O
+  casamento com o time apostado é feito localmente, sem custo de requisição extra.
+- **Configuração necessária (fora do app):** cadastrar a chave da API-Football como secret
+  `API_FOOTBALL_KEY` no Worker (Cloudflare → Workers & Pages → Settings → Variables and Secrets),
+  e rodar a migração `supabase_migracao_v1.23.0.sql` (adiciona a coluna `data_evento` em
+  `banca_eventos`).
+- Bilhetes já cadastrados antes desta versão não têm "Data do Jogo" preenchida e por isso não
+  entram na checagem automática até esse campo ser preenchido manualmente ou o bilhete ser
+  reimportado.
+
 ## v1.22.0 — 24/08/2026
 
 ### Nova funcionalidade: Painel de conferência da extração por IA

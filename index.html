@@ -1114,7 +1114,10 @@
         <div class="card">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
                 <h2 style="margin:0;">📋 Apostas</h2>
-                <button type="button" class="btn btn-secondary" id="btnFiltroRapidoAbertas" onclick="alternarFiltroAbertas()" aria-keyshortcuts="Alt+A" aria-pressed="false" style="max-width:220px;">🟢 Somente Abertas</button>
+                <div class="inline" style="gap:8px;">
+                    <button type="button" class="btn btn-secondary" id="btnFiltroRapidoAbertas" onclick="alternarFiltroAbertas()" aria-keyshortcuts="Alt+A" aria-pressed="false" style="max-width:220px;">🟢 Somente Abertas</button>
+                    <button type="button" class="btn btn-outline" id="btnCheckarResultados" onclick="checarResultadosPendentes()" style="max-width:220px;" aria-label="Checar automaticamente o resultado das apostas em aberto de Futebol com data do jogo cadastrada, via API-Football">🔎 Checar Resultados</button>
+                </div>
             </div>
             <div class="table-wrap">
                 <table role="grid" aria-label="Tabela de apostas registradas">
@@ -1526,7 +1529,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.22.0 · 24/08/2026
+  Banca Pro · v1.23.0 · 30/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2163,7 +2166,8 @@ function eventoParaLinha(e, apostaId) {
         evento: e.evento,
         mercado: e.mercado,
         selecao: e.selecao,
-        odd: e.odd
+        odd: e.odd,
+        data_evento: e.dataEvento || null
     };
 }
 function linhaParaEvento(row) {
@@ -2175,7 +2179,8 @@ function linhaParaEvento(row) {
         evento: row.evento,
         mercado: row.mercado,
         selecao: row.selecao,
-        odd: Number(row.odd)
+        odd: Number(row.odd),
+        dataEvento: row.data_evento ? String(row.data_evento).slice(0, 16) : ''
     };
 }
 
@@ -3271,6 +3276,10 @@ function addEvento() {
             <label for="${id}-odd">ODD <span class="field-required">*</span></label>
             <input type="number" step="0.01" id="${id}-odd" class="odd" value="1.00" oninput="calcular()" aria-required="true" inputmode="decimal">
         </div>
+        <div>
+            <label for="${id}-dataEvento">Data do Jogo <small style="font-weight:normal;color:var(--text-secondary);">(opcional — usada para checar resultado automaticamente)</small></label>
+            <input type="datetime-local" id="${id}-dataEvento" class="dataEventoEvento">
+        </div>
     </div>`;
 
     document.getElementById("eventos").appendChild(div);
@@ -4140,6 +4149,8 @@ function preencherFormularioComExtracao(dados, origem) {
             // Seleção e Odd
             if (ev.selecao) document.getElementById(`${id}-sel`).value = ev.selecao;
             if (ev.odd != null) document.getElementById(`${id}-odd`).value = ev.odd;
+            // Data do jogo (distinta da data de registro do bilhete)
+            if (ev.dataEvento) document.getElementById(`${id}-dataEvento`).value = ev.dataEvento;
 
             // Confiança baixa no evento
             if (ev.confianca != null && ev.confianca < LIMIAR_BAIXA_CONFIANCA) {
@@ -4282,6 +4293,140 @@ function fecharPainelConferencia() {
     if (overlay) overlay.classList.remove('open');
 }
 
+/* ==================== CHECAGEM AUTOMÁTICA DE RESULTADOS (API-Football) ====================
+   Acionada pelo botão "🔎 Checar Resultados" na Lista. Pega todas as apostas com
+   status "Aberto", manda os eventos de Futebol com "Data do Jogo" preenchida para
+   o Worker (/api/checar-resultados), que consulta a API-Football e devolve uma
+   sugestão de resultado por evento. O usuário confirma cada sugestão manualmente
+   (nunca aplica status automaticamente sem revisão). */
+async function checarResultadosPendentes() {
+    const btn = document.getElementById('btnCheckarResultados');
+    const pendentes = apostas.filter(a => a.status === 'Aberto');
+    if (!pendentes.length) { showToast('Nenhuma aposta em aberto para checar.', 'success'); return; }
+
+    const eventosParaChecar = [];
+    pendentes.forEach(a => {
+        const idxReal = apostas.indexOf(a);
+        (a.eventos || []).forEach(ev => {
+            eventosParaChecar.push({
+                idAposta: idxReal,
+                idEvento: ev.id,
+                esporte: ev.esporte,
+                evento: ev.evento,
+                mercado: ev.mercado,
+                selecao: ev.selecao,
+                dataEvento: ev.dataEvento || null
+            });
+        });
+    });
+    if (!eventosParaChecar.length) { showToast('Nenhum evento encontrado nas apostas em aberto.', 'error'); return; }
+
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '🔎 Checando...';
+    let json;
+    try {
+        const resposta = await fetch('/api/checar-resultados', {
+            method: 'POST',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
+            body: JSON.stringify({ eventos: eventosParaChecar })
+        });
+        json = await resposta.json();
+        if (!resposta.ok) throw new Error(json.error || 'Erro ao checar resultados.');
+    } catch (err) {
+        showToast('❌ ' + err.message, 'error', 10000);
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
+        return;
+    }
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+
+    mostrarPainelChecagemResultados(json.resultados || []);
+}
+
+// Dado o conjunto de eventos já resolvidos (encontrados e com mercado suportado)
+// de UMA aposta, decide se dá pra sugerir um status geral com segurança:
+// - só sugere se TODOS os eventos da aposta foram resolvidos (nenhum ficou de fora);
+// - se algum perdeu, a aposta inteira perde (regra padrão de combinada);
+// - se todos ganharam, ou todos anularam, sugere isso;
+// - qualquer mistura de Ganho Parcial/Perda Parcial/Anulada com Ganhou fica sem
+//   sugestão automática — recalcular a odd de uma combinada com pernas parciais/
+//   anuladas exige lógica própria, fora do escopo desta primeira versão.
+function sugerirStatusGeral(resolvidos, totalEventosAposta) {
+    if (resolvidos.length < totalEventosAposta) return null;
+    if (resolvidos.some(r => r.resultado === 'Perdeu')) return 'Perdeu';
+    if (resolvidos.every(r => r.resultado === 'Ganhou')) return 'Ganhou';
+    if (resolvidos.every(r => r.resultado === 'Anulada')) return 'Anulada';
+    return null;
+}
+
+function mostrarPainelChecagemResultados(resultados) {
+    const porAposta = new Map();
+    resultados.forEach(r => {
+        if (!porAposta.has(r.idAposta)) porAposta.set(r.idAposta, []);
+        porAposta.get(r.idAposta).push(r);
+    });
+
+    let overlay = document.getElementById('overlayChecagemResultados');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'overlayChecagemResultados';
+        overlay.className = 'modal-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'checagemResultadosTitulo');
+        document.body.appendChild(overlay);
+        overlay.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') overlay.classList.remove('open');
+        });
+    }
+
+    const blocos = [];
+    porAposta.forEach((resultadosEvento, idxAposta) => {
+        const a = apostas[idxAposta];
+        if (!a) return;
+        const totalEventos = (a.eventos || []).length;
+
+        const linhasEventos = resultadosEvento.map(r => {
+            if (!r.encontrado) {
+                return `<div style="font-size:12.5px;margin-top:4px;">⚠️ ${escapeHtml(r.motivo || 'Não encontrado')}</div>`;
+            }
+            if (!r.suportado) {
+                return `<div style="font-size:12.5px;margin-top:4px;">⚠️ ${escapeHtml(r.detalhe || 'Mercado não suportado')} <small>(placar: ${escapeHtml(r.placar || '')})</small></div>`;
+            }
+            return `<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(r.placar)} → <strong>${escapeHtml(r.resultado)}</strong>${r.detalhe ? ' <small>(' + escapeHtml(r.detalhe) + ')</small>' : ''}</div>`;
+        }).join('');
+
+        const resolvidos = resultadosEvento.filter(r => r.encontrado && r.suportado);
+        const sugestao = sugerirStatusGeral(resolvidos, totalEventos);
+
+        blocos.push(`
+        <div class="card" style="margin-bottom:10px;padding:12px;">
+            <strong>${escapeHtml(a.identificador)}</strong> — ${escapeHtml(a.casa)} <small>(stake ${formatarMoeda(a.stake)})</small>
+            ${linhasEventos}
+            ${sugestao
+                ? `<div class="btn-row" style="margin-top:8px;">
+                       <button type="button" class="btn-sm btn-success" onclick="marcarStatusAposta(${idxAposta}, '${sugestao}'); this.closest('.card').remove();">✅ Aplicar: ${sugestao}</button>
+                       <button type="button" class="btn-sm btn-outline" onclick="this.closest('.card').remove();">Ignorar</button>
+                   </div>`
+                : `<div style="margin-top:8px;font-size:12.5px;color:var(--text-secondary);">Sem sugestão automática — revise manualmente.</div>`
+            }
+        </div>`);
+    });
+
+    overlay.innerHTML = `
+        <div class="modal" tabindex="-1" style="max-width:560px;width:100%;max-height:80vh;overflow-y:auto;">
+            <div class="painel-conferencia-header">
+                <h3 id="checagemResultadosTitulo">🔎 Resultados encontrados</h3>
+                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlayChecagemResultados').classList.remove('open')">✕</button>
+            </div>
+            ${blocos.length ? blocos.join('') : '<p>Nenhum resultado encontrado para as apostas em aberto.</p>'}
+        </div>`;
+    overlay.classList.add('open');
+    overlay.querySelector('.modal').focus();
+}
+
 
 // Regra única de cálculo de Retornado/Lucro para cada status — usada no formulário,
 // ao salvar e ao trocar o status rapidamente na tabela. Mantém todo o app consistente.
@@ -4387,6 +4532,7 @@ async function salvar() {
         const merDiv  = e.querySelector(".mercado");
         const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
 
+        const campoDataEvento = e.querySelector(".dataEventoEvento");
         listaEventos.push({
             numero: idx + 1,
             esporte,
@@ -4394,7 +4540,8 @@ async function salvar() {
             evento: e.querySelector(".evento").value || "Evento Omitido",
             mercado,
             selecao: e.querySelector(".selecao").value,
-            odd: parseFloat2(e.querySelector(".odd").value)
+            odd: parseFloat2(e.querySelector(".odd").value),
+            dataEvento: campoDataEvento && campoDataEvento.value ? campoDataEvento.value : null
         });
     });
 
@@ -4506,6 +4653,8 @@ function editar(idx) {
         if (merDiv) merDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = mercadosEv.includes(cb.value); });
         e.querySelector(".selecao").value = ev.selecao || '';
         e.querySelector(".odd").value = ev.odd;
+        const campoDataEvento = e.querySelector(".dataEventoEvento");
+        if (campoDataEvento) campoDataEvento.value = ev.dataEvento || '';
     });
     document.getElementById("btnSalvar").innerHTML = "✏️ Atualizar Aposta";
     document.getElementById("btnCancelarEdicao").style.display = "block";
