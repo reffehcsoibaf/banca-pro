@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.24.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.25.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -230,7 +230,7 @@
     <a href="#data-hora" class="nav-link nav-link-sub">Data e Hora</a>
     <a href="#eventos" class="nav-link">Eventos</a>
     <a href="#multiplos-eventos" class="nav-link nav-link-sub">Múltiplos eventos</a>
-    <a href="#buscar-liga-ia" class="nav-link nav-link-sub">Buscar Liga (IA)</a>
+    <a href="#buscar-liga-ia" class="nav-link nav-link-sub">Buscar Liga e Data/Hora (IA)</a>
     <a href="#preencher-por-foto" class="nav-link">Preencher por Foto (IA)</a>
     <a href="#correcoes-aprendidas" class="nav-link">Correções Aprendidas (IA)</a>
     <a href="#analisar-aposta" class="nav-link">Analisar Aposta (IA)</a>
@@ -438,15 +438,15 @@
         <tr><td class="field-name">Esporte <span class="req">*</span></td><td>Caixa combinada</td><td>Modalidade esportiva (Futebol, Basquete, Tênis, Vôlei…).</td></tr>
         <tr><td class="field-name">Liga <span class="req">*</span></td><td>Caixa combinada</td><td>Competição ou torneio. Lista vazia por padrão — adicione conforme usa.</td></tr>
         <tr><td class="field-name">Evento <span class="req">*</span></td><td>Texto</td><td>Nome do jogo ou partida.</td></tr>
+        <tr><td class="field-name">Data / Hora da Partida</td><td>Data e hora</td><td>Opcional. Data/hora real da <strong>partida</strong> — diferente da Data/Hora da aposta (que é a data de registro do bilhete). Preenchida automaticamente pela IA ao ler um bilhete, digitável à mão, ou buscada com <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> quando a casa não mostra isso no bilhete (caso da Betano). Usada pelas checagens automáticas "🔎 Checar Resultados" e "📊 Checar Estatísticas" para localizar o jogo certo.</td></tr>
         <tr><td class="field-name">Mercado <span class="req">*</span></td><td>Caixas de verificação</td><td>Tipo de mercado apostado. Permite marcar mais de um simultaneamente.</td></tr>
         <tr><td class="field-name">Seleção <span class="req">*</span></td><td>Texto livre</td><td>O que foi apostado dentro do mercado (ex: Casa, Mais de 2.5, Sim).</td></tr>
         <tr><td class="field-name">ODD <span class="req">*</span></td><td>Número</td><td>ODD deste evento específico.</td></tr>
-        <tr><td class="field-name">Data / Hora da Partida</td><td>Data e hora</td><td>Opcional. Data/hora real da <strong>partida</strong> — diferente da Data/Hora da aposta (que é a data de registro do bilhete). Preenchida automaticamente pela IA ao ler um bilhete, ou digitável à mão. Usada pelas checagens automáticas "🔎 Checar Resultados" e "📊 Checar Estatísticas" para localizar o jogo certo.</td></tr>
       </tbody>
     </table>
     <div class="callout warn">
       <div class="callout-title">🌎 Sempre horário de Brasília, mesmo em jogo internacional</div>
-      Digite a Data / Hora da Partida sempre em horário de Brasília (America/São_Paulo), mesmo que a partida seja em outro país — as checagens automáticas buscam o jogo nesse fuso, e o campo não faz nenhuma conversão sozinho. Quando é a própria IA que preenche ao ler o bilhete, isso já vem certo, porque Betano e Superbet mostram o horário do jogo em horário de Brasília no bilhete.
+      A Data / Hora da Partida é sempre em horário de Brasília (America/São_Paulo), mesmo que a partida seja em outro país — as checagens automáticas buscam o jogo nesse fuso, e o campo não faz nenhuma conversão sozinho quando digitado à mão. Quando é a IA que preenche (leitura de bilhete ou "🔍 Buscar Liga e Data/Hora"), isso já vem certo.
     </div>
 
     <h3 id="multiplos-eventos">Múltiplos eventos (Acumuladores)</h3>
@@ -461,17 +461,21 @@
       Cada evento tem um cabeçalho de nível 3 ("Evento 1", "Evento 2"…). Use o atalho de navegação por cabeçalhos do seu leitor de tela para pular entre eventos.
     </div>
 
-    <h3 id="buscar-liga-ia">🔍 Buscar Liga (IA)</h3>
-    <p>Útil ao preencher manualmente uma aposta antiga: em vez de procurar por conta própria em que liga um confronto aconteceu, a IA pode pesquisar isso na web.</p>
+    <h3 id="buscar-liga-ia">🔍 Buscar Liga e Data/Hora (IA)</h3>
+    <p>Útil ao preencher manualmente uma aposta antiga, ou quando a casa não mostra a liga e/ou o horário da partida no bilhete (é o caso da Betano, que não traz a data/hora do jogo): em vez de procurar por conta própria, a IA pode pesquisar isso na web — os dois campos numa busca só.</p>
     <ol class="steps">
-      <li><span class="step-num">1</span>Escolha o <strong>Esporte</strong> do evento.</li>
+      <li><span class="step-num">1</span>Escolha o <strong>Esporte</strong> do evento (opcional — a IA também tenta identificar sozinha, se possível).</li>
       <li><span class="step-num">2</span>Preencha o campo <strong>Evento</strong> com o nome do confronto (ex: "Time A x Time B").</li>
-      <li><span class="step-num">3</span>Clique em <span class="btn-demo outline">🔍 Buscar Liga</span>, ao lado do campo Liga.</li>
-      <li><span class="step-num">4</span>Se a IA encontrar a liga com confiança razoável, o campo Liga é preenchido sozinho (selecionando uma liga já cadastrada, ou entrando no modo "✏️ Outro (digitar)…" se for uma liga nova) — confira o resultado antes de salvar.</li>
+      <li><span class="step-num">3</span>Clique em <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> (botão único, roda em todos os eventos elegíveis da aposta de uma vez).</li>
+      <li><span class="step-num">4</span>A IA preenche o que encontrar com confiança: Liga (se ainda vazia) e/ou Data / Hora da Partida (se ainda vazia) — cada campo é independente, pode encontrar um sem o outro. Confira o resultado antes de salvar.</li>
     </ol>
     <div class="callout tip">
+      <div class="callout-title">💡 Nunca sobrescreve o que já está preenchido</div>
+      O botão só entra em campos vazios — Liga ou Data/Hora que você já preencheu (manualmente ou numa busca anterior) nunca são substituídos. Um evento com os dois campos já preenchidos é pulado, sem gastar chamada de IA.
+    </div>
+    <div class="callout tip">
       <div class="callout-title">💡 Quando a IA não encontra</div>
-      Se a busca não encontrar o confronto com confiança suficiente (nome de time comum a várias ligas, informação insuficiente), o campo Liga é deixado como estava e um aviso explica o motivo — a IA nunca preenche uma liga "chutada".
+      Se a busca não confirmar a liga e/ou a data/hora com confiança suficiente (nome de time comum a várias ligas, informação insuficiente), o(s) campo(s) correspondente(s) ficam como estavam e um aviso explica o motivo — a IA nunca preenche um valor "chutado". Quando confirma o dia mas não o minuto exato do jogo, ainda preenche a Data/Hora com uma estimativa, mas marca o campo com aviso de baixa confiança — vale conferir, embora o dia certo (o que mais importa para as checagens automáticas) costuma estar correto.
     </div>
   </section>
 
@@ -714,8 +718,8 @@
   <!-- LISTA -->
   <section id="lista-apostas" class="wiki-section" aria-labelledby="h-lista">
     <h2 id="h-lista">📋 Lista de Apostas</h2>
-    <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, Horário, ODD, Status, Stake, Lucro e Ações.</p>
-    <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>. A coluna <strong>Horário</strong> mostra a Data / Hora da Partida de cada evento (formato <strong>dd/mm hh:mm</strong>, sem ano), numerada igual à coluna Eventos — aparece "—" quando esse campo não foi preenchido. A coluna ROI não é exibida na tabela (a informação aposta por aposta não agrega muito); o ROI geral continua no resumo estatístico e no cadastro/edição de cada aposta.</p>
+    <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, ODD, Status, Stake, Lucro e Ações.</p>
+    <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>. Dentro da coluna <strong>Eventos</strong>, quando a Data / Hora da Partida está preenchida, ela aparece ao lado do nome do confronto (🕐, formato <strong>dd/mm hh:mm</strong>, sem ano) — sem essa informação, o evento é exibido normalmente, sem o horário. A coluna ROI não é exibida na tabela (a informação aposta por aposta não agrega muito); o ROI geral continua no resumo estatístico e no cadastro/edição de cada aposta.</p>
 
     <h3 id="checar-resultados-estatisticas">🔎 Checagem automática (API-Football)</h3>
     <p>Dois botões no topo da Lista consultam a <strong>API-Football</strong> para sugerir o resultado das apostas em aberto de <strong>Futebol</strong>. Em ambos os casos, nada é aplicado sozinho: um painel de revisão mostra a sugestão por evento, e você confirma manualmente com "✅ Aplicar" (ou "Ignorar").</p>

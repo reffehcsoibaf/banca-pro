@@ -4,6 +4,33 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.25.0 — 30/08/2026
+
+### Nova funcionalidade: Inferência de Data/Hora da Partida por IA
+
+- O botão de busca por IA, antes só "🔍 Buscar Liga", agora também infere a **Data / Hora
+  da Partida** — mesmo mecanismo de busca (Sofascore, 365scores), mesma filosofia de nunca
+  "chutar" um valor sem confirmação. Renomeado para **"🔍 Buscar Liga e Data/Hora"**.
+- Especialmente útil para bilhetes da **Betano**, que não trazem a data/hora do jogo no bilhete
+  — antes esse campo só podia ser preenchido manualmente nessas apostas.
+- Liga e Data/Hora são encontradas de forma independente: a IA pode confirmar uma sem a outra.
+  Cada campo só é preenchido se estiver vazio — nunca sobrescreve um valor já digitado ou já
+  encontrado antes.
+- A IA sempre converte o horário para **horário de Brasília**, mesmo em jogos internacionais,
+  seguindo a mesma regra já usada no preenchimento manual e na leitura automática de bilhetes.
+- Quando o dia do jogo é confirmado mas o horário exato não, o campo ainda é preenchido com uma
+  estimativa, mas fica marcado com aviso de baixa confiança — o dia (que é o que importa para as
+  checagens automáticas de resultado/estatística) costuma estar correto mesmo assim.
+- O botão agora roda em lote sobre todo evento que tenha o nome preenchido e falte Liga OU
+  Data/Hora (antes só considerava eventos sem Liga) — eventos com os dois já preenchidos são
+  pulados, sem gastar chamada de IA à toa.
+
+### Ajuste na tabela da Lista
+
+- A coluna separada "Horário" (introduzida nesta mesma sessão, mais cedo) foi removida — a
+  Data / Hora da Partida agora aparece dentro da própria coluna **Eventos**, ao lado do nome do
+  confronto, como parte das informações daquele evento.
+
 ## v1.24.0 — 30/08/2026
 
 ### Correção crítica: migração pendente da v1.23.0 aplicada no Supabase

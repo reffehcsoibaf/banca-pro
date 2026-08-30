@@ -1072,8 +1072,8 @@
                 <button class="btn btn-outline" id="btnEvento" onclick="addEvento()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Adicionar evento à aposta">
                     ＋ Adicionar Evento
                 </button>
-                <button class="btn btn-outline" id="btnBuscarLigaTodos" onclick="buscarLigaTodosEventos()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Buscar automaticamente com IA a liga de todos os eventos desta aposta que ainda estão sem liga preenchida">
-                    🔍 Buscar Liga de Todos os Eventos
+                <button class="btn btn-outline" id="btnBuscarLigaTodos" onclick="buscarLigaTodosEventos()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Buscar automaticamente com IA a liga e a data/hora da partida de todos os eventos desta aposta que ainda estiverem sem esses campos preenchidos">
+                    🔍 Buscar Liga e Data/Hora
                 </button>
             </div>
 
@@ -1133,7 +1133,6 @@
                             <th scope="col">Tipster</th>
                             <th scope="col">Tipo</th>
                             <th scope="col">Eventos</th>
-                            <th scope="col">Horário</th>
                             <th scope="col">ODD</th>
                             <th scope="col">Status</th>
                             <th scope="col">Stake</th>
@@ -1533,7 +1532,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.24.0 · 30/08/2026
+  Banca Pro · v1.25.0 · 30/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -3292,16 +3291,19 @@ function addEvento() {
 }
 function parseFloat2(v) { return parseFloat(v) || 0; }
 
-/* ==================== BUSCAR LIGA (IA) ====================
-   Pesquisa na web em qual liga/competição um confronto foi disputado, usando o
-   nome do Evento (ex: "Time A x Time B") e, se já preenchido, o Esporte do
-   evento. Quando o Esporte ainda não está definido, a busca também tenta
-   identificá-lo a partir dos competidores e preenche esse campo sozinha.
-   Nunca "chuta" uma liga (nem um esporte) sem confirmação — se a IA não
-   encontrar com confiança razoável, o evento fica como estava, para
-   preenchimento manual.
+/* ==================== BUSCAR LIGA E DATA/HORA (IA) ====================
+   Pesquisa na web em qual liga/competição um confronto foi disputado, E a
+   data/hora do confronto, usando o nome do Evento (ex: "Time A x Time B") e,
+   se já preenchido, o Esporte do evento. Quando o Esporte ainda não está
+   definido, a busca também tenta identificá-lo a partir dos competidores e
+   preenche esse campo sozinha.
+   Nunca "chuta" liga, esporte ou data/hora sem confirmação — se a IA não
+   encontrar com confiança razoável, o campo correspondente fica como estava,
+   para preenchimento manual. NUNCA sobrescreve um valor já preenchido
+   (manualmente ou por uma busca anterior) — só entra em campos vazios.
    Núcleo silencioso (sem toast própria), reaproveitado pela busca em lote de
-   todos os eventos da aposta (botão "Buscar Liga de Todos os Eventos"). */
+   todos os eventos da aposta (botão "Buscar Liga e Data/Hora de Todos os
+   Eventos"). */
 async function _buscarLigaCore(div) {
     const inputEvento = div.querySelector('.evento');
     const evento = inputEvento ? inputEvento.value.trim() : '';
@@ -3309,6 +3311,12 @@ async function _buscarLigaCore(div) {
 
     const selEsp = div.querySelector('.esporteEvento');
     const esporteAtual = valorEfetivoComOutro(selEsp, 'esporteEventoOutro');
+    const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+    const campoDataEvento = div.querySelector('.dataEventoEvento');
+    const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
+
+    // Já tem os dois preenchidos — nada a buscar, evita gastar uma chamada de IA à toa.
+    if (ligaAtual && dataEventoAtual) return { status: 'ja-preenchido' };
 
     // Data/hora em que a aposta foi registrada — ajuda a IA a achar a temporada
     // certa do confronto (times mudam de divisão de um ano para outro) e a
@@ -3331,66 +3339,95 @@ async function _buscarLigaCore(div) {
 
     // O esporte "confirmado" é o que a IA retornou (identificado ou apenas ecoado
     // de volta) — se nem a IA nem o campo já tinham um esporte, não dá pra montar
-    // o catálogo de ligas certo, então trata como não encontrado.
+    // o catálogo de ligas certo, então trata a liga como não encontrada (a
+    // data/hora, se encontrada, é independente e ainda pode ser aplicada).
     const esporteConfirmado = (json.esporte || esporteAtual || '').trim();
-    if (!json.encontrado || !json.liga || !esporteConfirmado) {
+    const ligaEncontrada = !!json.encontrado && !!json.liga && !!esporteConfirmado;
+    const dataHoraEncontrada = !!json.dataHoraEncontrada && !!json.dataHora;
+
+    if (!ligaEncontrada && !dataHoraEncontrada) {
         return { status: 'nao-encontrado', observacao: json.observacao || '' };
     }
 
     let esporteFoiPreenchidoAgora = false;
-    if (!esporteAtual && selEsp) {
-        const rEsp = buscarOuPrepararValor(defaults.esporte, esporteConfirmado);
-        selEsp.innerHTML = opcoesComOutro(defaults.esporte, '— Esporte —');
-        if (rEsp.duplicado) {
-            selEsp.value = rEsp.valor;
-            toggleCampoOutro(selEsp, 'esporteEventoOutro');
-        } else {
-            selEsp.value = OUTRO_VALOR;
-            toggleCampoOutro(selEsp, 'esporteEventoOutro');
-            const inputOutroEsp = selEsp.parentElement ? selEsp.parentElement.querySelector('.esporteEventoOutro') : null;
-            if (inputOutroEsp) inputOutroEsp.value = rEsp.valor;
+    let ligaAplicada = null;
+    let baixaConfianca = false;
+
+    if (ligaEncontrada && !ligaAtual) {
+        if (!esporteAtual && selEsp) {
+            const rEsp = buscarOuPrepararValor(defaults.esporte, esporteConfirmado);
+            selEsp.innerHTML = opcoesComOutro(defaults.esporte, '— Esporte —');
+            if (rEsp.duplicado) {
+                selEsp.value = rEsp.valor;
+                toggleCampoOutro(selEsp, 'esporteEventoOutro');
+            } else {
+                selEsp.value = OUTRO_VALOR;
+                toggleCampoOutro(selEsp, 'esporteEventoOutro');
+                const inputOutroEsp = selEsp.parentElement ? selEsp.parentElement.querySelector('.esporteEventoOutro') : null;
+                if (inputOutroEsp) inputOutroEsp.value = rEsp.valor;
+            }
+            // Recarrega as opções de Liga e Mercado deste evento para o esporte identificado agora.
+            atualizarLigasDoEvento(selEsp);
+            esporteFoiPreenchidoAgora = true;
         }
-        // Recarrega as opções de Liga e Mercado deste evento para o esporte identificado agora.
-        atualizarLigasDoEvento(selEsp);
-        esporteFoiPreenchidoAgora = true;
+
+        const selLig = div.querySelector('.ligaEvento');
+        const r = buscarOuPrepararValor(ligasDoEsporte(esporteConfirmado).map(ligaNomeExibicao), json.liga);
+        selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporteConfirmado), ligaNomeExibicao, '— Liga —');
+        if (r.duplicado) {
+            selLig.value = r.valor;
+            toggleCampoOutro(selLig, 'ligaEventoOutro');
+        } else {
+            selLig.value = OUTRO_VALOR;
+            toggleCampoOutro(selLig, 'ligaEventoOutro');
+            const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
+            if (inputOutro) inputOutro.value = r.valor;
+        }
+        ligaAplicada = r.valor;
+        baixaConfianca = json.confianca != null && json.confianca < LIMIAR_BAIXA_CONFIANCA;
+        if (baixaConfianca) marcarCampoBaixaConfianca(selLig);
     }
 
-    const selLig = div.querySelector('.ligaEvento');
-    const r = buscarOuPrepararValor(ligasDoEsporte(esporteConfirmado).map(ligaNomeExibicao), json.liga);
-    selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporteConfirmado), ligaNomeExibicao, '— Liga —');
-    if (r.duplicado) {
-        selLig.value = r.valor;
-        toggleCampoOutro(selLig, 'ligaEventoOutro');
-    } else {
-        selLig.value = OUTRO_VALOR;
-        toggleCampoOutro(selLig, 'ligaEventoOutro');
-        const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
-        if (inputOutro) inputOutro.value = r.valor;
+    let dataHoraAplicada = null;
+    let baixaConfiancaData = false;
+    if (dataHoraEncontrada && campoDataEvento && !dataEventoAtual) {
+        campoDataEvento.value = json.dataHora;
+        dataHoraAplicada = json.dataHora;
+        baixaConfiancaData = json.confiancaDataHora != null && json.confiancaDataHora < LIMIAR_BAIXA_CONFIANCA;
+        if (baixaConfiancaData) marcarCampoBaixaConfianca(campoDataEvento);
     }
 
-    const baixaConfianca = json.confianca != null && json.confianca < LIMIAR_BAIXA_CONFIANCA;
-    if (baixaConfianca) marcarCampoBaixaConfianca(selLig);
-
-    return { status: 'encontrado', liga: r.valor, esporte: esporteConfirmado, esporteFoiPreenchidoAgora, baixaConfianca };
+    return {
+        status: 'encontrado',
+        liga: ligaAplicada,
+        esporte: esporteConfirmado,
+        esporteFoiPreenchidoAgora,
+        baixaConfianca,
+        dataHora: dataHoraAplicada,
+        baixaConfiancaData
+    };
 }
 
-/* Busca a liga de TODOS os eventos da aposta de uma vez, um por vez (sequencial,
-   com anúncio de progresso para leitor de tela). Só considera eventos com o nome
-   do Evento preenchido E a Liga ainda vazia — eventos que já têm uma Liga
-   preenchida (lida certo ou já corrigida manualmente) são pulados e nunca
-   sobrescritos por esta busca. */
+/* Busca a liga e a data/hora de TODOS os eventos da aposta de uma vez, um por
+   vez (sequencial, com anúncio de progresso para leitor de tela). Considera
+   elegível todo evento com o nome do Evento preenchido E (Liga OU Data/Hora
+   da Partida ainda vazias) — eventos que já têm os dois campos preenchidos
+   (lidos certo pela IA ao importar o bilhete, ou já corrigidos manualmente)
+   são pulados e nunca sobrescritos por esta busca. */
 async function buscarLigaTodosEventos() {
     const todos = Array.from(document.querySelectorAll('.event'));
     const elegiveis = todos.filter(function (div) {
         const inputEvento = div.querySelector('.evento');
         const evento = inputEvento ? inputEvento.value.trim() : '';
         const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
-        return !!evento && !ligaAtual;
+        const campoDataEvento = div.querySelector('.dataEventoEvento');
+        const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
+        return !!evento && (!ligaAtual || !dataEventoAtual);
     });
 
     if (elegiveis.length === 0) {
-        anunciar('Nenhum evento elegível para busca de liga: preencha o nome do Evento e deixe a Liga vazia.');
-        showToast('ℹ️ Nenhum evento elegível — a busca só considera eventos com o nome do Evento preenchido e a Liga ainda vazia.', 'info', 8000);
+        anunciar('Nenhum evento elegível para busca: preencha o nome do Evento e deixe a Liga ou a Data/Hora da Partida vazias.');
+        showToast('ℹ️ Nenhum evento elegível — a busca só considera eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias.', 'info', 8000);
         return;
     }
 
@@ -3401,22 +3438,22 @@ async function buscarLigaTodosEventos() {
     let encontrados = 0, naoEncontrados = 0, erros = 0;
     for (let i = 0; i < elegiveis.length; i++) {
         botao.innerHTML = `⏳ Buscando ${i + 1} de ${elegiveis.length}...`;
-        anunciar(`Buscando liga do evento ${i + 1} de ${elegiveis.length}.`);
+        anunciar(`Buscando liga e data/hora do evento ${i + 1} de ${elegiveis.length}.`);
         const r = await _buscarLigaCore(elegiveis[i]);
         if (r.status === 'encontrado') encontrados++;
         else if (r.status === 'erro') erros++;
-        else naoEncontrados++;
+        else if (r.status !== 'ja-preenchido') naoEncontrados++;
     }
 
     botao.disabled = false;
     botao.innerHTML = textoOriginal;
 
     const pulados = todos.length - elegiveis.length;
-    const partes = [`${encontrados} liga(s) encontrada(s) e preenchida(s)`];
-    if (naoEncontrados > 0) partes.push(`${naoEncontrados} não confirmada(s) com confiança suficiente`);
+    const partes = [`${encontrados} evento(s) com liga e/ou data/hora encontrada(s) e preenchida(s)`];
+    if (naoEncontrados > 0) partes.push(`${naoEncontrados} não confirmado(s) com confiança suficiente`);
     if (erros > 0) partes.push(`${erros} com erro na busca`);
-    if (pulados > 0) partes.push(`${pulados} evento(s) pulado(s) (já tinham Liga preenchida ou o Evento estava vazio)`);
-    const resumo = 'Busca de ligas concluída: ' + partes.join(', ') + '.';
+    if (pulados > 0) partes.push(`${pulados} evento(s) pulado(s) (já tinham Liga e Data/Hora preenchidas, ou o Evento estava vazio)`);
+    const resumo = 'Busca de liga e data/hora concluída: ' + partes.join(', ') + '.';
     anunciar(resumo);
     showToast((encontrados > 0 ? '✅ ' : 'ℹ️ ') + resumo, encontrados > 0 ? 'success' : 'info', 9000);
 }
@@ -5159,20 +5196,17 @@ function renderTabela(dados) {
         const obsHtml = a.observacao ? `<br><small style="color:var(--text-secondary);" title="Observação">📝 ${escapeHtml(a.observacao)}</small>` : '';
         const bonusHtml = a.bonus ? `<br><small style="color:var(--text-secondary);" title="Bônus aplicado">🎁 ${formatarMoeda(a.bonus)}</small>` : '';
         const evs = a.eventos;
-        const evHtml = evs.map((e,i) =>
-            `<strong>${i+1}.</strong> ${e.evento} <small>(${e.esporte} ${e.liga})</small><br>`+
-            `<small>└ ${e.mercado}: ${e.selecao} @${formatarOdd(parseFloat(e.odd))}</small>`
-        ).join('<br>');
-        const evAriaLabel = evs.map((e,i) =>
-            `Evento ${i+1}: ${e.evento}, ${e.esporte} ${e.liga}, mercado ${e.mercado}: ${e.selecao} arroba ${formatarOdd(parseFloat(e.odd))}`
-        ).join('. ');
-        const horarioHtml = evs.map((e,i) => {
+        const evHtml = evs.map((e,i) => {
             const h = formatarHorarioEvento(e.dataEvento);
-            return `<strong>${i+1}.</strong> ${h || '<small style="color:var(--text-secondary);">—</small>'}`;
+            const horarioSpan = h ? ` <small>🕐 ${h}</small>` : '';
+            return `<strong>${i+1}.</strong> ${e.evento}${horarioSpan} <small>(${e.esporte} ${e.liga})</small><br>`+
+                `<small>└ ${e.mercado}: ${e.selecao} @${formatarOdd(parseFloat(e.odd))}</small>`;
         }).join('<br>');
-        const horarioAriaLabel = evs.map((e,i) =>
-            `Horário do jogo ${i+1}: ${formatarHorarioEvento(e.dataEvento) || 'não informado'}`
-        ).join('. ');
+        const evAriaLabel = evs.map((e,i) => {
+            const h = formatarHorarioEvento(e.dataEvento);
+            const horarioTexto = h ? `, horário do jogo ${h}` : '';
+            return `Evento ${i+1}: ${e.evento}${horarioTexto}, ${e.esporte} ${e.liga}, mercado ${e.mercado}: ${e.selecao} arroba ${formatarOdd(parseFloat(e.odd))}`;
+        }).join('. ');
         rows[r] = `<tr data-idx="${idx}" tabindex="0" aria-label="Aposta ${a.identificador}, ${a.casa}, ${a.status}. Atalhos: Alt+G ganhou, Alt+P perdeu, Alt+E editar, Alt+X excluir.">`+
             `<td>${formatarData(a.dataHora)}</td>`+
             `<td><strong>${a.casa}</strong></td>`+
@@ -5180,7 +5214,6 @@ function renderTabela(dados) {
             `<td>${a.tipster||'-'}</td>`+
             `<td>${a.tipo}</td>`+
             `<td aria-label="${escapeHtml(evAriaLabel)}">${evHtml}</td>`+
-            `<td aria-label="${escapeHtml(horarioAriaLabel)}">${horarioHtml}</td>`+
             `<td><strong>${formatarOdd(parseFloat(a.oddTotal))}</strong></td>`+
             `<td>${statusBadge}${obsHtml}${bonusHtml}</td>`+
             `<td>${formatarMoeda(a.stake)}</td>`+

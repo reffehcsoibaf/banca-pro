@@ -114,6 +114,22 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-25-0">v1.25.0</h2>
+  <p class="versao-data">30/08/2026</p>
+  <h3>Nova funcionalidade: Inferência de Data/Hora da Partida por IA</h3>
+  <ul>
+    <li>O botão de busca por IA, antes só "🔍 Buscar Liga", agora também infere a Data / Hora da Partida — mesmo mecanismo de busca (Sofascore, 365scores), mesma filosofia de nunca "chutar" um valor sem confirmação. Renomeado para "🔍 Buscar Liga e Data/Hora".</li>
+    <li>Especialmente útil para bilhetes da Betano, que não trazem a data/hora do jogo no bilhete — antes esse campo só podia ser preenchido manualmente nessas apostas.</li>
+    <li>Liga e Data/Hora são encontradas de forma independente: a IA pode confirmar uma sem a outra. Cada campo só é preenchido se estiver vazio — nunca sobrescreve um valor já digitado ou já encontrado antes.</li>
+    <li>A IA sempre converte o horário para horário de Brasília, mesmo em jogos internacionais, seguindo a mesma regra já usada no preenchimento manual e na leitura automática de bilhetes.</li>
+    <li>Quando o dia do jogo é confirmado mas o horário exato não, o campo ainda é preenchido com uma estimativa, mas fica marcado com aviso de baixa confiança — o dia (que é o que importa para as checagens automáticas de resultado/estatística) costuma estar correto mesmo assim.</li>
+    <li>O botão agora roda em lote sobre todo evento que tenha o nome preenchido e falte Liga OU Data/Hora (antes só considerava eventos sem Liga) — eventos com os dois já preenchidos são pulados, sem gastar chamada de IA à toa.</li>
+  </ul>
+  <h3>Ajuste na tabela da Lista</h3>
+  <ul>
+    <li>A coluna separada "Horário" (introduzida nesta mesma sessão, mais cedo) foi removida — a Data / Hora da Partida agora aparece dentro da própria coluna Eventos, ao lado do nome do confronto, como parte das informações daquele evento.</li>
+  </ul>
+
   <h2 id="v1-24-0">v1.24.0</h2>
   <p class="versao-data">30/08/2026</p>
   <h3>Correção crítica: migração pendente da v1.23.0 aplicada no Supabase</h3>
