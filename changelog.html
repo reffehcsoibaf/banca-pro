@@ -114,6 +114,39 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-24-0">v1.24.0</h2>
+  <p class="versao-data">30/08/2026</p>
+  <h3>Correção crítica: migração pendente da v1.23.0 aplicada no Supabase</h3>
+  <ul>
+    <li>A coluna <code>data_evento</code> (introduzida na v1.23.0) tinha o arquivo de migração pronto no repositório, mas nunca tinha sido rodada no banco de produção. Isso fazia toda tentativa de salvar uma aposta nova com eventos falhar silenciosamente (o Supabase rejeitava o insert por causa da coluna inexistente).</li>
+    <li>A migração foi aplicada diretamente via integração Supabase — cadastro de apostas voltou ao normal.</li>
+  </ul>
+  <h3>Nova funcionalidade: Checagem de mercados de estatística (API-Football)</h3>
+  <ul>
+    <li>Novo botão "📊 Checar Estatísticas", em dois lugares: dentro do Cadastro (visível ao editar uma aposta já salva, checa só aquela aposta) e na aba Lista (abre um seletor para escolher qual aposta em aberto checar).</li>
+    <li>Diferente do "🔎 Checar Resultados" (que roda em lote sobre todas as apostas abertas), este é sempre sob demanda — 1 aposta por vez — porque gasta mais cota da API-Football (1 chamada por partida distinta, além da busca por data).</li>
+    <li>Mercados cobertos: Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos e Defesas — total da partida, "da Equipe" e Handicap (ex.: "Handicap de Escanteios").</li>
+    <li>Aviso especial em Cartões: a contagem de amarelo/vermelho pode variar entre casas de apostas (ex.: o 2º amarelo, que também vira vermelho, pode ou não contar em dobro) — toda sugestão de Cartões vem com um aviso visível pedindo pra conferir a regra da casa antes de aplicar.</li>
+    <li>Nunca suportados: Desarmes e Tiros de Meta — a API-Football não tem esses dados em nenhum plano, pago ou gratuito.</li>
+    <li>Painel de revisão idêntico ao de "Checar Resultados": nada é aplicado sozinho, você confirma cada sugestão manualmente com "✅ Aplicar".</li>
+  </ul>
+  <h3>Ajustes na tabela da aba Lista</h3>
+  <ul>
+    <li>Nova coluna "Horário": mostra a data/hora de cada evento (o mesmo campo "Data / Hora da Partida" usado pelas checagens automáticas), numerada igual à coluna Eventos.</li>
+    <li>Coluna "ROI" ocultada da tabela — a informação aposta por aposta não agregava muito; o ROI geral continua disponível no resumo da aba Lista e no cadastro/edição de cada aposta.</li>
+  </ul>
+
+  <h2 id="v1-23-0">v1.23.0</h2>
+  <p class="versao-data">30/08/2026</p>
+  <h3>Nova funcionalidade: Checagem automática de resultados (API-Football)</h3>
+  <ul>
+    <li>Novo botão "🔎 Checar Resultados" na aba Lista, ao lado de "Somente Abertas": consulta todas as apostas com status Aberto, busca o placar final dos jogos de Futebol via API-Football e sugere Ganhou/Perdeu/Ganho Parcial/Perda Parcial/Anulada por evento — sem aplicar nada automaticamente: cada sugestão só é gravada quando você toca em "✅ Aplicar" no painel de revisão que abre com os resultados.</li>
+    <li>Novo campo opcional "Data do Jogo" em cada evento (diferente da Data/Hora da aposta, que é a data de registro do bilhete) — necessário para localizar o confronto certo na API. É preenchido automaticamente pela IA ao ler um bilhete novo (foto ou texto), ou pode ser digitado à mão em bilhetes já cadastrados.</li>
+    <li>Mercados cobertos nesta primeira versão: Vencedor, Empate, Empate Anula (Draw No Bet), Chance Dupla, Gols (total de gols da partida, incluindo linhas de quarto como 2.25/2.75), Ambas Equipes Marcam, Handicap e Handicap Asiático (com resolução completa de linha de quarto, gerando Ganho Parcial/Perda Parcial quando a linha cai "no meio"), e Faixa de Gols.</li>
+    <li>Mercados fora do escopo nesta versão: qualquer estatística que a API-Football não garanta no plano gratuito (Cartões, Escanteios, Finalizações, Faltas, Defesas, Desarmes, Impedimentos, estatísticas por tempo/quarto, "da Equipe", "Cada Equipe" etc.) e mercados combinados (mais de um mercado no mesmo evento) — esses aparecem no painel marcados como "não suportado", para marcação manual como sempre. A checagem de estatísticas chegou na v1.24.0, veja acima.</li>
+    <li>Só Futebol é suportado por enquanto — outros esportes (Basquete, Tênis, Vôlei) ficam de fora até uma eventual integração com outra fonte de dados.</li>
+  </ul>
+
   <h2 id="v1-22-0">v1.22.0</h2>
   <p class="versao-data">24/08/2026</p>
   <h3>Nova funcionalidade: Painel de conferência da extração por IA</h3>

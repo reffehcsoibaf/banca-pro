@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.21.1</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.24.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -243,6 +243,7 @@
     <a href="#resumo-filtro" class="nav-link">Resumo Estatístico</a>
     <a href="#lista-apostas" class="nav-link">Lista de Apostas</a>
     <a href="#acoes" class="nav-link nav-link-sub">Ações disponíveis</a>
+    <a href="#checar-resultados-estatisticas" class="nav-link nav-link-sub">Checagem automática (API-Football)</a>
     <a href="#filtros" class="nav-link">Filtros</a>
   </div>
 
@@ -440,8 +441,13 @@
         <tr><td class="field-name">Mercado <span class="req">*</span></td><td>Caixas de verificação</td><td>Tipo de mercado apostado. Permite marcar mais de um simultaneamente.</td></tr>
         <tr><td class="field-name">Seleção <span class="req">*</span></td><td>Texto livre</td><td>O que foi apostado dentro do mercado (ex: Casa, Mais de 2.5, Sim).</td></tr>
         <tr><td class="field-name">ODD <span class="req">*</span></td><td>Número</td><td>ODD deste evento específico.</td></tr>
+        <tr><td class="field-name">Data / Hora da Partida</td><td>Data e hora</td><td>Opcional. Data/hora real da <strong>partida</strong> — diferente da Data/Hora da aposta (que é a data de registro do bilhete). Preenchida automaticamente pela IA ao ler um bilhete, ou digitável à mão. Usada pelas checagens automáticas "🔎 Checar Resultados" e "📊 Checar Estatísticas" para localizar o jogo certo.</td></tr>
       </tbody>
     </table>
+    <div class="callout warn">
+      <div class="callout-title">🌎 Sempre horário de Brasília, mesmo em jogo internacional</div>
+      Digite a Data / Hora da Partida sempre em horário de Brasília (America/São_Paulo), mesmo que a partida seja em outro país — as checagens automáticas buscam o jogo nesse fuso, e o campo não faz nenhuma conversão sozinho. Quando é a própria IA que preenche ao ler o bilhete, isso já vem certo, porque Betano e Superbet mostram o horário do jogo em horário de Brasília no bilhete.
+    </div>
 
     <h3 id="multiplos-eventos">Múltiplos eventos (Acumuladores)</h3>
     <ol class="steps">
@@ -708,8 +714,26 @@
   <!-- LISTA -->
   <section id="lista-apostas" class="wiki-section" aria-labelledby="h-lista">
     <h2 id="h-lista">📋 Lista de Apostas</h2>
-    <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, ODD, Status, Stake, Lucro, ROI e Ações.</p>
-    <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>.</p>
+    <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, Horário, ODD, Status, Stake, Lucro e Ações.</p>
+    <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>. A coluna <strong>Horário</strong> mostra a Data / Hora da Partida de cada evento (formato <strong>dd/mm hh:mm</strong>, sem ano), numerada igual à coluna Eventos — aparece "—" quando esse campo não foi preenchido. A coluna ROI não é exibida na tabela (a informação aposta por aposta não agrega muito); o ROI geral continua no resumo estatístico e no cadastro/edição de cada aposta.</p>
+
+    <h3 id="checar-resultados-estatisticas">🔎 Checagem automática (API-Football)</h3>
+    <p>Dois botões no topo da Lista consultam a <strong>API-Football</strong> para sugerir o resultado das apostas em aberto de <strong>Futebol</strong>. Em ambos os casos, nada é aplicado sozinho: um painel de revisão mostra a sugestão por evento, e você confirma manualmente com "✅ Aplicar" (ou "Ignorar").</p>
+    <table class="field-table" aria-label="Diferenças entre os dois botões de checagem automática">
+      <thead><tr><th>Botão</th><th>Como funciona</th><th>Mercados cobertos</th></tr></thead>
+      <tbody>
+        <tr><td><span class="btn-demo outline">🔎 Checar Resultados</span></td><td>Em <strong>lote</strong>: checa todas as apostas Abertas de uma vez. Baixo custo de cota (1 chamada por dia).</td><td>Vencedor, Empate, Empate Anula, Chance Dupla, Gols, Ambas Equipes Marcam, Handicap, Handicap Asiático, Faixa de Gols.</td></tr>
+        <tr><td><span class="btn-demo outline">📊 Checar Estatísticas</span></td><td><strong>Sob demanda</strong>, 1 aposta por vez — também disponível dentro do Cadastro ao editar uma aposta já salva. Custa mais cota (1 chamada por partida distinta).</td><td>Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos, Defesas — total da partida, "da Equipe" e Handicap.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <div class="callout-title">⚠️ Cartões: confira a regra de contagem da casa</div>
+      A contagem de cartões pode variar entre casas de apostas (ex.: o 2º amarelo, que também vira vermelho, pode ou não contar em dobro). Toda sugestão de "📊 Checar Estatísticas" para o mercado Cartões vem com um aviso pedindo pra conferir a regra da casa antes de aplicar.
+    </div>
+    <div class="callout info">
+      <div class="callout-title">ℹ️ Requisitos e limitações</div>
+      Precisa da Data / Hora da Partida preenchida no evento (veja seção <a href="#eventos">Eventos</a>) e só cobre Futebol por enquanto. Desarmes e Tiros de Meta nunca são suportados pela checagem de estatísticas — a API-Football não tem esses dados em nenhum plano. Mercados combinados (mais de uma condição no mesmo evento) também ficam de fora, para marcação manual.
+    </div>
     <div class="callout tip">
       <div class="callout-title">🟢 Filtro rápido: Somente Abertas</div>
       O botão "🟢 Somente Abertas" (atalho <kbd>Alt</kbd>+<kbd>A</kbd>) no topo da Lista liga direto o filtro de Status = Aberto sem precisar ir até a aba Filtros — aperte de novo para voltar a mostrar todas. O atalho <kbd>Alt</kbd>+<kbd>L</kbd> limpa todos os filtros de uma vez, de qualquer aba, sem tirar o foco de onde você está. Qualquer outro filtro já ativo (Casa, Tipster, Liga, datas etc.) é mantido pelo Alt+A. Veja mais em <a href="#atalhos">Atalhos de Teclado</a>.

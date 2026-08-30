@@ -551,7 +551,7 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-resultados'];
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-resultados', '/api/checar-estatisticas'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -594,6 +594,12 @@ async function handleFetch(request, env, ctx) {
     // sem entrar no pipeline de IA (comBusca/tipoUso/schemaTipo) abaixo.
     if (url.pathname === '/api/checar-resultados') {
       return await handleCheckResultados(payload, env, headers);
+    }
+    // ---- Rota de checagem de mercados de estatística (Finalizações, Chutes no
+    // Gol, Faltas, Escanteios, Cartões, Impedimentos, Defesas) — sob demanda,
+    // 1 aposta por vez, para economizar a cota diária da API-Football. ----
+    if (url.pathname === '/api/checar-estatisticas') {
+      return await handleCheckEstatisticas(payload, env, headers);
     }
 
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
@@ -1202,38 +1208,11 @@ function separarTimesDoEvento(evento) {
   return { nomeTimeA: partes[0].trim(), nomeTimeB: partes[1].trim() };
 }
 
-async function handleCheckResultados(payload, env, headers) {
-  if (!env.API_FOOTBALL_KEY) {
-    return new Response(JSON.stringify({
-      error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
-    }), { status: 500, headers });
-  }
-
-  const eventos = (payload && Array.isArray(payload.eventos)) ? payload.eventos : [];
-  if (!eventos.length) {
-    return new Response(JSON.stringify({ error: 'Envie "eventos" (array) para checar.' }), { status: 400, headers });
-  }
-
-  const resultados = [];
-  const eventosValidos = [];
-  for (const ev of eventos) {
-    if (normalizarTexto(ev.esporte) !== 'futebol') {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem automática por enquanto.' });
-      continue;
-    }
-    if (!ev.dataEvento) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Evento sem data do jogo cadastrada — preencha "Data do Jogo" para habilitar a checagem.' });
-      continue;
-    }
-    if (!separarTimesDoEvento(ev.evento)) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Não foi possível separar os dois times a partir de "${ev.evento}".` });
-      continue;
-    }
-    eventosValidos.push(ev);
-  }
-
-  // Agrupa por data única (YYYY-MM-DD) — 1 chamada à API por dia, não por evento.
-  const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
+// Busca os jogos finalizados de cada data única em "datasUnicas" — 1 chamada
+// à API-Football por dia (não por evento), já que /fixtures?date=... devolve
+// todos os jogos do mundo naquele dia. Compartilhada entre /api/checar-resultados
+// e /api/checar-estatisticas para não duplicar a lógica de busca por data.
+async function buscarFixturesPorData(datasUnicas, env) {
   const fixturesPorData = new Map();
   for (const data of datasUnicas) {
     try {
@@ -1256,6 +1235,53 @@ async function handleCheckResultados(payload, env, headers) {
       fixturesPorData.set(data, { erro: 'Falha de rede ao consultar API-Football: ' + e.message });
     }
   }
+  return fixturesPorData;
+}
+
+// Casa o confronto salvo (nomeTimeA x nomeTimeB) com um dos fixtures retornados
+// para aquela data, nos dois sentidos (mandante/visitante podem estar invertidos
+// em relação à ordem salva no evento).
+function encontrarFixture(infoData, nomeTimeA, nomeTimeB) {
+  if (!infoData || infoData.erro) return null;
+  return infoData.fixtures.find(f =>
+    (nomesTimesBatem(nomeTimeA, f.teams.home.name) && nomesTimesBatem(nomeTimeB, f.teams.away.name)) ||
+    (nomesTimesBatem(nomeTimeB, f.teams.home.name) && nomesTimesBatem(nomeTimeA, f.teams.away.name))
+  );
+}
+
+async function handleCheckResultados(payload, env, headers) {
+  if (!env.API_FOOTBALL_KEY) {
+    return new Response(JSON.stringify({
+      error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
+    }), { status: 500, headers });
+  }
+
+  const eventos = (payload && Array.isArray(payload.eventos)) ? payload.eventos : [];
+  if (!eventos.length) {
+    return new Response(JSON.stringify({ error: 'Envie "eventos" (array) para checar.' }), { status: 400, headers });
+  }
+
+  const resultados = [];
+  const eventosValidos = [];
+  for (const ev of eventos) {
+    if (normalizarTexto(ev.esporte) !== 'futebol') {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem automática por enquanto.' });
+      continue;
+    }
+    if (!ev.dataEvento) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Evento sem data do jogo cadastrada — preencha "Data/Hora da Partida" para habilitar a checagem.' });
+      continue;
+    }
+    if (!separarTimesDoEvento(ev.evento)) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Não foi possível separar os dois times a partir de "${ev.evento}".` });
+      continue;
+    }
+    eventosValidos.push(ev);
+  }
+
+  // Agrupa por data única (YYYY-MM-DD) — 1 chamada à API por dia, não por evento.
+  const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
+  const fixturesPorData = await buscarFixturesPorData(datasUnicas, env);
 
   for (const ev of eventosValidos) {
     const data = String(ev.dataEvento).slice(0, 10);
@@ -1265,10 +1291,7 @@ async function handleCheckResultados(payload, env, headers) {
       continue;
     }
     const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
-    const fixture = infoData.fixtures.find(f =>
-      (nomesTimesBatem(nomeTimeA, f.teams.home.name) && nomesTimesBatem(nomeTimeB, f.teams.away.name)) ||
-      (nomesTimesBatem(nomeTimeB, f.teams.home.name) && nomesTimesBatem(nomeTimeA, f.teams.away.name))
-    );
+    const fixture = encontrarFixture(infoData, nomeTimeA, nomeTimeB);
     if (!fixture) {
       resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Confronto "${ev.evento}" não encontrado (ou ainda não finalizado) na data ${data}.` });
       continue;
@@ -1279,6 +1302,257 @@ async function handleCheckResultados(payload, env, headers) {
     const placarTexto = `${fixture.teams.home.name} ${golsCasa}-${golsFora} ${fixture.teams.away.name}`;
 
     const resolucao = resolverMercadoFutebol(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora });
+    resultados.push({
+      idAposta: ev.idAposta,
+      idEvento: ev.idEvento,
+      encontrado: true,
+      placar: placarTexto,
+      ...resolucao
+    });
+  }
+
+  return new Response(JSON.stringify({ resultados }), { status: 200, headers });
+}
+
+// ==================== CHECAGEM DE ESTATÍSTICAS (API-FOOTBALL) ====================
+// Rota: POST /api/checar-estatisticas
+// Entrada: { eventos: [{ idAposta, idEvento, esporte, evento, mercado, selecao, dataEvento }, ...] }
+// Sob demanda (acionado manualmente, 1 aposta por vez) — diferente do
+// /api/checar-resultados, que roda em lote sobre todas as apostas abertas.
+// Cobre mercados de estatística (Finalizações, Chutes no Gol, Faltas,
+// Escanteios, Cartões, Impedimentos, Defesas — total da partida, "da Equipe"
+// e Handicap), usando o endpoint /fixtures/statistics da API-Football.
+//
+// Custo de cota: 1 chamada por DATA única para localizar os jogos (mesma
+// estratégia do /api/checar-resultados) + 1 chamada por PARTIDA distinta
+// para as estatísticas (não por evento — jogos repetidos na mesma aposta
+// não geram chamada extra). Mais caro que a checagem de placar; por isso é
+// sob demanda, nunca em lote automático.
+//
+// Desarmes e Tiros de Meta NUNCA são suportados aqui — a API-Football não
+// tem esses campos em nenhum plano (pago ou gratuito).
+
+const MAPA_ESTATISTICA_API = {
+  'chutes no gol': 'Shots on Goal',
+  'finalizacoes': 'Total Shots',
+  'faltas': 'Fouls',
+  'escanteios': 'Corner Kicks',
+  'impedimentos': 'Offsides',
+  'defesas': 'Goalkeeper Saves',
+};
+const ESTATISTICAS_BASE_SUPORTADAS = ['cartoes', 'chutes no gol', 'finalizacoes', 'faltas', 'escanteios', 'impedimentos', 'defesas'];
+const NOME_EXIBICAO_ESTATISTICA = {
+  'cartoes': 'Cartões', 'chutes no gol': 'Chutes no Gol', 'finalizacoes': 'Finalizações',
+  'faltas': 'Faltas', 'escanteios': 'Escanteios', 'impedimentos': 'Impedimentos', 'defesas': 'Defesas',
+};
+const AVISO_CONTAGEM_CARTOES = 'Confira a regra de contagem de cartões da casa antes de aplicar — algumas casas contam o 2º amarelo (que também vira vermelho) de forma diferente.';
+
+// Lê o valor de uma estatística para um time a partir do mapa {type: value}
+// retornado pela API-Football. "Cartões" soma amarelos + vermelhos (ver aviso
+// de contagem acima). Retorna null quando a competição não registra aquela
+// estatística (não é erro — é buraco de cobertura da própria API).
+function valorEstatistica(statsTime, chaveBase) {
+  if (!statsTime) return null;
+  if (chaveBase === 'cartoes') {
+    const amarelos = statsTime['Yellow Cards'];
+    const vermelhos = statsTime['Red Cards'];
+    if (amarelos == null && vermelhos == null) return null;
+    return (Number(amarelos) || 0) + (Number(vermelhos) || 0);
+  }
+  const campoApi = MAPA_ESTATISTICA_API[chaveBase];
+  if (!campoApi) return null;
+  const v = statsTime[campoApi];
+  return (v === null || v === undefined) ? null : Number(v);
+}
+
+// Extrai time + direção ("mais"/"menos") + linha de uma seleção "da Equipe",
+// ex.: "River Plate - Mais de 4.5" → { time:'A', direcaoMais:true, valorLinha:4.5 }.
+function parseEstatisticaEquipeSelecao(selecao, nomeTimeA, nomeTimeB) {
+  const m = (selecao || '').match(/(mais|menos|over|under)\s*de?\s*([\d.,]+)/i);
+  if (!m) return { time: null, direcaoMais: null, valorLinha: null };
+  const antes = selecao.slice(0, m.index);
+  const time = identificarTimeNoTexto(antes, nomeTimeA, nomeTimeB);
+  const direcaoMais = /mais|over/i.test(m[1]);
+  const valorLinha = parseFloat(m[2].replace(',', '.'));
+  return { time, direcaoMais, valorLinha };
+}
+
+// ---- Resolução por mercado de estatística — mesmo formato de retorno de
+// resolverMercadoFutebol: { suportado, resultado, detalhe, aviso? } ----
+function resolverMercadoEstatisticas(mercado, selecao, ctx) {
+  const { nomeTimeA, nomeTimeB, timeAeCasa, statsA, statsB } = ctx;
+  const mercadoNorm = normalizarTexto(mercado);
+
+  if ((mercado || '').includes(',')) {
+    return { suportado: false, detalhe: 'Mercado combinado (múltiplas condições no mesmo evento) — revise manualmente.' };
+  }
+
+  const matchHandicap = mercadoNorm.match(/^handicap de (chutes no gol|escanteios|finalizacoes)$/);
+  if (matchHandicap) {
+    const chaveBase = matchHandicap[1];
+    const valA = valorEstatistica(statsA, chaveBase);
+    const valB = valorEstatistica(statsB, chaveBase);
+    if (valA == null || valB == null) {
+      return { suportado: false, detalhe: `Estatística "${NOME_EXIBICAO_ESTATISTICA[chaveBase]}" não disponível pela API para essa partida/competição.` };
+    }
+    const { time, linha } = parseHandicapSelecao(selecao, nomeTimeA, nomeTimeB, timeAeCasa);
+    if (!time || linha === null) {
+      return { suportado: false, detalhe: `Não foi possível interpretar time e linha na seleção "${selecao}".` };
+    }
+    const diferenca = time === 'A' ? (valA - valB) : (valB - valA);
+    return { suportado: true, resultado: resolverLinhaNumerica(diferenca, linha), detalhe: `${nomeTimeA} ${valA} x ${valB} ${nomeTimeB} (${NOME_EXIBICAO_ESTATISTICA[chaveBase]})` };
+  }
+
+  const matchEquipe = mercadoNorm.match(/^(cartoes|chutes no gol|finalizacoes|faltas|escanteios|impedimentos|defesas) da equipe$/);
+  if (matchEquipe) {
+    const chaveBase = matchEquipe[1];
+    const { time, direcaoMais, valorLinha } = parseEstatisticaEquipeSelecao(selecao, nomeTimeA, nomeTimeB);
+    if (!time || valorLinha === null) {
+      return { suportado: false, detalhe: `Não foi possível interpretar time e linha na seleção "${selecao}".` };
+    }
+    const statsTime = time === 'A' ? statsA : statsB;
+    const valor = valorEstatistica(statsTime, chaveBase);
+    if (valor == null) {
+      return { suportado: false, detalhe: `Estatística "${NOME_EXIBICAO_ESTATISTICA[chaveBase]}" não disponível pela API para essa partida/competição.` };
+    }
+    const resultado = resolverTotal(valor, valorLinha, direcaoMais);
+    const resp = { suportado: true, resultado, detalhe: `${time === 'A' ? nomeTimeA : nomeTimeB}: ${valor} ${NOME_EXIBICAO_ESTATISTICA[chaveBase].toLowerCase()}` };
+    if (chaveBase === 'cartoes') resp.aviso = AVISO_CONTAGEM_CARTOES;
+    return resp;
+  }
+
+  if (ESTATISTICAS_BASE_SUPORTADAS.includes(mercadoNorm)) {
+    const chaveBase = mercadoNorm;
+    const valA = valorEstatistica(statsA, chaveBase);
+    const valB = valorEstatistica(statsB, chaveBase);
+    if (valA == null || valB == null) {
+      return { suportado: false, detalhe: `Estatística "${NOME_EXIBICAO_ESTATISTICA[chaveBase]}" não disponível pela API para essa partida/competição.` };
+    }
+    const m = (selecao || '').match(/(mais|menos|over|under)\s*de?\s*([\d.,]+)/i);
+    if (!m) {
+      return { suportado: false, detalhe: `Não foi possível extrair a linha da seleção "${selecao}".` };
+    }
+    const direcaoMais = /mais|over/i.test(m[1]);
+    const valorLinha = parseFloat(m[2].replace(',', '.'));
+    const total = valA + valB;
+    const resultado = resolverTotal(total, valorLinha, direcaoMais);
+    const resp = { suportado: true, resultado, detalhe: `${nomeTimeA} ${valA} + ${nomeTimeB} ${valB} = ${total}` };
+    if (chaveBase === 'cartoes') resp.aviso = AVISO_CONTAGEM_CARTOES;
+    return resp;
+  }
+
+  return { suportado: false, detalhe: `Mercado "${mercado}" não suportado pela checagem de estatísticas (Desarmes e Tiros de Meta não existem na API-Football em nenhum plano).` };
+}
+
+async function handleCheckEstatisticas(payload, env, headers) {
+  if (!env.API_FOOTBALL_KEY) {
+    return new Response(JSON.stringify({
+      error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
+    }), { status: 500, headers });
+  }
+
+  const eventos = (payload && Array.isArray(payload.eventos)) ? payload.eventos : [];
+  if (!eventos.length) {
+    return new Response(JSON.stringify({ error: 'Envie "eventos" (array) para checar.' }), { status: 400, headers });
+  }
+
+  const resultados = [];
+  const eventosValidos = [];
+  for (const ev of eventos) {
+    if (normalizarTexto(ev.esporte) !== 'futebol') {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem de estatísticas por enquanto.' });
+      continue;
+    }
+    if (!ev.dataEvento) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Evento sem data do jogo cadastrada — preencha "Data/Hora da Partida" para habilitar a checagem.' });
+      continue;
+    }
+    if (!separarTimesDoEvento(ev.evento)) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Não foi possível separar os dois times a partir de "${ev.evento}".` });
+      continue;
+    }
+    eventosValidos.push(ev);
+  }
+
+  // Etapa 1: localizar o fixture (jogo) de cada evento — 1 chamada por DATA única.
+  const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
+  const fixturesPorData = await buscarFixturesPorData(datasUnicas, env);
+
+  const fixturePorEvento = new Map(); // "idAposta::idEvento" -> fixture
+  const fixturesUnicos = new Map();   // fixture.fixture.id -> fixture (dedupe entre eventos da mesma partida)
+  for (const ev of eventosValidos) {
+    const chaveEvento = `${ev.idAposta}::${ev.idEvento}`;
+    const data = String(ev.dataEvento).slice(0, 10);
+    const infoData = fixturesPorData.get(data);
+    if (infoData && infoData.erro) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: infoData.erro });
+      continue;
+    }
+    const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
+    const fixture = encontrarFixture(infoData, nomeTimeA, nomeTimeB);
+    if (!fixture) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Confronto "${ev.evento}" não encontrado (ou ainda não finalizado) na data ${data}.` });
+      continue;
+    }
+    fixturePorEvento.set(chaveEvento, fixture);
+    fixturesUnicos.set(fixture.fixture.id, fixture);
+  }
+
+  // Etapa 2: buscar estatísticas — 1 chamada por PARTIDA distinta (não por evento).
+  const statsPorFixtureId = new Map();
+  for (const [fixtureId] of fixturesUnicos) {
+    try {
+      const resp = await fetch(
+        `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`,
+        { headers: { 'x-apisports-key': env.API_FOOTBALL_KEY } }
+      );
+      if (!resp.ok) {
+        const texto = await resp.text();
+        statsPorFixtureId.set(fixtureId, { erro: `API-Football retornou ${resp.status}: ${texto.slice(0, 200)}` });
+        continue;
+      }
+      const dados = await resp.json();
+      if (dados.errors && Object.keys(dados.errors).length) {
+        statsPorFixtureId.set(fixtureId, { erro: 'API-Football: ' + JSON.stringify(dados.errors) });
+        continue;
+      }
+      const resposta = dados.response || [];
+      if (!resposta.length) {
+        statsPorFixtureId.set(fixtureId, { erro: 'Essa competição não tem estatísticas detalhadas registradas na API-Football para esse jogo.' });
+        continue;
+      }
+      // Monta um mapa {tipo: valor} por time, casado pelo id do time da API.
+      const statsPorTimeId = new Map();
+      for (const bloco of resposta) {
+        const mapa = {};
+        for (const stat of (bloco.statistics || [])) mapa[stat.type] = stat.value;
+        statsPorTimeId.set(bloco.team.id, mapa);
+      }
+      statsPorFixtureId.set(fixtureId, { statsPorTimeId });
+    } catch (e) {
+      statsPorFixtureId.set(fixtureId, { erro: 'Falha de rede ao consultar API-Football: ' + e.message });
+    }
+  }
+
+  // Etapa 3: resolver cada evento válido com as estatísticas já carregadas.
+  for (const ev of eventosValidos) {
+    const chaveEvento = `${ev.idAposta}::${ev.idEvento}`;
+    if (!fixturePorEvento.has(chaveEvento)) continue; // já registrado como não encontrado na etapa 1
+    const fixture = fixturePorEvento.get(chaveEvento);
+    const infoStats = statsPorFixtureId.get(fixture.fixture.id);
+    if (infoStats.erro) {
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: infoStats.erro });
+      continue;
+    }
+    const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
+    const timeAeCasa = nomesTimesBatem(nomeTimeA, fixture.teams.home.name);
+    const statsCasa = infoStats.statsPorTimeId.get(fixture.teams.home.id);
+    const statsFora = infoStats.statsPorTimeId.get(fixture.teams.away.id);
+    const statsA = timeAeCasa ? statsCasa : statsFora;
+    const statsB = timeAeCasa ? statsFora : statsCasa;
+    const placarTexto = `${fixture.teams.home.name} ${fixture.goals.home}-${fixture.goals.away} ${fixture.teams.away.name}`;
+
+    const resolucao = resolverMercadoEstatisticas(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, statsA, statsB });
     resultados.push({
       idAposta: ev.idAposta,
       idEvento: ev.idEvento,

@@ -4,6 +4,41 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.24.0 — 30/08/2026
+
+### Correção crítica: migração pendente da v1.23.0 aplicada no Supabase
+
+- A coluna `data_evento` (introduzida na v1.23.0) tinha o arquivo de migração pronto no
+  repositório, mas nunca tinha sido rodada no banco de produção. Isso fazia toda tentativa de
+  salvar uma aposta nova com eventos falhar silenciosamente (o Supabase rejeitava o insert por
+  causa da coluna inexistente). A migração foi aplicada diretamente via integração Supabase —
+  cadastro de apostas voltou ao normal.
+
+### Nova funcionalidade: Checagem de mercados de estatística (API-Football)
+
+- Novo botão **"📊 Checar Estatísticas"**, em dois lugares: dentro do Cadastro (visível ao editar
+  uma aposta já salva, checa só aquela aposta) e na aba Lista (abre um seletor para escolher
+  qual aposta em aberto checar). Diferente do "🔎 Checar Resultados" (que roda em lote sobre
+  todas as apostas abertas), este é sempre sob demanda — 1 aposta por vez — porque gasta mais
+  cota da API-Football (1 chamada por partida distinta, além da busca por data).
+- **Mercados cobertos:** Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos
+  e Defesas — total da partida, "da Equipe" e Handicap (ex.: "Handicap de Escanteios").
+- **Aviso especial em Cartões:** a contagem de amarelo/vermelho pode variar entre casas de apostas
+  (ex.: o 2º amarelo, que também vira vermelho, pode ou não contar em dobro) — toda sugestão de
+  Cartões vem com um aviso visível pedindo pra conferir a regra da casa antes de aplicar.
+- **Nunca suportados:** Desarmes e Tiros de Meta — a API-Football não tem esses dados em nenhum
+  plano, pago ou gratuito.
+- Painel de revisão idêntico ao de "Checar Resultados": nada é aplicado sozinho, você confirma
+  cada sugestão manualmente com "✅ Aplicar".
+
+### Ajustes na tabela da aba Lista
+
+- Nova coluna **"Horário"**: mostra a data/hora de cada evento (o mesmo campo "Data / Hora da
+  Partida"
+  usado pelas checagens automáticas), numerada igual à coluna Eventos.
+- Coluna **"ROI"** ocultada da tabela — a informação aposta por aposta não agregava muito;
+  o ROI geral continua disponível no resumo da aba Lista e no cadastro/edição de cada aposta.
+
 ## v1.23.0 — 30/08/2026
 
 ### Nova funcionalidade: Checagem automática de resultados (API-Football)
