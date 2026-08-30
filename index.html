@@ -1532,7 +1532,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.25.0 · 30/08/2026
+  Banca Pro · v1.27.0 · 30/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -4469,31 +4469,44 @@ function mostrarPainelChecagemResultados(resultados) {
 }
 
 /* ==================== CHECAGEM DE ESTATÍSTICAS (API-Football) ====================
-   Sob demanda, 1 aposta por vez — diferente do "Checar Resultados" (que roda em lote
-   sobre todas as abertas), essa checagem gasta mais cota da API-Football (1 chamada
-   por partida distinta, além da busca por data), então fica sempre a critério do
-   usuário, nunca automática. Cobre Finalizações, Chutes no Gol, Faltas, Escanteios,
-   Cartões, Impedimentos e Defesas — total da partida, "da Equipe" e Handicap.
-   Dois pontos de entrada, mesma função central:
+   Sob demanda, em LOTE opcional — diferente do "Checar Resultados" (que roda
+   sozinho sobre todas as abertas), essa checagem gasta mais cota da API-Football
+   (1 chamada por partida distinta, além da busca por data), então fica sempre a
+   critério do usuário: ele escolhe quais apostas entram na consulta. Cobre
+   Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos e
+   Defesas — total da partida, "da Equipe" e Handicap.
+   Quando o lote enviado tem eventos de partidas repetidas (comum quando várias
+   apostas do dia caem no mesmo jogo), o Worker consulta a API-Football só UMA
+   VEZ por partida distinta e reaproveita o resultado pra validar cada mercado —
+   ver /api/checar-estatisticas no worker.js (fixturesUnicos/statsPorFixtureId).
+   Dois pontos de entrada, mesmo núcleo (checarEstatisticasApostas):
    - Botão dentro do Cadastro (checarEstatisticasApostaAtual), só visível quando
-     editando uma aposta já salva (precisa do índice em "apostas").
-   - Botão na Lista (abrirSeletorChecarEstatisticas), que abre um seletor com as
-     apostas em aberto para escolher qual checar. */
-async function checarEstatisticasAposta(idx) {
-    const a = apostas[idx];
-    if (!a) { showToast('Aposta não encontrada.', 'error'); return; }
-    const eventosParaChecar = (a.eventos || []).map(ev => ({
-        idAposta: idx,
-        idEvento: ev.id,
-        esporte: ev.esporte,
-        evento: ev.evento,
-        mercado: ev.mercado,
-        selecao: ev.selecao,
-        dataEvento: ev.dataEvento || null
-    }));
-    if (!eventosParaChecar.length) { showToast('Essa aposta não tem eventos.', 'error'); return; }
+     editando uma aposta já salva — sempre 1 aposta.
+   - Botão na Lista (abrirSeletorChecarEstatisticas), que abre um seletor com
+     checkbox por aposta em aberto (mostrando os eventos com Data/Hora da
+     Partida, pra decidir quais vale a pena checar) e um botão "Enviar
+     Consulta" que manda todas as marcadas de uma vez. */
+async function checarEstatisticasApostas(idxs) {
+    const idxsValidos = (idxs || []).filter(idx => apostas[idx]);
+    if (!idxsValidos.length) { showToast('Nenhuma aposta selecionada.', 'error'); return; }
 
-    showToast('📊 Checando estatísticas...', 'success', 4000);
+    const eventosParaChecar = [];
+    idxsValidos.forEach(idx => {
+        (apostas[idx].eventos || []).forEach(ev => {
+            eventosParaChecar.push({
+                idAposta: idx,
+                idEvento: ev.id,
+                esporte: ev.esporte,
+                evento: ev.evento,
+                mercado: ev.mercado,
+                selecao: ev.selecao,
+                dataEvento: ev.dataEvento || null
+            });
+        });
+    });
+    if (!eventosParaChecar.length) { showToast('Nenhum evento nas apostas selecionadas.', 'error'); return; }
+
+    showToast(idxsValidos.length > 1 ? `📊 Checando estatísticas de ${idxsValidos.length} apostas...` : '📊 Checando estatísticas...', 'success', 4000);
     let json;
     try {
         const resposta = await fetch('/api/checar-estatisticas', {
@@ -4510,6 +4523,11 @@ async function checarEstatisticasAposta(idx) {
     mostrarPainelChecagemEstatisticas(json.resultados || []);
 }
 
+// Atalho de compatibilidade: 1 aposta só (usado pelo botão dentro do Cadastro).
+async function checarEstatisticasAposta(idx) {
+    await checarEstatisticasApostas([idx]);
+}
+
 async function checarEstatisticasApostaAtual() {
     if (editIndex === null) { showToast('Abra uma aposta já salva (Editar) para checar estatísticas.', 'error'); return; }
     const btn = document.getElementById('btnCheckarEstatisticasAposta');
@@ -4517,6 +4535,17 @@ async function checarEstatisticasApostaAtual() {
     if (btn) { btn.disabled = true; btn.innerHTML = '📊 Checando...'; }
     await checarEstatisticasAposta(editIndex);
     if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+}
+
+// Lista de eventos (com Data/Hora da Partida) exibida dentro de cada item do
+// seletor — é essa informação, não ID/Casa, que ajuda a decidir se vale a
+// pena submeter a aposta à checagem (jogo já deve ter terminado ou não).
+function _listaEventosParaSeletor(a) {
+    return (a.eventos || []).map((e, i) => {
+        const h = formatarHorarioEvento(e.dataEvento);
+        const horarioHtml = h ? h : '<span style="color:var(--text-secondary);">sem Data/Hora da Partida</span>';
+        return `<div style="font-size:12.5px;margin-top:2px;">${i + 1}. ${escapeHtml(e.evento || '(evento sem nome)')} — ${horarioHtml}</div>`;
+    }).join('');
 }
 
 function abrirSeletorChecarEstatisticas() {
@@ -4540,22 +4569,41 @@ function abrirSeletorChecarEstatisticas() {
     }
 
     const itens = pendentes.map(({ a, idx }) => `
-        <button type="button" class="btn btn-outline" style="width:100%; text-align:left; margin-bottom:6px;"
-            onclick="document.getElementById('overlaySeletorEstatisticas').classList.remove('open'); checarEstatisticasAposta(${idx});">
-            <strong>${escapeHtml(a.identificador)}</strong> — ${escapeHtml(a.casa)} <small>(stake ${formatarMoeda(a.stake)})</small>
-        </button>`).join('');
+        <label class="card" style="display:block;width:100%;margin-bottom:8px;padding:10px 12px;cursor:pointer;">
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+                <input type="checkbox" class="chk-seletor-estatisticas" value="${idx}" style="margin-top:3px;flex:0 0 auto;">
+                <div style="flex:1 1 auto;">
+                    <div><strong>${escapeHtml(a.identificador)}</strong> — ${escapeHtml(a.casa)} <small>(stake ${formatarMoeda(a.stake)})</small></div>
+                    ${_listaEventosParaSeletor(a)}
+                </div>
+            </div>
+        </label>`).join('');
 
     overlay.innerHTML = `
-        <div class="modal" tabindex="-1" style="max-width:480px;width:100%;max-height:80vh;overflow-y:auto;">
+        <div class="modal" tabindex="-1" style="max-width:520px;width:100%;max-height:80vh;overflow-y:auto;">
             <div class="painel-conferencia-header">
-                <h3 id="seletorEstatisticasTitulo">📊 Escolha a aposta</h3>
+                <h3 id="seletorEstatisticasTitulo">📊 Escolha as apostas</h3>
                 <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlaySeletorEstatisticas').classList.remove('open')">✕</button>
             </div>
-            <p style="margin:0 0 10px;font-size:13px;color:var(--text-secondary);">Cada checagem consulta a API-Football por partida — escolha uma aposta em aberto para checar Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões e outras estatísticas.</p>
+            <p style="margin:0 0 10px;font-size:13px;color:var(--text-secondary);">Marque as apostas que já devem ter terminado (veja a Data/Hora de cada evento) e envie de uma vez — jogos repetidos entre as apostas marcadas são consultados só uma vez na API-Football.</p>
+            <div class="btn-row" style="margin-bottom:10px;">
+                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-estatisticas').forEach(c => c.checked = true);">Marcar todas</button>
+                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-estatisticas').forEach(c => c.checked = false);">Desmarcar todas</button>
+            </div>
             ${itens}
+            <div class="btn-row" style="margin-top:6px;">
+                <button type="button" class="btn btn-success" onclick="enviarConsultaEstatisticasSelecionadas()">📊 Enviar Consulta</button>
+            </div>
         </div>`;
     overlay.classList.add('open');
     overlay.querySelector('.modal').focus();
+}
+
+function enviarConsultaEstatisticasSelecionadas() {
+    const idxs = Array.from(document.querySelectorAll('.chk-seletor-estatisticas:checked')).map(c => parseInt(c.value, 10));
+    if (!idxs.length) { showToast('Marque pelo menos uma aposta para enviar.', 'error'); return; }
+    document.getElementById('overlaySeletorEstatisticas').classList.remove('open');
+    checarEstatisticasApostas(idxs);
 }
 
 function mostrarPainelChecagemEstatisticas(resultados) {
@@ -4564,6 +4612,14 @@ function mostrarPainelChecagemEstatisticas(resultados) {
         if (!porAposta.has(r.idAposta)) porAposta.set(r.idAposta, []);
         porAposta.get(r.idAposta).push(r);
     });
+
+    // Partidas distintas de fato consultadas na API-Football (mesmo placar =
+    // mesmo jogo) — mostra a economia de chamadas quando há jogos repetidos
+    // entre as apostas enviadas no mesmo lote.
+    const placaresDistintos = new Set(resultados.filter(r => r.encontrado && r.placar).map(r => r.placar));
+    const resumoLoteHtml = (porAposta.size > 1)
+        ? `<p style="margin:0 0 10px;font-size:12.5px;color:var(--text-secondary);">${resultados.length} evento(s) verificado(s) em ${porAposta.size} aposta(s), correspondendo a ${placaresDistintos.size} partida(s) distinta(s) consultada(s) na API-Football.</p>`
+        : '';
 
     let overlay = document.getElementById('overlayChecagemEstatisticas');
     if (!overlay) {
@@ -4619,6 +4675,7 @@ function mostrarPainelChecagemEstatisticas(resultados) {
                 <h3 id="checagemEstatisticasTitulo">📊 Estatísticas encontradas</h3>
                 <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlayChecagemEstatisticas').classList.remove('open')">✕</button>
             </div>
+            ${resumoLoteHtml}
             ${blocos.length ? blocos.join('') : '<p>Nenhum resultado encontrado para essa aposta.</p>'}
         </div>`;
     overlay.classList.add('open');
@@ -5198,14 +5255,16 @@ function renderTabela(dados) {
         const evs = a.eventos;
         const evHtml = evs.map((e,i) => {
             const h = formatarHorarioEvento(e.dataEvento);
-            const horarioSpan = h ? ` <small>🕐 ${h}</small>` : '';
-            return `<strong>${i+1}.</strong> ${e.evento}${horarioSpan} <small>(${e.esporte} ${e.liga})</small><br>`+
-                `<small>└ ${e.mercado}: ${e.selecao} @${formatarOdd(parseFloat(e.odd))}</small>`;
+            const horarioSpan = h ? ` <small>${h}</small>` : '';
+            const numero = evs.length > 1 ? `<strong>${i+1}.</strong> ` : '';
+            return `${numero}${e.evento}${horarioSpan} <small>(${e.esporte} ${e.liga})</small><br>`+
+                `<small>${e.mercado}: ${e.selecao} @${formatarOdd(parseFloat(e.odd))}</small>`;
         }).join('<br>');
         const evAriaLabel = evs.map((e,i) => {
             const h = formatarHorarioEvento(e.dataEvento);
             const horarioTexto = h ? `, horário do jogo ${h}` : '';
-            return `Evento ${i+1}: ${e.evento}${horarioTexto}, ${e.esporte} ${e.liga}, mercado ${e.mercado}: ${e.selecao} arroba ${formatarOdd(parseFloat(e.odd))}`;
+            const prefixo = evs.length > 1 ? `Evento ${i+1}: ` : '';
+            return `${prefixo}${e.evento}${horarioTexto}, ${e.esporte} ${e.liga}, mercado ${e.mercado}: ${e.selecao} arroba ${formatarOdd(parseFloat(e.odd))}`;
         }).join('. ');
         rows[r] = `<tr data-idx="${idx}" tabindex="0" aria-label="Aposta ${a.identificador}, ${a.casa}, ${a.status}. Atalhos: Alt+G ganhou, Alt+P perdeu, Alt+E editar, Alt+X excluir.">`+
             `<td>${formatarData(a.dataHora)}</td>`+

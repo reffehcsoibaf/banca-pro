@@ -244,7 +244,7 @@ Regra especial — CRIADOR DE APOSTAS / MÚLTIPLAS CONDIÇÕES NO MESMO CONFRONT
   1. PRIMEIRO tente mapear o mercado de CADA condição individualmente pela tabela de MAPEAMENTO DE MERCADOS (ex.: "Total de Gols" → "Gols", "Total de Escanteios" → "Escanteios").
   2. Se TODAS as condições do confronto tiverem mercado reconhecido: "mercado" = os nomes reconhecidos, na ordem do bilhete, separados por ", " (ex.: "Gols, Escanteios"). NÃO use "Criador de Apostas" nesse caso — o Banca Pro já permite marcar múltiplos mercados no mesmo evento, então prefira sempre os nomes reais dos mercados quando eles existem na lista.
   3. Se PELO MENOS UMA condição não tiver mercado reconhecido na lista (nem variação aproximada clara), aí sim use "mercado" = "Criador de Apostas" para o confronto inteiro (mesmo que outras condições daquele confronto sejam reconhecidas) — mais simples e seguro do que misturar nomes reais com um item não mapeado.
-  - Em ambos os casos: "selecao" = todas as condições unidas com " + " na ordem do bilhete; "odd" = a odd combinada do conjunto (não a soma das individuais).
+  - Em ambos os casos: "selecao" = todas as condições unidas com ", " na ordem do bilhete; "odd" = a odd combinada do conjunto (não a soma das individuais).
 
 Regra especial — SUPERBET NO APP MÓVEL (tela "Cupom de Aposta"):
 - Um cabeçalho vermelho "CUPOM DE APOS..." no topo indica esse formato específico (print do aplicativo, não do site).
@@ -347,7 +347,7 @@ ODDS TOTAIS1.84APOSTA2,00R$
 """
 → casa: Superbet, identificador: "890I-QD3MXC", dataHora: "2026-07-01T09:56", stake: 2.0, status: "Aberto"
 → 2 eventos (cada confronto é um evento separado):
-  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra - RD do Congo", mercado "Classificar, Escanteios da Equipe" (ambos reconhecidos — "Se Classificar" → "Classificar", "Inglaterra - Total de Escanteios" → "Escanteios da Equipe" — por isso NÃO usa "Criador de Apostas" aqui), selecao "Classificar + Inglaterra - Mais de 4.5" (nome do time preservado), odd 1.35
+  Evento 1: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "Inglaterra - RD do Congo", mercado "Classificar, Escanteios da Equipe" (ambos reconhecidos — "Se Classificar" → "Classificar", "Inglaterra - Total de Escanteios" → "Escanteios da Equipe" — por isso NÃO usa "Criador de Apostas" aqui), selecao "Classificar, Inglaterra - Mais de 4.5" (nome do time preservado), odd 1.35
   Evento 2: esporte "Futebol", liga "Copa do Mundo 2026" (confiancaLiga: 0.95), evento "EUA - Bósnia e Herzegovina", mercado "Intervalo", selecao "1", odd 1.37
 → Nota: "1º Tempo - Finalizações 1X2" na Superbet corresponde ao mercado "Intervalo" na lista cadastrada.
 

@@ -4,6 +4,42 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.27.0 — 30/08/2026
+
+### Seletor de "📊 Checar Estatísticas" — agora em lote, com Data/Hora em vez de ID/Casa
+
+- O seletor de apostas (botão na Lista) agora mostra, por aposta, os **eventos com a
+  Data/Hora de cada partida** — não mais ID e Casa, que não ajudavam a decidir se já valia
+  a pena submeter a checagem (jogo pode ainda não ter terminado).
+- Cada aposta ganhou uma **caixa de verificação**: marque quantas quiser (ou use "Marcar
+  todas"/"Desmarcar todas") e envie de uma vez com o novo botão **"📊 Enviar Consulta"**.
+- Quando o lote enviado tem **partidas repetidas** entre as apostas marcadas (comum quando
+  há mais de uma aposta no mesmo jogo), a API-Football só é consultada **uma vez por
+  partida distinta** — o mesmo resultado é reaproveitado para validar cada mercado. Esse
+  comportamento já existia no Worker desde a v1.24.0; agora o painel de revisão mostra
+  quantas partidas distintas foram de fato consultadas, deixando essa economia visível.
+- O botão dentro do Cadastro (ao editar uma aposta já salva) continua igual, sempre 1
+  aposta por vez.
+
+### Acessibilidade: símbolos removidos da coluna Eventos (Lista)
+
+- Removido o emoji de relógio (🕐) antes do horário de cada evento — o NVDA lia como
+  "relógio marcando uma em ponto", confundindo mais do que ajudava. O horário continua
+  aparecendo, só sem o símbolo.
+- Removido o símbolo "└" antes da linha de mercado — o NVDA lia o nome do caractere,
+  também confuso. A linha de mercado agora aparece sem símbolo nenhum na frente.
+- Apostas com **um único evento** não mostram mais o número "1." na frente do nome do
+  evento — numeração só aparece em acumuladores (dois ou mais eventos), quando ela
+  realmente ajuda a diferenciar cada perna da aposta.
+
+### Formato da Seleção em mercados combinados ("Criador de Apostas")
+
+- Quando um evento combina várias condições (ex.: Criador de Apostas da Betano), o
+  separador entre as condições na Seleção mudou de **" + "** para **", "** (ex.: antes
+  "Classificar + Inglaterra - Mais de 4.5", agora "Classificar, Inglaterra - Mais de 4.5").
+  Afeta a leitura de bilhetes novos pela IA a partir desta versão — bilhetes já
+  cadastrados antes não são alterados retroativamente.
+
 ## v1.25.0 — 30/08/2026
 
 ### Nova funcionalidade: Inferência de Data/Hora da Partida por IA

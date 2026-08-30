@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.25.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.27.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -539,13 +539,13 @@
     </ul>
 
     <h3 id="criador-apostas">Criador de Apostas (múltiplas condições no mesmo confronto)</h3>
-    <p>Recursos como "Criador de Apostas" ou "Bet Builder" permitem combinar várias condições dentro de um único jogo (por exemplo: vencedor do jogo + mais de 2.5 gols + ambas as equipes marcam, tudo no mesmo confronto). Esse tipo de aposta é reconhecido e tratado como <strong>um único evento</strong>, em vez de ser separado em vários:</p>
+    <p>Recursos como "Criador de Apostas" ou "Bet Builder" permitem combinar várias condições dentro de um único jogo (por exemplo: vencedor do jogo, mais de 2.5 gols, ambas as equipes marcam, tudo no mesmo confronto). Esse tipo de aposta é reconhecido e tratado como <strong>um único evento</strong>, em vez de ser separado em vários:</p>
     <table class="field-table" aria-label="Como o criador de apostas é preenchido">
       <thead><tr><th>Campo do evento</th><th>Como é preenchido</th></tr></thead>
       <tbody>
         <tr><td class="field-name">Evento</td><td>Nome do confronto, uma única vez (ex: <em>Grêmio x Internacional</em>).</td></tr>
         <tr><td class="field-name">Mercado</td><td>Marcado como <em>Combinada</em> (ou <em>Criador de Apostas</em>, quando esse termo aparece explicitamente no bilhete).</td></tr>
-        <tr><td class="field-name">Seleção</td><td>Todas as condições do confronto, unidas com <code> + </code>, na ordem em que aparecem no bilhete (ex: <em>Grêmio vence + Mais de 2.5 gols + Ambas marcam</em>).</td></tr>
+        <tr><td class="field-name">Seleção</td><td>Todas as condições do confronto, unidas com <code>, </code>, na ordem em que aparecem no bilhete (ex: <em>Grêmio vence, Mais de 2.5 gols, Ambas marcam</em>).</td></tr>
         <tr><td class="field-name">ODD</td><td>A odd combinada do conjunto de condições daquele confronto, já calculada pela casa — não a soma das odds individuais.</td></tr>
       </tbody>
     </table>
@@ -719,7 +719,7 @@
   <section id="lista-apostas" class="wiki-section" aria-labelledby="h-lista">
     <h2 id="h-lista">📋 Lista de Apostas</h2>
     <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, ODD, Status, Stake, Lucro e Ações.</p>
-    <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>. Dentro da coluna <strong>Eventos</strong>, quando a Data / Hora da Partida está preenchida, ela aparece ao lado do nome do confronto (🕐, formato <strong>dd/mm hh:mm</strong>, sem ano) — sem essa informação, o evento é exibido normalmente, sem o horário. A coluna ROI não é exibida na tabela (a informação aposta por aposta não agrega muito); o ROI geral continua no resumo estatístico e no cadastro/edição de cada aposta.</p>
+    <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>. Dentro da coluna <strong>Eventos</strong>, quando a Data / Hora da Partida está preenchida, ela aparece ao lado do nome do confronto (formato <strong>dd/mm hh:mm</strong>, sem ano) — sem essa informação, o evento é exibido normalmente, sem o horário. Apostas com um único evento não mostram numeração ("1.") na frente — a numeração só aparece quando há dois ou mais eventos (acumuladores), para diferenciar cada perna da aposta. A coluna ROI não é exibida na tabela (a informação aposta por aposta não agrega muito); o ROI geral continua no resumo estatístico e no cadastro/edição de cada aposta.</p>
 
     <h3 id="checar-resultados-estatisticas">🔎 Checagem automática (API-Football)</h3>
     <p>Dois botões no topo da Lista consultam a <strong>API-Football</strong> para sugerir o resultado das apostas em aberto de <strong>Futebol</strong>. Em ambos os casos, nada é aplicado sozinho: um painel de revisão mostra a sugestão por evento, e você confirma manualmente com "✅ Aplicar" (ou "Ignorar").</p>
@@ -727,9 +727,13 @@
       <thead><tr><th>Botão</th><th>Como funciona</th><th>Mercados cobertos</th></tr></thead>
       <tbody>
         <tr><td><span class="btn-demo outline">🔎 Checar Resultados</span></td><td>Em <strong>lote</strong>: checa todas as apostas Abertas de uma vez. Baixo custo de cota (1 chamada por dia).</td><td>Vencedor, Empate, Empate Anula, Chance Dupla, Gols, Ambas Equipes Marcam, Handicap, Handicap Asiático, Faixa de Gols.</td></tr>
-        <tr><td><span class="btn-demo outline">📊 Checar Estatísticas</span></td><td><strong>Sob demanda</strong>, 1 aposta por vez — também disponível dentro do Cadastro ao editar uma aposta já salva. Custa mais cota (1 chamada por partida distinta).</td><td>Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos, Defesas — total da partida, "da Equipe" e Handicap.</td></tr>
+        <tr><td><span class="btn-demo outline">📊 Checar Estatísticas</span></td><td><strong>Sob demanda, em lote opcional</strong> — abre um seletor com checkbox por aposta em aberto, mostrando os eventos com a Data/Hora de cada partida (é essa informação, não ID/Casa, que ajuda a decidir se já vale a pena checar). Marque quantas quiser e envie de uma vez com "📊 Enviar Consulta"; também disponível dentro do Cadastro, ao editar uma aposta já salva, sempre para 1 aposta.</td><td>Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos, Defesas — total da partida, "da Equipe" e Handicap.</td></tr>
       </tbody>
     </table>
+    <div class="callout tip">
+      <div class="callout-title">💡 Partidas repetidas no mesmo lote</div>
+      Se várias apostas marcadas caem no mesmo jogo (comum quando você aposta em mais de um mercado da mesma partida), a consulta à API-Football daquele jogo é feita só uma vez, e o resultado é reaproveitado para validar cada mercado — o painel de revisão mostra quantas partidas distintas foram realmente consultadas.
+    </div>
     <div class="callout warn">
       <div class="callout-title">⚠️ Cartões: confira a regra de contagem da casa</div>
       A contagem de cartões pode variar entre casas de apostas (ex.: o 2º amarelo, que também vira vermelho, pode ou não contar em dobro). Toda sugestão de "📊 Checar Estatísticas" para o mercado Cartões vem com um aviso pedindo pra conferir a regra da casa antes de aplicar.
