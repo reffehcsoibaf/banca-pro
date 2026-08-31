@@ -562,7 +562,7 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-resultados', '/api/checar-estatisticas'];
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -599,18 +599,14 @@ async function handleFetch(request, env, ctx) {
     try { payload = await request.json(); }
     catch (e) { return new Response(JSON.stringify({ error: 'Corpo da requisição inválido.' }), { status: 400, headers }); }
 
-    // ---- Rota de checagem automática de resultados (API-Football) ----
-    // Não usa nenhum provedor de IA — só consulta a API-Football e aplica
-    // lógica local de resolução de mercado — por isso é tratada à parte,
-    // sem entrar no pipeline de IA (comBusca/tipoUso/schemaTipo) abaixo.
-    if (url.pathname === '/api/checar-resultados') {
-      return await handleCheckResultados(payload, env, headers);
-    }
-    // ---- Rota de checagem de mercados de estatística (Finalizações, Chutes no
-    // Gol, Faltas, Escanteios, Cartões, Impedimentos, Defesas) — sob demanda,
-    // 1 aposta por vez, para economizar a cota diária da API-Football. ----
-    if (url.pathname === '/api/checar-estatisticas') {
-      return await handleCheckEstatisticas(payload, env, headers);
+    // ---- Rota unificada de checagem de apostas (placar + estatísticas + IA) ----
+    // Combina API-Football (placar e estatísticas) com um julgamento por IA
+    // como último passo da cascata (ver handleCheckApostas) — por isso, ao
+    // contrário das rotas abaixo, não usa o pipeline comBusca/tipoUso/schemaTipo
+    // (a chamada de IA, quando acontece, é feita internamente por
+    // julgarMercadoComIA, sem busca na web).
+    if (url.pathname === '/api/checar-apostas') {
+      return await handleCheckApostas(payload, env, headers);
     }
 
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
@@ -1024,26 +1020,18 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
   return resultado;
 }
 
-// ==================== CHECAGEM AUTOMÁTICA DE RESULTADOS (API-FOOTBALL) ====================
-// Rota: POST /api/checar-resultados
-// Entrada: { eventos: [{ idAposta, idEvento, esporte, evento, mercado, selecao, dataEvento }, ...] }
-// Só cobre Futebol, e só os mercados resolvíveis a partir do placar final
-// (ver MERCADOS_SUPORTADOS_RESULTADO abaixo) — o resto vem marcado como
-// "não suportado" para revisão manual, já que a API-Football (plano
-// gratuito) só garante placar final, não estatísticas como cartões/escanteios.
+// ==================== RESOLUÇÃO LOCAL DE MERCADOS DE PLACAR ====================
+// Usada dentro da cascata de handleCheckApostas (ver comentário logo antes
+// dessa função, mais abaixo) como 1º passo — a resolução mais rápida e
+// barata, direto do placar final + intervalo, sem custo de IA. Cobre os
+// mercados mais comuns: Resultado, Resultado Final, Empate, Empate Anula,
+// Chance Dupla, Gols, Handicap, Handicap Asiático, Faixa de Gols.
 //
-// Estratégia de cota: agrupa os eventos por DATA (não por evento/time) e faz
-// UMA chamada por data única (/fixtures?date=...), que já retorna TODOS os
-// jogos do mundo naquele dia — o casamento com o time apostado é feito
-// localmente depois, sem gastar requisições extras por jogo.
-
-// Nota: não existe mais uma lista fixa de "mercados suportados" bloqueando
-// tudo o que estiver fora dela. resolverMercadoFutebol() resolve localmente
-// os mercados que sabe (função pura, sem custo de IA); qualquer coisa que ela
-// não reconheça (mercado combinado, variação de texto, estatística que não
-// está no placar) cai automaticamente no fallback de IA em handleCheckResultados,
-// que recebe o placar BRUTO (final + intervalo) e julga a partir dele — sem
-// depender de uma lista pré-definida do que é "possível".
+// Não existe lista fixa de "mercados suportados" bloqueando tudo o que
+// estiver fora dela — resolverMercadoFutebol() resolve localmente os
+// mercados que sabe (função pura); qualquer coisa que ela não reconheça
+// (mercado combinado, variação de texto, mercado que precisa de estatística)
+// cai para o próximo passo da cascata em handleCheckApostas.
 
 function normalizarTexto(s) {
   return (s || '')
@@ -1151,7 +1139,9 @@ function resolverMercadoFutebol(mercado, selecao, ctx) {
   const diferencaAB = golsTimeA - golsTimeB; // > 0 se A venceu
 
   switch (mercadoNorm) {
-    case 'vencedor': {
+    case 'vencedor':
+    case 'resultado':
+    case 'resultado final': {
       const time = identificarTimeNoTexto(selecao, nomeTimeA, nomeTimeB);
       if (!time) return { suportado: false, detalhe: `Não foi possível identificar o time apostado na seleção "${selecao}".` };
       if (diferencaAB === 0) return { suportado: true, resultado: 'Perdeu', detalhe: 'Empate — mercado Vencedor não cobre empate.' };
@@ -1218,27 +1208,37 @@ function separarTimesDoEvento(evento) {
   return { nomeTimeA: partes[0].trim(), nomeTimeB: partes[1].trim() };
 }
 
-// ---- 2º passo: julgamento por IA (Gemini → Anthropic), só entra quando a
-// resolução local (resolverMercadoFutebol) não reconhece o mercado — mercado
-// combinado, variação de texto não prevista, ou estatística que o placar
-// bruto talvez já contenha mas nossa lógica local não processa (ex.:
-// combinações Intervalo/Final). Não faz busca na web — só recebe o placar
-// que já buscamos na API-Football (final + intervalo, quando disponível) e
-// pede pro modelo aplicar o raciocínio, sem inventar dado que não foi dado. ----
+// ---- Julgamento por IA (Gemini → Anthropic) — passo final da cascata de
+// resolução, só entra quando NEM a resolução local de placar
+// (resolverMercadoFutebol) NEM a de estatísticas (resolverMercadoEstatisticas)
+// reconhecem o mercado ou conseguem interpretar a seleção. Não faz busca na
+// web — só recebe os dados BRUTOS que o Worker já buscou na API-Football
+// (placar final, placar do intervalo quando disponível, e a estatística
+// completa da partida quando disponível) e pede pro modelo aplicar o
+// raciocínio sobre esses dados, sem inventar nada que não foi fornecido. ----
 async function julgarMercadoComIA(env, dados) {
-  const systemInstrucoes = `Você decide se uma aposta esportiva de futebol já finalizada foi GANHA, PERDIDA, teve GANHO PARCIAL / PERDA PARCIAL (linha de quarto de handicap ou total de gols), ou foi ANULADA (push — linha exata empatou), usando SOMENTE os dados fornecidos pelo usuário nesta mensagem.
+  const systemInstrucoes = `Você decide se uma aposta esportiva de futebol já finalizada foi GANHA, PERDIDA, teve GANHO PARCIAL / PERDA PARCIAL (linha de quarto de handicap ou total), ou foi ANULADA (push — linha exata empatou), usando SOMENTE os dados fornecidos pelo usuário nesta mensagem.
 
 Responda APENAS um objeto JSON, sem markdown e sem texto fora do JSON, neste formato exato:
 {"resultado": "Ganhou" | "Perdeu" | "Ganho Parcial" | "Perda Parcial" | "Anulada" | "Indeterminado", "motivo": "explicação curta, em 1 frase"}
 
 Regras:
-- Use apenas os dados fornecidos (placar final, placar do intervalo se disponível, nomes dos times, mercado, seleção apostada). NÃO pesquise, NÃO use conhecimento próprio sobre o jogo, NÃO invente estatística que não foi dada (cartões, escanteios, finalizações etc. não estão disponíveis a menos que apareçam explicitamente nos dados).
-- Use "Indeterminado" quando os dados fornecidos genuinamente não bastarem para julgar esse mercado (ex.: mercado depende de cartões/escanteios/outra estatística ausente) — nesse caso não tente adivinhar, e explique em "motivo" o que faltou.
-- "Ganho Parcial"/"Perda Parcial" só se aplicam quando a linha de handicap ou total de gols é "de quarto" (ex.: -0.25, -0.75, 2.25, 2.75) e a aposta cobre só metade do valor.
-- "Anulada" (push) só se aplica quando a linha inteira empata exatamente com o resultado apostado (ex.: handicap 0 com empate, ou total de gols igual à linha inteira apostada).`;
+- Use apenas os dados fornecidos (placar final, placar do intervalo se disponível, estatísticas da partida se disponíveis, nomes dos times, mercado, seleção apostada). NÃO pesquise, NÃO use conhecimento próprio sobre o jogo, NÃO invente estatística que não foi dada — se um dado (ex.: desarmes, tiros de meta) simplesmente não aparecer nos dados fornecidos, é porque a API não tem esse dado, não porque foi omitido por engano.
+- Use "Indeterminado" quando os dados fornecidos genuinamente não bastarem para julgar esse mercado — nesse caso não tente adivinhar, e explique em "motivo" exatamente o que faltou (ex.: "precisa do placar do intervalo, que não veio disponível para esta partida").
+- "Ganho Parcial"/"Perda Parcial" só se aplicam quando a linha de handicap ou total é "de quarto" (ex.: -0.25, -0.75, 2.25, 2.75) e a aposta cobre só metade do valor.
+- "Anulada" (push) só se aplica quando a linha inteira empata exatamente com o resultado apostado.
+- Mercados com "&" no nome (ex.: "Resultado Final & Total de Gols", "Chance Dupla & Total de Gols") são mercados COMPOSTOS: TODAS as condições unidas pelo "&" precisam ser verdadeiras para "Ganhou" — se qualquer uma falhar, é "Perdeu" (aplique "Ganho Parcial"/"Anulada" apenas se uma das condições individualmente permitir isso, seguindo a regra de linha de quarto/push acima).
+- Mercado "Ganhar qualquer um dos Tempos" (ou variação de texto equivalente): GANHA se o time apostado venceu o 1º tempo OU o 2º tempo (não precisa ser os dois) — use o placar do intervalo (1º tempo) e a diferença entre o placar final e o do intervalo (2º tempo) para verificar cada metade separadamente. Se o placar do intervalo não estiver disponível, esse mercado é "Indeterminado".
+- Mercado "Cartões": ao somar amarelos + vermelhos, o critério de contagem pode variar entre casas de apostas (ex.: 2º amarelo que também vira vermelho pode contar 1 ou 2 vezes dependendo da casa) — julgue com o critério mais comum (soma simples de todos os cartões amarelos e vermelhos mostrados nas estatísticas) e mencione essa ressalva no "motivo" quando o mercado for Cartões.`;
+
+  const linhasEstatisticas = (dados.statsCasa || dados.statsFora)
+    ? `\nEstatísticas da partida (mandante / visitante):\n` + Object.keys(Object.assign({}, dados.statsCasa, dados.statsFora)).map(campo =>
+        `- ${campo}: ${dados.statsCasa && dados.statsCasa[campo] != null ? dados.statsCasa[campo] : '?'} / ${dados.statsFora && dados.statsFora[campo] != null ? dados.statsFora[campo] : '?'}`
+      ).join('\n')
+    : '\nEstatísticas da partida: não disponíveis para esta partida/competição.';
 
   const textoBilhete = `Confronto: ${dados.timeCasa} (mandante) ${dados.golsCasa} x ${dados.golsFora} ${dados.timeFora} (visitante)
-Placar do intervalo: ${(dados.golsIntervaloCasa != null && dados.golsIntervaloFora != null) ? `${dados.golsIntervaloCasa} x ${dados.golsIntervaloFora}` : 'não disponível'}
+Placar do intervalo: ${(dados.golsIntervaloCasa != null && dados.golsIntervaloFora != null) ? `${dados.golsIntervaloCasa} x ${dados.golsIntervaloFora}` : 'não disponível'}${linhasEstatisticas}
 Mercado: ${dados.mercado}
 Seleção apostada: ${dados.selecao}`;
 
@@ -1276,8 +1276,9 @@ Seleção apostada: ${dados.selecao}`;
 
 // Busca os jogos finalizados de cada data única em "datasUnicas" — 1 chamada
 // à API-Football por dia (não por evento), já que /fixtures?date=... devolve
-// todos os jogos do mundo naquele dia. Compartilhada entre /api/checar-resultados
-// e /api/checar-estatisticas para não duplicar a lógica de busca por data.
+// todos os jogos do mundo naquele dia. Compartilhada dentro de
+// handleCheckApostas para achar o jogo de cada evento sem gastar uma
+// requisição por evento/time.
 async function buscarFixturesPorData(datasUnicas, env) {
   const fixturesPorData = new Map();
   for (const data of datasUnicas) {
@@ -1315,106 +1316,15 @@ function encontrarFixture(infoData, nomeTimeA, nomeTimeB) {
   );
 }
 
-async function handleCheckResultados(payload, env, headers) {
-  if (!env.API_FOOTBALL_KEY) {
-    return new Response(JSON.stringify({
-      error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
-    }), { status: 500, headers });
-  }
-
-  const eventos = (payload && Array.isArray(payload.eventos)) ? payload.eventos : [];
-  if (!eventos.length) {
-    return new Response(JSON.stringify({ error: 'Envie "eventos" (array) para checar.' }), { status: 400, headers });
-  }
-
-  const resultados = [];
-  const eventosValidos = [];
-  for (const ev of eventos) {
-    if (normalizarTexto(ev.esporte) !== 'futebol') {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem automática por enquanto.' });
-      continue;
-    }
-    if (!ev.dataEvento) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Evento sem data do jogo cadastrada — preencha "Data/Hora da Partida" para habilitar a checagem.' });
-      continue;
-    }
-    if (!separarTimesDoEvento(ev.evento)) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Não foi possível separar os dois times a partir de "${ev.evento}".` });
-      continue;
-    }
-    eventosValidos.push(ev);
-  }
-
-  // Agrupa por data única (YYYY-MM-DD) — 1 chamada à API por dia, não por evento.
-  const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
-  const fixturesPorData = await buscarFixturesPorData(datasUnicas, env);
-
-  for (const ev of eventosValidos) {
-    const data = String(ev.dataEvento).slice(0, 10);
-    const infoData = fixturesPorData.get(data);
-    if (infoData.erro) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: infoData.erro });
-      continue;
-    }
-    const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
-    const fixture = encontrarFixture(infoData, nomeTimeA, nomeTimeB);
-    if (!fixture) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Confronto "${ev.evento}" não encontrado (ou ainda não finalizado) na data ${data}.` });
-      continue;
-    }
-    const timeAeCasa = nomesTimesBatem(nomeTimeA, fixture.teams.home.name);
-    const golsCasa = fixture.goals.home;
-    const golsFora = fixture.goals.away;
-    const golsIntervaloCasa = fixture.score && fixture.score.halftime ? fixture.score.halftime.home : null;
-    const golsIntervaloFora = fixture.score && fixture.score.halftime ? fixture.score.halftime.away : null;
-    const placarTexto = `${fixture.teams.home.name} ${golsCasa}-${golsFora} ${fixture.teams.away.name}`;
-
-    let resolucao = resolverMercadoFutebol(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora });
-    // Se a resolução local não reconheceu o mercado (combinado, variação de
-    // texto não prevista, etc.), tenta um segundo passo via IA — usando só o
-    // placar que já buscamos (final + intervalo), sem pesquisa na web e sem
-    // gastar cota extra da API-Football.
-    if (!resolucao.suportado) {
-      resolucao = await julgarMercadoComIA(env, {
-        timeCasa: fixture.teams.home.name,
-        timeFora: fixture.teams.away.name,
-        golsCasa,
-        golsFora,
-        golsIntervaloCasa,
-        golsIntervaloFora,
-        mercado: ev.mercado,
-        selecao: ev.selecao
-      });
-    }
-    resultados.push({
-      idAposta: ev.idAposta,
-      idEvento: ev.idEvento,
-      encontrado: true,
-      placar: placarTexto,
-      ...resolucao
-    });
-  }
-
-  return new Response(JSON.stringify({ resultados }), { status: 200, headers });
-}
-
-// ==================== CHECAGEM DE ESTATÍSTICAS (API-FOOTBALL) ====================
-// Rota: POST /api/checar-estatisticas
-// Entrada: { eventos: [{ idAposta, idEvento, esporte, evento, mercado, selecao, dataEvento }, ...] }
-// Sob demanda (acionado manualmente, 1 aposta por vez) — diferente do
-// /api/checar-resultados, que roda em lote sobre todas as apostas abertas.
-// Cobre mercados de estatística (Finalizações, Chutes no Gol, Faltas,
-// Escanteios, Cartões, Impedimentos, Defesas — total da partida, "da Equipe"
-// e Handicap), usando o endpoint /fixtures/statistics da API-Football.
+// ==================== RESOLUÇÃO LOCAL DE MERCADOS DE ESTATÍSTICA ====================
+// Usada dentro da cascata de handleCheckApostas (ver comentário acima da
+// função) como 2º passo, depois da resolução de placar. Cobre Finalizações,
+// Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos, Defesas — total
+// da partida, "da Equipe" e Handicap.
 //
-// Custo de cota: 1 chamada por DATA única para localizar os jogos (mesma
-// estratégia do /api/checar-resultados) + 1 chamada por PARTIDA distinta
-// para as estatísticas (não por evento — jogos repetidos na mesma aposta
-// não geram chamada extra). Mais caro que a checagem de placar; por isso é
-// sob demanda, nunca em lote automático.
-//
-// Desarmes e Tiros de Meta NUNCA são suportados aqui — a API-Football não
-// tem esses campos em nenhum plano (pago ou gratuito).
+// Desarmes e Tiros de Meta NUNCA são resolvidos por aqui nem pelo julgamento
+// por IA — a API-Football não tem esses campos em nenhum plano (pago ou
+// gratuito), então não existe dado bruto disponível para nenhum dos dois.
 
 const MAPA_ESTATISTICA_API = {
   'chutes no gol': 'Shots on Goal',
@@ -1528,7 +1438,35 @@ function resolverMercadoEstatisticas(mercado, selecao, ctx) {
   return { suportado: false, detalhe: `Mercado "${mercado}" não suportado pela checagem de estatísticas (Desarmes e Tiros de Meta não existem na API-Football em nenhum plano).` };
 }
 
-async function handleCheckEstatisticas(payload, env, headers) {
+// ==================== CHECAGEM UNIFICADA DE APOSTAS (API-FOOTBALL + IA) ====================
+// Rota: POST /api/checar-apostas
+// Entrada: { eventos: [{ idAposta, idEvento, esporte, evento, mercado, selecao, dataEvento }, ...] }
+// Um único fluxo (era dividido em /api/checar-resultados + /api/checar-estatisticas
+// até a v1.28.0) — pra cada evento válido: busca o placar (final + intervalo) E as
+// estatísticas completas da partida, então resolve em cascata:
+//   1. resolverMercadoFutebol — lógica local determinística a partir do placar
+//      (rápida, sem custo de IA, cobre os mercados mais comuns: Resultado,
+//      Resultado Final, Empate, Empate Anula, Chance Dupla, Gols, Handicap,
+//      Handicap Asiático, Faixa de Gols).
+//   2. Se não resolveu: resolverMercadoEstatisticas — mesma ideia, a partir das
+//      estatísticas (Cartões, Escanteios, Finalizações, Chutes no Gol, Faltas,
+//      Impedimentos, Defesas — total, "da Equipe" e Handicap).
+//   3. Se ainda não resolveu (mercado combinado tipo "Resultado Final & Total
+//      de Gols", variação de texto não prevista, "Ganhar qualquer um dos
+//      Tempos" etc.): julgarMercadoComIA — recebe TODOS os dados brutos já
+//      buscados (placar final, intervalo, estatística completa da partida) e
+//      julga por raciocínio, sem pesquisa na web e sem chamada extra à
+//      API-Football (os dados já foram buscados nos passos 1-2).
+// Só cai em "não suportado" de fato quando NENHUM dos três passos consegue
+// (ex.: Desarmes e Tiros de Meta, que a API-Football simplesmente não tem em
+// nenhum plano — não tem dado bruto pra nenhum dos três passos usar).
+//
+// Estratégia de cota: agrupa por DATA única pra achar os jogos (1 chamada por
+// dia, não por evento) e por PARTIDA distinta pra estatísticas (1 chamada por
+// jogo, não por evento — jogos repetidos entre apostas do mesmo lote não
+// geram chamada extra).
+
+async function handleCheckApostas(payload, env, headers) {
   if (!env.API_FOOTBALL_KEY) {
     return new Response(JSON.stringify({
       error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
@@ -1544,7 +1482,7 @@ async function handleCheckEstatisticas(payload, env, headers) {
   const eventosValidos = [];
   for (const ev of eventos) {
     if (normalizarTexto(ev.esporte) !== 'futebol') {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem de estatísticas por enquanto.' });
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem automática por enquanto.' });
       continue;
     }
     if (!ev.dataEvento) {
@@ -1583,6 +1521,8 @@ async function handleCheckEstatisticas(payload, env, headers) {
   }
 
   // Etapa 2: buscar estatísticas — 1 chamada por PARTIDA distinta (não por evento).
+  // Sempre busca (mesmo pra mercados de placar), já que o julgamento por IA no
+  // passo 3 pode se beneficiar dos dois conjuntos de dados juntos.
   const statsPorFixtureId = new Map();
   for (const [fixtureId] of fixturesUnicos) {
     try {
@@ -1592,12 +1532,12 @@ async function handleCheckEstatisticas(payload, env, headers) {
       );
       if (!resp.ok) {
         const texto = await resp.text();
-        statsPorFixtureId.set(fixtureId, { erro: `API-Football retornou ${resp.status}: ${texto.slice(0, 200)}` });
+        statsPorFixtureId.set(fixtureId, { erro: `API-Football (estatísticas) retornou ${resp.status}: ${texto.slice(0, 200)}` });
         continue;
       }
       const dados = await resp.json();
       if (dados.errors && Object.keys(dados.errors).length) {
-        statsPorFixtureId.set(fixtureId, { erro: 'API-Football: ' + JSON.stringify(dados.errors) });
+        statsPorFixtureId.set(fixtureId, { erro: 'API-Football (estatísticas): ' + JSON.stringify(dados.errors) });
         continue;
       }
       const resposta = dados.response || [];
@@ -1605,7 +1545,6 @@ async function handleCheckEstatisticas(payload, env, headers) {
         statsPorFixtureId.set(fixtureId, { erro: 'Essa competição não tem estatísticas detalhadas registradas na API-Football para esse jogo.' });
         continue;
       }
-      // Monta um mapa {tipo: valor} por time, casado pelo id do time da API.
       const statsPorTimeId = new Map();
       for (const bloco of resposta) {
         const mapa = {};
@@ -1614,29 +1553,51 @@ async function handleCheckEstatisticas(payload, env, headers) {
       }
       statsPorFixtureId.set(fixtureId, { statsPorTimeId });
     } catch (e) {
-      statsPorFixtureId.set(fixtureId, { erro: 'Falha de rede ao consultar API-Football: ' + e.message });
+      statsPorFixtureId.set(fixtureId, { erro: 'Falha de rede ao consultar estatísticas na API-Football: ' + e.message });
     }
   }
 
-  // Etapa 3: resolver cada evento válido com as estatísticas já carregadas.
+  // Etapa 3: resolver cada evento válido, em cascata (placar local → estatística local → IA).
   for (const ev of eventosValidos) {
     const chaveEvento = `${ev.idAposta}::${ev.idEvento}`;
     if (!fixturePorEvento.has(chaveEvento)) continue; // já registrado como não encontrado na etapa 1
     const fixture = fixturePorEvento.get(chaveEvento);
-    const infoStats = statsPorFixtureId.get(fixture.fixture.id);
-    if (infoStats.erro) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: infoStats.erro });
-      continue;
-    }
     const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
     const timeAeCasa = nomesTimesBatem(nomeTimeA, fixture.teams.home.name);
-    const statsCasa = infoStats.statsPorTimeId.get(fixture.teams.home.id);
-    const statsFora = infoStats.statsPorTimeId.get(fixture.teams.away.id);
-    const statsA = timeAeCasa ? statsCasa : statsFora;
-    const statsB = timeAeCasa ? statsFora : statsCasa;
-    const placarTexto = `${fixture.teams.home.name} ${fixture.goals.home}-${fixture.goals.away} ${fixture.teams.away.name}`;
+    const golsCasa = fixture.goals.home;
+    const golsFora = fixture.goals.away;
+    const golsIntervaloCasa = fixture.score && fixture.score.halftime ? fixture.score.halftime.home : null;
+    const golsIntervaloFora = fixture.score && fixture.score.halftime ? fixture.score.halftime.away : null;
+    const placarTexto = `${fixture.teams.home.name} ${golsCasa}-${golsFora} ${fixture.teams.away.name}`;
 
-    const resolucao = resolverMercadoEstatisticas(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, statsA, statsB });
+    const infoStats = statsPorFixtureId.get(fixture.fixture.id);
+    const statsDisponiveis = infoStats && !infoStats.erro;
+    const statsCasaRaw = statsDisponiveis ? infoStats.statsPorTimeId.get(fixture.teams.home.id) : null;
+    const statsForaRaw = statsDisponiveis ? infoStats.statsPorTimeId.get(fixture.teams.away.id) : null;
+    const statsA = timeAeCasa ? statsCasaRaw : statsForaRaw;
+    const statsB = timeAeCasa ? statsForaRaw : statsCasaRaw;
+
+    let resolucao = resolverMercadoFutebol(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora });
+
+    if (!resolucao.suportado && statsDisponiveis) {
+      resolucao = resolverMercadoEstatisticas(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, statsA, statsB });
+    }
+
+    if (!resolucao.suportado) {
+      resolucao = await julgarMercadoComIA(env, {
+        timeCasa: fixture.teams.home.name,
+        timeFora: fixture.teams.away.name,
+        golsCasa,
+        golsFora,
+        golsIntervaloCasa,
+        golsIntervaloFora,
+        statsCasa: statsCasaRaw,
+        statsFora: statsForaRaw,
+        mercado: ev.mercado,
+        selecao: ev.selecao
+      });
+    }
+
     resultados.push({
       idAposta: ev.idAposta,
       idEvento: ev.idEvento,

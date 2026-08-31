@@ -972,8 +972,8 @@
                 <button class="btn btn-outline" id="btnAnalisarAposta" onclick="analisarApostaAtual(false)" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Analisar risco e buscar estatísticas reais desta aposta com IA">
                     🔍 Analisar Aposta
                 </button>
-                <button class="btn btn-outline" id="btnCheckarEstatisticasAposta" onclick="checarEstatisticasApostaAtual()" style="flex:0 0 auto; width:auto; padding: 0 18px; display:none;" aria-label="Checar automaticamente mercados de estatística (Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões e outros) desta aposta via API-Football">
-                    📊 Checar Estatísticas
+                <button class="btn btn-outline" id="btnCheckarApostaAtual" onclick="checarApostaAtual()" style="flex:0 0 auto; width:auto; padding: 0 18px; display:none;" aria-label="Checar automaticamente resultado e estatísticas desta aposta via API-Football e IA">
+                    🔎 Checar Aposta
                 </button>
             </div>
 
@@ -1119,8 +1119,7 @@
                 <h2 style="margin:0;">📋 Apostas</h2>
                 <div class="inline" style="gap:8px;">
                     <button type="button" class="btn btn-secondary" id="btnFiltroRapidoAbertas" onclick="alternarFiltroAbertas()" aria-keyshortcuts="Alt+A" aria-pressed="false" style="max-width:220px;">🟢 Somente Abertas</button>
-                    <button type="button" class="btn btn-outline" id="btnCheckarResultados" onclick="checarResultadosPendentes()" style="max-width:220px;" aria-label="Checar automaticamente o resultado das apostas em aberto de Futebol com data do jogo cadastrada, via API-Football">🔎 Checar Resultados</button>
-                    <button type="button" class="btn btn-outline" id="btnCheckarEstatisticasLista" onclick="abrirSeletorChecarEstatisticas()" style="max-width:220px;" aria-label="Escolher uma aposta em aberto de Futebol para checar mercados de estatística (Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões e outros) via API-Football">📊 Checar Estatísticas</button>
+                    <button type="button" class="btn btn-outline" id="btnCheckarApostas" onclick="abrirSeletorChecarApostas()" aria-keyshortcuts="Alt+C" style="max-width:220px;" aria-label="Escolher apostas em aberto de Futebol para checar automaticamente resultado e estatísticas via API-Football e IA">🔎 Checar Apostas</button>
                 </div>
             </div>
             <div class="table-wrap">
@@ -1532,7 +1531,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.28.0 · 30/08/2026
+  Banca Pro · v1.29.0 · 30/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1993,13 +1992,25 @@ function alternarFiltroAbertas() {
 // iPhone/VoiceOver com teclado Bluetooth.
 document.addEventListener('keydown', function(e) {
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
-    const mapaTeclas = { 'KeyA': 'a', 'KeyL': 'l', 'KeyS': 's', 'KeyG': 'g', 'KeyP': 'p', 'KeyE': 'e', 'KeyX': 'x' };
+    const mapaTeclas = { 'KeyA': 'a', 'KeyL': 'l', 'KeyS': 's', 'KeyG': 'g', 'KeyP': 'p', 'KeyE': 'e', 'KeyX': 'x', 'KeyC': 'c' };
     const tecla = mapaTeclas[e.code];
     if (!tecla) return;
 
     if (tecla === 'a') {
         e.preventDefault();
         alternarFiltroAbertas();
+        return;
+    }
+
+    if (tecla === 'c') {
+        // Checar Apostas — só faz sentido na aba Lista (é lá que fica o seletor).
+        const abaListaAtiva = document.getElementById('sec-lista').classList.contains('active');
+        if (!abaListaAtiva) {
+            showToast('⚠️ Vá para a aba Lista (Alt+2) para checar apostas.', 'info');
+            return;
+        }
+        e.preventDefault();
+        abrirSeletorChecarApostas();
         return;
     }
 
@@ -4334,159 +4345,38 @@ function fecharPainelConferencia() {
     if (overlay) overlay.classList.remove('open');
 }
 
-/* ==================== CHECAGEM AUTOMÁTICA DE RESULTADOS (API-Football) ====================
-   Acionada pelo botão "🔎 Checar Resultados" na Lista. Pega todas as apostas com
-   status "Aberto", manda os eventos de Futebol com "Data / Hora da Partida" preenchida para
-   o Worker (/api/checar-resultados), que consulta a API-Football e devolve uma
-   sugestão de resultado por evento. O usuário confirma cada sugestão manualmente
-   (nunca aplica status automaticamente sem revisão). */
-async function checarResultadosPendentes() {
-    const btn = document.getElementById('btnCheckarResultados');
-    const pendentes = apostas.filter(a => a.status === 'Aberto');
-    if (!pendentes.length) { showToast('Nenhuma aposta em aberto para checar.', 'success'); return; }
+/* ==================== CHECAGEM DE APOSTAS (API-Football + IA) ====================
+   Um único botão/fluxo (antes eram dois: "Checar Resultados" em lote cego +
+   "Checar Estatísticas" com seletor) — acionado pelo botão "🔎 Checar Apostas"
+   na Lista (atalho Alt+C) ou pelo botão equivalente dentro do Cadastro (ao
+   editar uma aposta já salva). Sempre passa pelo seletor com checkbox: mostra
+   os eventos com a Data/Hora de cada partida (não ID/Casa) para decidir o que
+   vale a pena enviar, com as apostas cujos jogos já devem ter terminado
+   (todos os eventos 2h ou mais depois do horário registrado — ver
+   _apostaProntaParaChecar) vindo pré-marcadas por padrão.
+   O Worker (/api/checar-apostas) busca placar E estatísticas de cada partida
+   e resolve em cascata (placar local → estatística local → IA com os dados
+   brutos) — cobre praticamente todos os mercados; só ficam de fora Desarmes e
+   Tiros de Meta, que a API-Football não tem em nenhum plano. Nunca aplica
+   status sozinho — o usuário confirma cada sugestão no painel de revisão. */
 
-    const eventosParaChecar = [];
-    pendentes.forEach(a => {
-        const idxReal = apostas.indexOf(a);
-        (a.eventos || []).forEach(ev => {
-            eventosParaChecar.push({
-                idAposta: idxReal,
-                idEvento: ev.id,
-                esporte: ev.esporte,
-                evento: ev.evento,
-                mercado: ev.mercado,
-                selecao: ev.selecao,
-                dataEvento: ev.dataEvento || null
-            });
-        });
+// Aposta "pronta para checar" = todo evento já tem Data/Hora da Partida
+// preenchida E já se passaram pelo menos 2h desde esse horário — tempo em
+// que a maioria das partidas já terminou. É só uma pré-seleção no seletor
+// (o usuário pode marcar/desmarcar manualmente); não bloqueia nada.
+function _apostaProntaParaChecar(a) {
+    const eventos = a.eventos || [];
+    if (!eventos.length) return false;
+    const DUAS_HORAS_MS = 2 * 60 * 60 * 1000;
+    const agora = Date.now();
+    return eventos.every(e => {
+        if (!e.dataEvento) return false;
+        const t = new Date(e.dataEvento).getTime();
+        return !isNaN(t) && (agora - t) >= DUAS_HORAS_MS;
     });
-    if (!eventosParaChecar.length) { showToast('Nenhum evento encontrado nas apostas em aberto.', 'error'); return; }
-
-    const textoOriginal = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '🔎 Checando...';
-    let json;
-    try {
-        const resposta = await fetch('/api/checar-resultados', {
-            method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ eventos: eventosParaChecar })
-        });
-        json = await resposta.json();
-        if (!resposta.ok) throw new Error(json.error || 'Erro ao checar resultados.');
-    } catch (err) {
-        showToast('❌ ' + err.message, 'error', 10000);
-        btn.disabled = false;
-        btn.textContent = textoOriginal;
-        return;
-    }
-    btn.disabled = false;
-    btn.textContent = textoOriginal;
-
-    mostrarPainelChecagemResultados(json.resultados || []);
 }
 
-// Dado o conjunto de eventos já resolvidos (encontrados e com mercado suportado)
-// de UMA aposta, decide se dá pra sugerir um status geral com segurança:
-// - só sugere se TODOS os eventos da aposta foram resolvidos (nenhum ficou de fora);
-// - se algum perdeu, a aposta inteira perde (regra padrão de combinada);
-// - se todos ganharam, ou todos anularam, sugere isso;
-// - qualquer mistura de Ganho Parcial/Perda Parcial/Anulada com Ganhou fica sem
-//   sugestão automática — recalcular a odd de uma combinada com pernas parciais/
-//   anuladas exige lógica própria, fora do escopo desta primeira versão.
-function sugerirStatusGeral(resolvidos, totalEventosAposta) {
-    if (resolvidos.length < totalEventosAposta) return null;
-    if (resolvidos.some(r => r.resultado === 'Perdeu')) return 'Perdeu';
-    if (resolvidos.every(r => r.resultado === 'Ganhou')) return 'Ganhou';
-    if (resolvidos.every(r => r.resultado === 'Anulada')) return 'Anulada';
-    return null;
-}
-
-function mostrarPainelChecagemResultados(resultados) {
-    const porAposta = new Map();
-    resultados.forEach(r => {
-        if (!porAposta.has(r.idAposta)) porAposta.set(r.idAposta, []);
-        porAposta.get(r.idAposta).push(r);
-    });
-
-    let overlay = document.getElementById('overlayChecagemResultados');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'overlayChecagemResultados';
-        overlay.className = 'modal-overlay';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-labelledby', 'checagemResultadosTitulo');
-        document.body.appendChild(overlay);
-        overlay.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') overlay.classList.remove('open');
-        });
-    }
-
-    const blocos = [];
-    porAposta.forEach((resultadosEvento, idxAposta) => {
-        const a = apostas[idxAposta];
-        if (!a) return;
-        const totalEventos = (a.eventos || []).length;
-
-        const linhasEventos = resultadosEvento.map(r => {
-            if (!r.encontrado) {
-                return `<div style="font-size:12.5px;margin-top:4px;">⚠️ ${escapeHtml(r.motivo || 'Não encontrado')}</div>`;
-            }
-            if (!r.suportado) {
-                return `<div style="font-size:12.5px;margin-top:4px;">⚠️ ${escapeHtml(r.detalhe || 'Mercado não suportado')} <small>(placar: ${escapeHtml(r.placar || '')})</small></div>`;
-            }
-            return `<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(r.placar)} → <strong>${escapeHtml(r.resultado)}</strong>${r.detalhe ? ' <small>(' + escapeHtml(r.detalhe) + ')</small>' : ''}</div>`;
-        }).join('');
-
-        const resolvidos = resultadosEvento.filter(r => r.encontrado && r.suportado);
-        const sugestao = sugerirStatusGeral(resolvidos, totalEventos);
-
-        blocos.push(`
-        <div class="card" style="margin-bottom:10px;padding:12px;">
-            <strong>${escapeHtml(a.identificador)}</strong> — ${escapeHtml(a.casa)} <small>(stake ${formatarMoeda(a.stake)})</small>
-            ${linhasEventos}
-            ${sugestao
-                ? `<div class="btn-row" style="margin-top:8px;">
-                       <button type="button" class="btn-sm btn-success" onclick="marcarStatusAposta(${idxAposta}, '${sugestao}'); this.closest('.card').remove();">✅ Aplicar: ${sugestao}</button>
-                       <button type="button" class="btn-sm btn-outline" onclick="this.closest('.card').remove();">Ignorar</button>
-                   </div>`
-                : `<div style="margin-top:8px;font-size:12.5px;color:var(--text-secondary);">Sem sugestão automática — revise manualmente.</div>`
-            }
-        </div>`);
-    });
-
-    overlay.innerHTML = `
-        <div class="modal" tabindex="-1" style="max-width:560px;width:100%;max-height:80vh;overflow-y:auto;">
-            <div class="painel-conferencia-header">
-                <h3 id="checagemResultadosTitulo">🔎 Resultados encontrados</h3>
-                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlayChecagemResultados').classList.remove('open')">✕</button>
-            </div>
-            ${blocos.length ? blocos.join('') : '<p>Nenhum resultado encontrado para as apostas em aberto.</p>'}
-        </div>`;
-    overlay.classList.add('open');
-    overlay.querySelector('.modal').focus();
-}
-
-/* ==================== CHECAGEM DE ESTATÍSTICAS (API-Football) ====================
-   Sob demanda, em LOTE opcional — diferente do "Checar Resultados" (que roda
-   sozinho sobre todas as abertas), essa checagem gasta mais cota da API-Football
-   (1 chamada por partida distinta, além da busca por data), então fica sempre a
-   critério do usuário: ele escolhe quais apostas entram na consulta. Cobre
-   Finalizações, Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos e
-   Defesas — total da partida, "da Equipe" e Handicap.
-   Quando o lote enviado tem eventos de partidas repetidas (comum quando várias
-   apostas do dia caem no mesmo jogo), o Worker consulta a API-Football só UMA
-   VEZ por partida distinta e reaproveita o resultado pra validar cada mercado —
-   ver /api/checar-estatisticas no worker.js (fixturesUnicos/statsPorFixtureId).
-   Dois pontos de entrada, mesmo núcleo (checarEstatisticasApostas):
-   - Botão dentro do Cadastro (checarEstatisticasApostaAtual), só visível quando
-     editando uma aposta já salva — sempre 1 aposta.
-   - Botão na Lista (abrirSeletorChecarEstatisticas), que abre um seletor com
-     checkbox por aposta em aberto (mostrando os eventos com Data/Hora da
-     Partida, pra decidir quais vale a pena checar) e um botão "Enviar
-     Consulta" que manda todas as marcadas de uma vez. */
-async function checarEstatisticasApostas(idxs) {
+async function checarApostas(idxs) {
     const idxsValidos = (idxs || []).filter(idx => apostas[idx]);
     if (!idxsValidos.length) { showToast('Nenhuma aposta selecionada.', 'error'); return; }
 
@@ -4506,35 +4396,47 @@ async function checarEstatisticasApostas(idxs) {
     });
     if (!eventosParaChecar.length) { showToast('Nenhum evento nas apostas selecionadas.', 'error'); return; }
 
-    showToast(idxsValidos.length > 1 ? `📊 Checando estatísticas de ${idxsValidos.length} apostas...` : '📊 Checando estatísticas...', 'success', 4000);
+    showToast(idxsValidos.length > 1 ? `🔎 Checando ${idxsValidos.length} apostas...` : '🔎 Checando aposta...', 'success', 4000);
     let json;
     try {
-        const resposta = await fetch('/api/checar-estatisticas', {
+        const resposta = await fetch('/api/checar-apostas', {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
             body: JSON.stringify({ eventos: eventosParaChecar })
         });
         json = await resposta.json();
-        if (!resposta.ok) throw new Error(json.error || 'Erro ao checar estatísticas.');
+        if (!resposta.ok) throw new Error(json.error || 'Erro ao checar apostas.');
     } catch (err) {
         showToast('❌ ' + err.message, 'error', 10000);
         return;
     }
-    mostrarPainelChecagemEstatisticas(json.resultados || []);
+    mostrarPainelChecagemApostas(json.resultados || []);
 }
 
-// Atalho de compatibilidade: 1 aposta só (usado pelo botão dentro do Cadastro).
-async function checarEstatisticasAposta(idx) {
-    await checarEstatisticasApostas([idx]);
-}
-
-async function checarEstatisticasApostaAtual() {
-    if (editIndex === null) { showToast('Abra uma aposta já salva (Editar) para checar estatísticas.', 'error'); return; }
-    const btn = document.getElementById('btnCheckarEstatisticasAposta');
+// Botão dentro do Cadastro — opera sobre a aposta atualmente em edição (editIndex).
+async function checarApostaAtual() {
+    if (editIndex === null) { showToast('Abra uma aposta já salva (Editar) para checar.', 'error'); return; }
+    const btn = document.getElementById('btnCheckarApostaAtual');
     const textoOriginal = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '📊 Checando...'; }
-    await checarEstatisticasAposta(editIndex);
+    if (btn) { btn.disabled = true; btn.innerHTML = '🔎 Checando...'; }
+    await checarApostas([editIndex]);
     if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+}
+
+// Dado o conjunto de eventos já resolvidos (encontrados e com mercado suportado)
+// de UMA aposta, decide se dá pra sugerir um status geral com segurança:
+// - só sugere se TODOS os eventos da aposta foram resolvidos (nenhum ficou de fora);
+// - se algum perdeu, a aposta inteira perde (regra padrão de combinada);
+// - se todos ganharam, ou todos anularam, sugere isso;
+// - qualquer mistura de Ganho Parcial/Perda Parcial/Anulada com Ganhou fica sem
+//   sugestão automática — recalcular a odd de uma combinada com pernas parciais/
+//   anuladas exige lógica própria, fora do escopo desta primeira versão.
+function sugerirStatusGeral(resolvidos, totalEventosAposta) {
+    if (resolvidos.length < totalEventosAposta) return null;
+    if (resolvidos.some(r => r.resultado === 'Perdeu')) return 'Perdeu';
+    if (resolvidos.every(r => r.resultado === 'Ganhou')) return 'Ganhou';
+    if (resolvidos.every(r => r.resultado === 'Anulada')) return 'Anulada';
+    return null;
 }
 
 // Lista de eventos (com Data/Hora da Partida) exibida dentro de cada item do
@@ -4548,65 +4450,69 @@ function _listaEventosParaSeletor(a) {
     }).join('');
 }
 
-function abrirSeletorChecarEstatisticas() {
+function abrirSeletorChecarApostas() {
     const pendentes = apostas
         .map((a, idx) => ({ a, idx }))
         .filter(({ a }) => a.status === 'Aberto');
     if (!pendentes.length) { showToast('Nenhuma aposta em aberto para checar.', 'success'); return; }
 
-    let overlay = document.getElementById('overlaySeletorEstatisticas');
+    let overlay = document.getElementById('overlaySeletorApostas');
     if (!overlay) {
         overlay = document.createElement('div');
-        overlay.id = 'overlaySeletorEstatisticas';
+        overlay.id = 'overlaySeletorApostas';
         overlay.className = 'modal-overlay';
         overlay.setAttribute('role', 'dialog');
         overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-labelledby', 'seletorEstatisticasTitulo');
+        overlay.setAttribute('aria-labelledby', 'seletorApostasTitulo');
         document.body.appendChild(overlay);
         overlay.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') overlay.classList.remove('open');
         });
     }
 
-    const itens = pendentes.map(({ a, idx }) => `
+    const itens = pendentes.map(({ a, idx }) => {
+        const pronta = _apostaProntaParaChecar(a);
+        return `
         <label class="card" style="display:block;width:100%;margin-bottom:8px;padding:10px 12px;cursor:pointer;">
             <div style="display:flex;align-items:flex-start;gap:8px;">
-                <input type="checkbox" class="chk-seletor-estatisticas" value="${idx}" style="margin-top:3px;flex:0 0 auto;">
+                <input type="checkbox" class="chk-seletor-apostas" value="${idx}" ${pronta ? 'checked' : ''} style="margin-top:3px;flex:0 0 auto;">
                 <div style="flex:1 1 auto;">
                     <div><strong>${escapeHtml(a.identificador)}</strong> — ${escapeHtml(a.casa)} <small>(stake ${formatarMoeda(a.stake)})</small></div>
                     ${_listaEventosParaSeletor(a)}
+                    ${!pronta ? '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Ainda não chegou a 2h após a partida mais recente — desmarcada por padrão, mas você pode forçar a checagem.</div>' : ''}
                 </div>
             </div>
-        </label>`).join('');
+        </label>`;
+    }).join('');
 
     overlay.innerHTML = `
         <div class="modal" tabindex="-1" style="max-width:520px;width:100%;max-height:80vh;overflow-y:auto;">
             <div class="painel-conferencia-header">
-                <h3 id="seletorEstatisticasTitulo">📊 Escolha as apostas</h3>
-                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlaySeletorEstatisticas').classList.remove('open')">✕</button>
+                <h3 id="seletorApostasTitulo">🔎 Escolha as apostas</h3>
+                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlaySeletorApostas').classList.remove('open')">✕</button>
             </div>
-            <p style="margin:0 0 10px;font-size:13px;color:var(--text-secondary);">Marque as apostas que já devem ter terminado (veja a Data/Hora de cada evento) e envie de uma vez — jogos repetidos entre as apostas marcadas são consultados só uma vez na API-Football.</p>
+            <p style="margin:0 0 10px;font-size:13px;color:var(--text-secondary);">Já vêm marcadas as apostas cujas partidas já passaram de 2h do horário registrado — a maioria já deve ter terminado. Ajuste como quiser e envie de uma vez; jogos repetidos entre as apostas marcadas são consultados só uma vez na API-Football.</p>
             <div class="btn-row" style="margin-bottom:10px;">
-                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-estatisticas').forEach(c => c.checked = true);">Marcar todas</button>
-                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-estatisticas').forEach(c => c.checked = false);">Desmarcar todas</button>
+                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-apostas').forEach(c => c.checked = true);">Marcar todas</button>
+                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-apostas').forEach(c => c.checked = false);">Desmarcar todas</button>
             </div>
             ${itens}
             <div class="btn-row" style="margin-top:6px;">
-                <button type="button" class="btn btn-success" onclick="enviarConsultaEstatisticasSelecionadas()">📊 Enviar Consulta</button>
+                <button type="button" class="btn btn-success" onclick="enviarConsultaApostasSelecionadas()">🔎 Enviar Consulta</button>
             </div>
         </div>`;
     overlay.classList.add('open');
     overlay.querySelector('.modal').focus();
 }
 
-function enviarConsultaEstatisticasSelecionadas() {
-    const idxs = Array.from(document.querySelectorAll('.chk-seletor-estatisticas:checked')).map(c => parseInt(c.value, 10));
+function enviarConsultaApostasSelecionadas() {
+    const idxs = Array.from(document.querySelectorAll('.chk-seletor-apostas:checked')).map(c => parseInt(c.value, 10));
     if (!idxs.length) { showToast('Marque pelo menos uma aposta para enviar.', 'error'); return; }
-    document.getElementById('overlaySeletorEstatisticas').classList.remove('open');
-    checarEstatisticasApostas(idxs);
+    document.getElementById('overlaySeletorApostas').classList.remove('open');
+    checarApostas(idxs);
 }
 
-function mostrarPainelChecagemEstatisticas(resultados) {
+function mostrarPainelChecagemApostas(resultados) {
     const porAposta = new Map();
     resultados.forEach(r => {
         if (!porAposta.has(r.idAposta)) porAposta.set(r.idAposta, []);
@@ -4621,14 +4527,14 @@ function mostrarPainelChecagemEstatisticas(resultados) {
         ? `<p style="margin:0 0 10px;font-size:12.5px;color:var(--text-secondary);">${resultados.length} evento(s) verificado(s) em ${porAposta.size} aposta(s), correspondendo a ${placaresDistintos.size} partida(s) distinta(s) consultada(s) na API-Football.</p>`
         : '';
 
-    let overlay = document.getElementById('overlayChecagemEstatisticas');
+    let overlay = document.getElementById('overlayChecagemApostas');
     if (!overlay) {
         overlay = document.createElement('div');
-        overlay.id = 'overlayChecagemEstatisticas';
+        overlay.id = 'overlayChecagemApostas';
         overlay.className = 'modal-overlay';
         overlay.setAttribute('role', 'dialog');
         overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-labelledby', 'checagemEstatisticasTitulo');
+        overlay.setAttribute('aria-labelledby', 'checagemApostasTitulo');
         document.body.appendChild(overlay);
         overlay.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') overlay.classList.remove('open');
@@ -4649,7 +4555,7 @@ function mostrarPainelChecagemEstatisticas(resultados) {
                 return `<div style="font-size:12.5px;margin-top:4px;">⚠️ ${escapeHtml(r.detalhe || 'Mercado não suportado')} <small>(placar: ${escapeHtml(r.placar || '')})</small></div>`;
             }
             const avisoHtml = r.aviso ? `<div style="font-size:12px;color:#b45309;margin-top:2px;">⚠️ ${escapeHtml(r.aviso)}</div>` : '';
-            return `<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(r.detalhe || '')} → <strong>${escapeHtml(r.resultado)}</strong></div>${avisoHtml}`;
+            return `<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(r.detalhe || r.placar || '')} → <strong>${escapeHtml(r.resultado)}</strong></div>${avisoHtml}`;
         }).join('');
 
         const resolvidos = resultadosEvento.filter(r => r.encontrado && r.suportado);
@@ -4672,11 +4578,11 @@ function mostrarPainelChecagemEstatisticas(resultados) {
     overlay.innerHTML = `
         <div class="modal" tabindex="-1" style="max-width:560px;width:100%;max-height:80vh;overflow-y:auto;">
             <div class="painel-conferencia-header">
-                <h3 id="checagemEstatisticasTitulo">📊 Estatísticas encontradas</h3>
-                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlayChecagemEstatisticas').classList.remove('open')">✕</button>
+                <h3 id="checagemApostasTitulo">🔎 Checagem de apostas</h3>
+                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlayChecagemApostas').classList.remove('open')">✕</button>
             </div>
             ${resumoLoteHtml}
-            ${blocos.length ? blocos.join('') : '<p>Nenhum resultado encontrado para essa aposta.</p>'}
+            ${blocos.length ? blocos.join('') : '<p>Nenhum resultado encontrado para as apostas selecionadas.</p>'}
         </div>`;
     overlay.classList.add('open');
     overlay.querySelector('.modal').focus();
@@ -4913,9 +4819,9 @@ function editar(idx) {
     });
     document.getElementById("btnSalvar").innerHTML = "✏️ Atualizar Aposta";
     document.getElementById("btnCancelarEdicao").style.display = "block";
-    // "Checar Estatísticas" só faz sentido numa aposta já salva (precisa do
+    // "Checar Aposta" só faz sentido numa aposta já salva (precisa do
     // índice em "apostas" para casar a resposta do Worker com a linha certa).
-    const btnEstat = document.getElementById("btnCheckarEstatisticasAposta");
+    const btnEstat = document.getElementById("btnCheckarApostaAtual");
     if (btnEstat) btnEstat.style.display = "";
     calcular();
 
@@ -5043,7 +4949,7 @@ function limparFormulario() {
     editIndex = null;
     document.getElementById("btnSalvar").innerHTML = "💾 Salvar Aposta";
     document.getElementById("btnCancelarEdicao").style.display = "none";
-    const btnEstatLimpar = document.getElementById("btnCheckarEstatisticasAposta");
+    const btnEstatLimpar = document.getElementById("btnCheckarApostaAtual");
     if (btnEstatLimpar) btnEstatLimpar.style.display = "none";
     addEvento();
     calcular();

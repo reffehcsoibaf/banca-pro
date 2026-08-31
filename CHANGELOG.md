@@ -4,6 +4,46 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.29.0 — 30/08/2026
+
+### Repaginação completa: "Checar Resultados" + "Checar Estatísticas" viram "🔎 Checar Apostas"
+
+Essa funcionalidade não estava funcionando bem — poucos mercados eram reconhecidos, os dois
+botões faziam quase a mesma coisa, e mercados comuns como "Resultado Final & Total de Gols"
+ou "Ganhar qualquer um dos Tempos" sempre caíam em "não suportado". Investigando a fundo, a
+causa raiz de boa parte disso era um bug concreto: a lógica local de resolução de placar só
+reconhecia o mercado chamado **"Vencedor"**, mas o mercado que o Futebol realmente usa pra
+apostas de vencedor da partida se chama **"Resultado"** ou **"Resultado Final"** — ou seja,
+a aposta mais comum de todas (quem vence o jogo) nunca era resolvida pela lógica rápida e
+sempre dependia do 2º passo (IA), que só recebia o placar, não as estatísticas completas.
+
+**O que mudou:**
+
+- **Um único botão**, "🔎 Checar Apostas" (era "🔎 Checar Resultados" + "📊 Checar
+  Estatísticas") — com **atalho de teclado Alt+C** (funciona com a aba Lista ativa). O botão
+  equivalente dentro do Cadastro (ao editar uma aposta já salva) virou "🔎 Checar Aposta".
+- **Bug corrigido:** a resolução local de placar agora reconhece os nomes reais dos mercados
+  de vencedor no Futebol ("Resultado" e "Resultado Final"), além de "Vencedor" — antes,
+  nenhuma dessas apostas (as mais comuns do app) passava pela lógica rápida local.
+- **Nova cascata de resolução**, para cada evento: 1) lógica local a partir do placar (mais
+  rápida, sem custo de IA) → 2) se não resolveu, lógica local a partir das estatísticas
+  completas da partida → 3) se ainda não resolveu, uma IA (Gemini → Anthropic) julga o
+  resultado usando TODOS os dados brutos já buscados (placar final, intervalo e estatística
+  completa da partida) — sem pesquisa na web, sem chamada extra à API-Football. A IA agora
+  entende explicitamente os mercados combinados com "&" no nome (ex.: "Resultado Final &
+  Total de Gols") e o mercado "Ganhar qualquer um dos Tempos" (usando o placar do intervalo).
+- **Nada de travas por lista fixa de mercados** — só ficam permanentemente fora Desarmes e
+  Tiros de Meta, porque a API-Football simplesmente não tem esses dados em nenhum plano (não
+  existe dado bruto disponível nem pra lógica local nem pra IA usar).
+- **Sempre busca placar E estatísticas** de cada partida (antes, "Checar Resultados" só
+  buscava placar) — mais completo, ao custo de uma chamada a mais de API-Football por
+  partida distinta (continua sendo 1 chamada por partida, não por evento).
+- **Filtro de 2 horas**: no seletor de apostas, as que têm todos os eventos com Data/Hora da
+  Partida 2h ou mais no passado já vêm com a caixa marcada por padrão (tempo em que a
+  maioria dos jogos já terminou) — ajustável manualmente, não é uma trava.
+- Rota do Worker unificada: `/api/checar-resultados` e `/api/checar-estatisticas` viraram
+  `/api/checar-apostas`.
+
 ## v1.28.0 — 30/08/2026
 
 ### "Checar Resultados": fallback por IA para mercados sem lógica local
