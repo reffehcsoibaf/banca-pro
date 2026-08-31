@@ -4,6 +4,25 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.28.0 — 30/08/2026
+
+### "Checar Resultados": fallback por IA para mercados sem lógica local
+
+- Antes, qualquer mercado que a lógica local de `/api/checar-resultados` não reconhecesse
+  (mercados combinados tipo "Criador de Apostas", variações de texto na Seleção, etc.) caía
+  direto em "não suportado" — mesmo quando o placar bruto já buscado (final e intervalo)
+  bastava pra resolver o mercado, só que numa combinação que a lógica local não previu.
+- Agora, quando a resolução local não reconhece o mercado, o Worker manda o **placar bruto**
+  (final da partida + intervalo, quando a API-Football tiver esse dado) pra uma IA (Gemini →
+  Anthropic, mesmo padrão de fallback já usado no resto do app) julgar o resultado — sem
+  pesquisa na web e sem gastar cota extra da API-Football, já que o placar já foi buscado.
+- A IA responde honestamente "Indeterminado" (virando "não suportado" na revisão) quando os
+  dados fornecidos realmente não bastam pra julgar aquele mercado (ex.: depende de cartões ou
+  escanteios, que não fazem parte do placar) — nesse caso, use o botão **"📊 Checar
+  Estatísticas"** (da v1.24.0), que consulta esses dados via um endpoint separado da API-Football.
+- Sugestões resolvidas por esse caminho aparecem no painel de revisão com a marca **"(via IA)"**
+  no motivo, pra deixar claro que passaram por esse segundo passo em vez da lógica determinística.
+
 ## v1.27.0 — 30/08/2026
 
 ### Seletor de "📊 Checar Estatísticas" — agora em lote, com Data/Hora em vez de ID/Casa

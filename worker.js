@@ -1037,10 +1037,13 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
 // jogos do mundo naquele dia — o casamento com o time apostado é feito
 // localmente depois, sem gastar requisições extras por jogo.
 
-const MERCADOS_SUPORTADOS_RESULTADO = [
-  'vencedor', 'empate', 'empate anula', 'chance dupla',
-  'gols', 'ambas equipes marcam', 'handicap', 'handicap asiatico', 'faixa de gols'
-];
+// Nota: não existe mais uma lista fixa de "mercados suportados" bloqueando
+// tudo o que estiver fora dela. resolverMercadoFutebol() resolve localmente
+// os mercados que sabe (função pura, sem custo de IA); qualquer coisa que ela
+// não reconheça (mercado combinado, variação de texto, estatística que não
+// está no placar) cai automaticamente no fallback de IA em handleCheckResultados,
+// que recebe o placar BRUTO (final + intervalo) e julga a partir dele — sem
+// depender de uma lista pré-definida do que é "possível".
 
 function normalizarTexto(s) {
   return (s || '')
@@ -1143,13 +1146,6 @@ function resolverMercadoFutebol(mercado, selecao, ctx) {
   const { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora } = ctx;
   const mercadoNorm = normalizarTexto(mercado);
 
-  if ((mercado || '').includes(',')) {
-    return { suportado: false, detalhe: 'Mercado combinado (múltiplas condições no mesmo evento) — revise manualmente.' };
-  }
-  if (!MERCADOS_SUPORTADOS_RESULTADO.includes(mercadoNorm)) {
-    return { suportado: false, detalhe: `Mercado "${mercado}" ainda não é suportado pela checagem automática (requer estatística além do placar final, como cartões/escanteios/finalizações).` };
-  }
-
   const golsTimeA = timeAeCasa ? golsCasa : golsFora;
   const golsTimeB = timeAeCasa ? golsFora : golsCasa;
   const diferencaAB = golsTimeA - golsTimeB; // > 0 se A venceu
@@ -1211,7 +1207,7 @@ function resolverMercadoFutebol(mercado, selecao, ctx) {
       return { suportado: true, resultado: (totalGols >= minimo && totalGols <= maximo) ? 'Ganhou' : 'Perdeu' };
     }
     default:
-      return { suportado: false, detalhe: `Mercado "${mercado}" não implementado.` };
+      return { suportado: false, detalhe: `Mercado "${mercado}" não tem lógica local implementada — será enviado para julgamento por IA com o placar bruto.` };
   }
 }
 
@@ -1220,6 +1216,62 @@ function separarTimesDoEvento(evento) {
   const partes = (evento || '').split(/\s+(?:x|vs\.?|-)\s+/i);
   if (partes.length !== 2) return null;
   return { nomeTimeA: partes[0].trim(), nomeTimeB: partes[1].trim() };
+}
+
+// ---- 2º passo: julgamento por IA (Gemini → Anthropic), só entra quando a
+// resolução local (resolverMercadoFutebol) não reconhece o mercado — mercado
+// combinado, variação de texto não prevista, ou estatística que o placar
+// bruto talvez já contenha mas nossa lógica local não processa (ex.:
+// combinações Intervalo/Final). Não faz busca na web — só recebe o placar
+// que já buscamos na API-Football (final + intervalo, quando disponível) e
+// pede pro modelo aplicar o raciocínio, sem inventar dado que não foi dado. ----
+async function julgarMercadoComIA(env, dados) {
+  const systemInstrucoes = `Você decide se uma aposta esportiva de futebol já finalizada foi GANHA, PERDIDA, teve GANHO PARCIAL / PERDA PARCIAL (linha de quarto de handicap ou total de gols), ou foi ANULADA (push — linha exata empatou), usando SOMENTE os dados fornecidos pelo usuário nesta mensagem.
+
+Responda APENAS um objeto JSON, sem markdown e sem texto fora do JSON, neste formato exato:
+{"resultado": "Ganhou" | "Perdeu" | "Ganho Parcial" | "Perda Parcial" | "Anulada" | "Indeterminado", "motivo": "explicação curta, em 1 frase"}
+
+Regras:
+- Use apenas os dados fornecidos (placar final, placar do intervalo se disponível, nomes dos times, mercado, seleção apostada). NÃO pesquise, NÃO use conhecimento próprio sobre o jogo, NÃO invente estatística que não foi dada (cartões, escanteios, finalizações etc. não estão disponíveis a menos que apareçam explicitamente nos dados).
+- Use "Indeterminado" quando os dados fornecidos genuinamente não bastarem para julgar esse mercado (ex.: mercado depende de cartões/escanteios/outra estatística ausente) — nesse caso não tente adivinhar, e explique em "motivo" o que faltou.
+- "Ganho Parcial"/"Perda Parcial" só se aplicam quando a linha de handicap ou total de gols é "de quarto" (ex.: -0.25, -0.75, 2.25, 2.75) e a aposta cobre só metade do valor.
+- "Anulada" (push) só se aplica quando a linha inteira empata exatamente com o resultado apostado (ex.: handicap 0 com empate, ou total de gols igual à linha inteira apostada).`;
+
+  const textoBilhete = `Confronto: ${dados.timeCasa} (mandante) ${dados.golsCasa} x ${dados.golsFora} ${dados.timeFora} (visitante)
+Placar do intervalo: ${(dados.golsIntervaloCasa != null && dados.golsIntervaloFora != null) ? `${dados.golsIntervaloCasa} x ${dados.golsIntervaloFora}` : 'não disponível'}
+Mercado: ${dados.mercado}
+Seleção apostada: ${dados.selecao}`;
+
+  const STATUS_VALIDOS = ['Ganhou', 'Perdeu', 'Ganho Parcial', 'Perda Parcial', 'Anulada'];
+  const tentativas = [];
+  if (env.GEMINI_API_KEY) {
+    tentativas.push(() => lerComGemini({ apiKey: env.GEMINI_API_KEY, systemInstrucoes, textoBilhete, comBusca: false, schemaTipo: 'resolver-mercado' }));
+  }
+  if (env.ANTHROPIC_API_KEY) {
+    tentativas.push(() => lerComAnthropic({ apiKey: env.ANTHROPIC_API_KEY, systemInstrucoes, textoBilhete, comBusca: false, schemaTipo: 'resolver-mercado' }));
+  }
+
+  let ultimoErro = null;
+  for (const tentativa of tentativas) {
+    try {
+      const resultado = await tentativa();
+      if (resultado && typeof resultado.resultado === 'string') {
+        if (STATUS_VALIDOS.includes(resultado.resultado)) {
+          return { suportado: true, resultado: resultado.resultado, detalhe: (resultado.motivo ? resultado.motivo + ' ' : '') + '(via IA)' };
+        }
+        // "Indeterminado" ou qualquer valor fora da lista — a IA está dizendo
+        // honestamente que não dá pra julgar com o que foi fornecido.
+        return { suportado: false, detalhe: (resultado.motivo || 'A IA não conseguiu determinar o resultado com os dados disponíveis.') + ' (via IA)' };
+      }
+    } catch (e) {
+      ultimoErro = e;
+      continue;
+    }
+  }
+  return {
+    suportado: false,
+    detalhe: 'Não foi possível consultar a IA para julgar este mercado' + (ultimoErro ? `: ${String(ultimoErro.message || ultimoErro).slice(0, 200)}` : ' (nenhum provedor de IA configurado).')
+  };
 }
 
 // Busca os jogos finalizados de cada data única em "datasUnicas" — 1 chamada
@@ -1313,9 +1365,27 @@ async function handleCheckResultados(payload, env, headers) {
     const timeAeCasa = nomesTimesBatem(nomeTimeA, fixture.teams.home.name);
     const golsCasa = fixture.goals.home;
     const golsFora = fixture.goals.away;
+    const golsIntervaloCasa = fixture.score && fixture.score.halftime ? fixture.score.halftime.home : null;
+    const golsIntervaloFora = fixture.score && fixture.score.halftime ? fixture.score.halftime.away : null;
     const placarTexto = `${fixture.teams.home.name} ${golsCasa}-${golsFora} ${fixture.teams.away.name}`;
 
-    const resolucao = resolverMercadoFutebol(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora });
+    let resolucao = resolverMercadoFutebol(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora });
+    // Se a resolução local não reconheceu o mercado (combinado, variação de
+    // texto não prevista, etc.), tenta um segundo passo via IA — usando só o
+    // placar que já buscamos (final + intervalo), sem pesquisa na web e sem
+    // gastar cota extra da API-Football.
+    if (!resolucao.suportado) {
+      resolucao = await julgarMercadoComIA(env, {
+        timeCasa: fixture.teams.home.name,
+        timeFora: fixture.teams.away.name,
+        golsCasa,
+        golsFora,
+        golsIntervaloCasa,
+        golsIntervaloFora,
+        mercado: ev.mercado,
+        selecao: ev.selecao
+      });
+    }
     resultados.push({
       idAposta: ev.idAposta,
       idEvento: ev.idEvento,
