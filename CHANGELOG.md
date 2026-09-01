@@ -4,6 +4,43 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.29.3 — 01/09/2026
+
+### Rota interna temporária de diagnóstico (não é uma funcionalidade do app)
+
+Adicionada uma rota de backend só para investigação técnica, sem qualquer
+botão ou tela associada no app: `GET /api/debug-fixture-ids`. Ela existe
+para confirmar o formato exato de uma resposta da API-Football antes de
+usar esse formato de verdade no "Checar Apostas", com o objetivo de reduzir
+bastante o número de chamadas feitas por lote (hoje: 1 chamada de
+estatísticas por partida; o formato em teste permitiria buscar estatísticas
+de até 20 partidas numa chamada só). Essa rota será removida na próxima
+versão, junto com a implementação real (ou não, se o formato não se
+confirmar como esperado).
+
+## v1.29.2 — 01/09/2026
+
+### Checar Apostas: correção do erro "limite de requisições" da API-Football
+
+O plano gratuito da API-Football permite só 10 requisições por minuto. O
+"🔎 Checar Apostas" fazia todas as chamadas necessárias (1 por data de jogo +
+1 por partida) em sequência rápida, sem pausa — em lotes pequenos como 5
+eventos em jogos/datas diferentes, isso já bastava para estourar o limite e o
+evento caía com o erro cru da API-Football em vez de ser checado.
+
+- Agora há uma pausa de ~6,5 segundos entre cada chamada à API-Football
+  dentro de um mesmo lote de checagem, o suficiente para nunca ultrapassar o
+  limite de 10/minuto do plano gratuito — checar vários eventos de uma vez
+  fica um pouco mais lento, mas não falha mais por causa disso.
+- Se mesmo assim vier o erro de limite (código 429), o Worker agora espera
+  15 segundos e tenta mais uma vez automaticamente antes de desistir daquele
+  jogo/data específico.
+- A mensagem de erro agora diferencia dois casos: limite por MINUTO
+  (temporário, a checagem funciona de novo já no minuto seguinte) e cota
+  DIÁRIA esgotada (o plano gratuito também tem um teto de 100
+  requisições/dia — nesse caso, só volta a funcionar depois da meia-noite em
+  Londres, 21h em Brasília).
+
 ## v1.29.1 — 31/08/2026
 
 ### Botão para recolher/expandir o Resumo do Filtro

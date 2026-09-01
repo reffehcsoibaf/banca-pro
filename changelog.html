@@ -114,6 +114,21 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-29-3">v1.29.3</h2>
+  <p class="versao-data">01/09/2026</p>
+  <h3>Rota interna temporária de diagnóstico (não é uma funcionalidade do app)</h3>
+  <p>Adicionada uma rota de backend só para investigação técnica, sem qualquer botão ou tela associada no app: <code>GET /api/debug-fixture-ids</code>. Ela existe para confirmar o formato exato de uma resposta da API-Football antes de usar esse formato de verdade no "Checar Apostas", com o objetivo de reduzir bastante o número de chamadas feitas por lote (hoje: 1 chamada de estatísticas por partida; o formato em teste permitiria buscar estatísticas de até 20 partidas numa chamada só). Essa rota será removida na próxima versão, junto com a implementação real (ou não, se o formato não se confirmar como esperado).</p>
+
+  <h2 id="v1-29-2">v1.29.2</h2>
+  <p class="versao-data">01/09/2026</p>
+  <h3>Checar Apostas: correção do erro "limite de requisições" da API-Football</h3>
+  <p>O plano gratuito da API-Football permite só 10 requisições por minuto. O "🔎 Checar Apostas" fazia todas as chamadas necessárias (1 por data de jogo + 1 por partida) em sequência rápida, sem pausa — em lotes pequenos como 5 eventos em jogos/datas diferentes, isso já bastava para estourar o limite e o evento caía com o erro cru da API-Football em vez de ser checado.</p>
+  <ul>
+    <li>Agora há uma pausa de ~6,5 segundos entre cada chamada à API-Football dentro de um mesmo lote de checagem, o suficiente para nunca ultrapassar o limite de 10/minuto do plano gratuito — checar vários eventos de uma vez fica um pouco mais lento, mas não falha mais por causa disso.</li>
+    <li>Se mesmo assim vier o erro de limite (código 429), o Worker agora espera 15 segundos e tenta mais uma vez automaticamente antes de desistir daquele jogo/data específico.</li>
+    <li>A mensagem de erro agora diferencia dois casos: limite por MINUTO (temporário, a checagem funciona de novo já no minuto seguinte) e cota DIÁRIA esgotada (o plano gratuito também tem um teto de 100 requisições/dia — nesse caso, só volta a funcionar depois da meia-noite em Londres, 21h em Brasília).</li>
+  </ul>
+
   <h2 id="v1-29-1">v1.29.1</h2>
   <p class="versao-data">31/08/2026</p>
   <h3>Botão para recolher/expandir o Resumo do Filtro</h3>

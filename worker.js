@@ -562,7 +562,11 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas'];
+    // '/api/debug-fixture-ids' é TEMPORÁRIA (diagnóstico do formato da
+    // API-Football em /fixtures?ids=... — ver handleDebugFixtureIds) e deve
+    // ser removida assim que confirmarmos o formato e implementarmos o uso
+    // real dele em handleCheckApostas.
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas', '/api/debug-fixture-ids'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -577,6 +581,13 @@ async function handleFetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers });
     }
+
+    // Rota temporária de diagnóstico — GET direto pelo navegador, sem passar
+    // pela checagem de acesso de IA (não usa IA nenhuma, só API-Football).
+    if (url.pathname === '/api/debug-fixture-ids') {
+      return await handleDebugFixtureIds(url, env, headers);
+    }
+
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Método não permitido.' }), { status: 405, headers });
     }
@@ -1274,33 +1285,97 @@ Seleção apostada: ${dados.selecao}`;
   };
 }
 
+// ==================== CONTROLE DE LIMITE DE REQUISIÇÕES DA API-FOOTBALL ====================
+// O plano gratuito da API-Football permite só 10 requisições por MINUTO (além
+// de um teto de 100 por DIA). Como handleCheckApostas pode gerar várias
+// chamadas em sequência (1 por data única + 1 por partida distinta), sem
+// espaçamento elas saem quase simultâneas e estouram o limite por minuto
+// mesmo em lotes pequenos (ex.: 5 eventos em datas/jogos diferentes já geram
+// até 10 chamadas). Este helper centraliza toda chamada à API-Football:
+//   1. Espaça as chamadas (>6s entre uma e outra) para nunca ultrapassar
+//      10/minuto, mesmo em sequência contínua.
+//   2. Se ainda assim vier 429, tenta mais UMA vez após uma espera maior —
+//      cobre o caso de o minuto anterior já estar quase estourado por outro
+//      uso do app.
+//   3. Distingue limite por MINUTO (temporário, resolve sozinho) de limite
+//      DIÁRIO esgotado (só volta amanhã) usando o cabeçalho
+//      x-ratelimit-requests-remaining que a API-Football devolve em toda
+//      resposta.
+const INTERVALO_MIN_API_FOOTBALL_MS = 6500;
+const ESPERA_RETENTATIVA_429_MS = 15000;
+
+function esperar(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// "estado" é um objeto { numChamadas: 0, cotaDiariaEsgotada: false } criado
+// uma vez no início de handleCheckApostas e passado adiante, para que o
+// espaçamento e a detecção de cota valham para TODAS as chamadas do lote
+// (tanto as de fixtures quanto as de estatísticas).
+async function chamarApiFootball(url, env, estado) {
+  if (estado.numChamadas > 0) {
+    await esperar(INTERVALO_MIN_API_FOOTBALL_MS);
+  }
+  estado.numChamadas++;
+
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    let resp;
+    try {
+      resp = await fetch(url, { headers: { 'x-apisports-key': env.API_FOOTBALL_KEY } });
+    } catch (e) {
+      return { ok: false, erro: 'Falha de rede ao consultar API-Football: ' + e.message };
+    }
+
+    const restanteDia = resp.headers.get('x-ratelimit-requests-remaining');
+    if (restanteDia !== null && Number(restanteDia) <= 0) {
+      estado.cotaDiariaEsgotada = true;
+    }
+
+    if (resp.status === 429) {
+      if (tentativa === 0 && !estado.cotaDiariaEsgotada) {
+        // Provavelmente o limite por MINUTO (não o diário) — espera mais um
+        // pouco e tenta de novo, uma única vez.
+        await esperar(ESPERA_RETENTATIVA_429_MS);
+        continue;
+      }
+      return {
+        ok: false,
+        erro: estado.cotaDiariaEsgotada
+          ? 'Cota diária da API-Football esgotada (plano gratuito: 100 requisições/dia). A checagem volta a funcionar depois da meia-noite em Londres (21h em Brasília).'
+          : 'API-Football: limite de requisições por minuto excedido, mesmo após nova tentativa. Tente checar novamente em 1 minuto.'
+      };
+    }
+
+    if (!resp.ok) {
+      const texto = await resp.text();
+      return { ok: false, erro: `API-Football retornou ${resp.status}: ${texto.slice(0, 200)}` };
+    }
+
+    const dados = await resp.json();
+    if (dados.errors && Object.keys(dados.errors).length) {
+      return { ok: false, erro: 'API-Football: ' + JSON.stringify(dados.errors) };
+    }
+    return { ok: true, dados };
+  }
+}
+
 // Busca os jogos finalizados de cada data única em "datasUnicas" — 1 chamada
 // à API-Football por dia (não por evento), já que /fixtures?date=... devolve
 // todos os jogos do mundo naquele dia. Compartilhada dentro de
 // handleCheckApostas para achar o jogo de cada evento sem gastar uma
 // requisição por evento/time.
-async function buscarFixturesPorData(datasUnicas, env) {
+async function buscarFixturesPorData(datasUnicas, env, estado) {
   const fixturesPorData = new Map();
   for (const data of datasUnicas) {
-    try {
-      const resp = await fetch(
-        `https://v3.football.api-sports.io/fixtures?date=${data}&timezone=America/Sao_Paulo&status=FT-AET-PEN`,
-        { headers: { 'x-apisports-key': env.API_FOOTBALL_KEY } }
-      );
-      if (!resp.ok) {
-        const texto = await resp.text();
-        fixturesPorData.set(data, { erro: `API-Football retornou ${resp.status}: ${texto.slice(0, 200)}` });
-        continue;
-      }
-      const dados = await resp.json();
-      if (dados.errors && Object.keys(dados.errors).length) {
-        fixturesPorData.set(data, { erro: 'API-Football: ' + JSON.stringify(dados.errors) });
-        continue;
-      }
-      fixturesPorData.set(data, { fixtures: dados.response || [] });
-    } catch (e) {
-      fixturesPorData.set(data, { erro: 'Falha de rede ao consultar API-Football: ' + e.message });
+    const resultado = await chamarApiFootball(
+      `https://v3.football.api-sports.io/fixtures?date=${data}&timezone=America/Sao_Paulo&status=FT-AET-PEN`,
+      env, estado
+    );
+    if (!resultado.ok) {
+      fixturesPorData.set(data, { erro: resultado.erro });
+      continue;
     }
+    fixturesPorData.set(data, { fixtures: resultado.dados.response || [] });
   }
   return fixturesPorData;
 }
@@ -1466,6 +1541,67 @@ function resolverMercadoEstatisticas(mercado, selecao, ctx) {
 // jogo, não por evento — jogos repetidos entre apostas do mesmo lote não
 // geram chamada extra).
 
+// ==================== DIAGNÓSTICO TEMPORÁRIO — FORMATO DE /fixtures?ids= ====================
+// ROTA TEMPORÁRIA — remover depois de confirmarmos o formato e implementarmos
+// o uso real dele em handleCheckApostas.
+//
+// Objetivo: inspecionar exatamente como a API-Football devolve estatísticas
+// quando consultamos várias partidas de uma vez via
+// /fixtures?ids=ID1-ID2-ID3 (documentado como retornando eventos, escalação,
+// ESTATÍSTICAS e jogadores embutidos, ao contrário de /fixtures?date=...,
+// que só traz os dados básicos do jogo). Se confirmado, isso substitui N
+// chamadas individuais a /fixtures/statistics (1 por jogo) por 1 única
+// chamada em lote (até 20 jogos), reduzindo bastante o consumo de cota.
+//
+// Uso: GET /api/debug-fixture-ids?data=YYYY-MM-DD&qtd=3
+//   - data: uma data no passado com jogos já finalizados (padrão: ontem)
+//   - qtd: quantos jogos incluir no teste em lote (padrão: 3, máx. 5)
+async function handleDebugFixtureIds(url, env, headers) {
+  if (!env.API_FOOTBALL_KEY) {
+    return new Response(JSON.stringify({ error: 'API_FOOTBALL_KEY não configurada no servidor.' }), { status: 500, headers });
+  }
+
+  const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const data = url.searchParams.get('data') || ontem.toISOString().slice(0, 10);
+  const qtd = Math.min(Math.max(Number(url.searchParams.get('qtd')) || 3, 1), 5);
+
+  const estado = { numChamadas: 0, cotaDiariaEsgotada: false };
+
+  // Passo 1: pegar alguns fixture IDs reais e finalizados dessa data.
+  const respData = await chamarApiFootball(
+    `https://v3.football.api-sports.io/fixtures?date=${data}&timezone=America/Sao_Paulo&status=FT-AET-PEN`,
+    env, estado
+  );
+  if (!respData.ok) {
+    return new Response(JSON.stringify({ etapa: 'busca-por-data', erro: respData.erro }, null, 2), { status: 200, headers });
+  }
+  const fixturesDaData = (respData.dados.response || []).slice(0, qtd);
+  if (!fixturesDaData.length) {
+    return new Response(JSON.stringify({
+      etapa: 'busca-por-data',
+      aviso: `Nenhum jogo finalizado encontrado em ${data}. Tente outra data com ?data=YYYY-MM-DD.`
+    }, null, 2), { status: 200, headers });
+  }
+  const ids = fixturesDaData.map(f => f.fixture.id);
+
+  // Passo 2: a chamada que queremos inspecionar — várias partidas de uma vez.
+  const respLote = await chamarApiFootball(
+    `https://v3.football.api-sports.io/fixtures?ids=${ids.join('-')}`,
+    env, estado
+  );
+  if (!respLote.ok) {
+    return new Response(JSON.stringify({ etapa: 'busca-em-lote', idsConsultados: ids, erro: respLote.erro }, null, 2), { status: 200, headers });
+  }
+
+  return new Response(JSON.stringify({
+    etapa: 'sucesso',
+    dataConsultada: data,
+    idsConsultados: ids,
+    respostaCrua: respLote.dados
+  }, null, 2), { status: 200, headers });
+}
+
+
 async function handleCheckApostas(payload, env, headers) {
   if (!env.API_FOOTBALL_KEY) {
     return new Response(JSON.stringify({
@@ -1496,9 +1632,14 @@ async function handleCheckApostas(payload, env, headers) {
     eventosValidos.push(ev);
   }
 
+  // Estado compartilhado de controle de limite de requisições da API-Football
+  // (espaçamento anti-rajada + detecção de cota diária esgotada) — vale para
+  // TODAS as chamadas deste lote, tanto de fixtures quanto de estatísticas.
+  const estadoApiFootball = { numChamadas: 0, cotaDiariaEsgotada: false };
+
   // Etapa 1: localizar o fixture (jogo) de cada evento — 1 chamada por DATA única.
   const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
-  const fixturesPorData = await buscarFixturesPorData(datasUnicas, env);
+  const fixturesPorData = await buscarFixturesPorData(datasUnicas, env, estadoApiFootball);
 
   const fixturePorEvento = new Map(); // "idAposta::idEvento" -> fixture
   const fixturesUnicos = new Map();   // fixture.fixture.id -> fixture (dedupe entre eventos da mesma partida)
@@ -1525,36 +1666,26 @@ async function handleCheckApostas(payload, env, headers) {
   // passo 3 pode se beneficiar dos dois conjuntos de dados juntos.
   const statsPorFixtureId = new Map();
   for (const [fixtureId] of fixturesUnicos) {
-    try {
-      const resp = await fetch(
-        `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`,
-        { headers: { 'x-apisports-key': env.API_FOOTBALL_KEY } }
-      );
-      if (!resp.ok) {
-        const texto = await resp.text();
-        statsPorFixtureId.set(fixtureId, { erro: `API-Football (estatísticas) retornou ${resp.status}: ${texto.slice(0, 200)}` });
-        continue;
-      }
-      const dados = await resp.json();
-      if (dados.errors && Object.keys(dados.errors).length) {
-        statsPorFixtureId.set(fixtureId, { erro: 'API-Football (estatísticas): ' + JSON.stringify(dados.errors) });
-        continue;
-      }
-      const resposta = dados.response || [];
-      if (!resposta.length) {
-        statsPorFixtureId.set(fixtureId, { erro: 'Essa competição não tem estatísticas detalhadas registradas na API-Football para esse jogo.' });
-        continue;
-      }
-      const statsPorTimeId = new Map();
-      for (const bloco of resposta) {
-        const mapa = {};
-        for (const stat of (bloco.statistics || [])) mapa[stat.type] = stat.value;
-        statsPorTimeId.set(bloco.team.id, mapa);
-      }
-      statsPorFixtureId.set(fixtureId, { statsPorTimeId });
-    } catch (e) {
-      statsPorFixtureId.set(fixtureId, { erro: 'Falha de rede ao consultar estatísticas na API-Football: ' + e.message });
+    const resultado = await chamarApiFootball(
+      `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`,
+      env, estadoApiFootball
+    );
+    if (!resultado.ok) {
+      statsPorFixtureId.set(fixtureId, { erro: resultado.erro });
+      continue;
     }
+    const resposta = resultado.dados.response || [];
+    if (!resposta.length) {
+      statsPorFixtureId.set(fixtureId, { erro: 'Essa competição não tem estatísticas detalhadas registradas na API-Football para esse jogo.' });
+      continue;
+    }
+    const statsPorTimeId = new Map();
+    for (const bloco of resposta) {
+      const mapa = {};
+      for (const stat of (bloco.statistics || [])) mapa[stat.type] = stat.value;
+      statsPorTimeId.set(bloco.team.id, mapa);
+    }
+    statsPorFixtureId.set(fixtureId, { statsPorTimeId });
   }
 
   // Etapa 3: resolver cada evento válido, em cascata (placar local → estatística local → IA).
