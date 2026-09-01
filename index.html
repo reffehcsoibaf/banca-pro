@@ -504,6 +504,19 @@
             line-height: 1;
         }
         .painel-conferencia-fechar:hover, .painel-conferencia-fechar:focus { background: var(--danger-bg); color: var(--danger); }
+        .resumo-toggle-btn {
+            flex: 0 0 auto;
+            background: var(--muted-bg);
+            color: var(--text-secondary);
+            border: none;
+            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            font-size: 11px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .resumo-toggle-btn:hover, .resumo-toggle-btn:focus { background: var(--primary-light); color: white; }
         .painel-conferencia-texto {
             width: 100%;
             min-height: 320px;
@@ -939,7 +952,10 @@
 <!-- ========== RESUMO GLOBAL (todas as telas) ========== -->
 <div id="resumoGlobal" role="region" aria-label="Resumo do filtro atual" style="display:none; background:var(--bg); padding:0 16px 0; position:sticky; top:60px; z-index:350; border-bottom:1px solid var(--border-light); box-shadow:0 2px 8px rgba(30,58,95,.08);">
     <div style="max-width:1700px; margin:auto; padding:10px 0 4px;">
-        <div style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;" aria-hidden="true">📊 Resumo do Filtro</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.5px;" aria-hidden="true">📊 Resumo do Filtro</div>
+            <button type="button" class="resumo-toggle-btn" id="btnRecolherResumo" onclick="alternarResumoGlobal()" aria-expanded="true" aria-controls="resumoGlobalGrid" aria-label="Recolher resumo do filtro">▲</button>
+        </div>
         <div class="summary-grid" id="resumoGlobalGrid" style="grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap:8px; margin-bottom:8px;"></div>
     </div>
 </div>
@@ -1399,6 +1415,17 @@
         </div>
 
         <div class="card">
+            <h2>🔎 Liga e Horário da Partida (IA)</h2>
+            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
+                Controla se a Liga e a Data/Hora da Partida de cada evento são buscadas automaticamente com IA (usando busca na web) assim que o formulário é preenchido por Foto/Texto — útil para bilhetes que não trazem essas informações no próprio bilhete (comum na Betano). Só busca eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias; eventos já completos não são sobrescritos. O botão manual "🔎 Buscar Liga/Horário" continua disponível a qualquer momento, independente desta opção.
+            </p>
+            <label style="display:flex; align-items:center; gap:10px; font-size:14px; text-transform:none; letter-spacing:0; color:var(--text); font-weight:500; cursor:pointer;">
+                <input type="checkbox" id="config-busca-liga-horario-automatica" onchange="alterarBuscaLigaHorarioAutomatica(this.checked)" style="width:18px; height:18px; accent-color:var(--primary-light); flex-shrink:0;">
+                Buscar Liga e Horário automaticamente após preencher por Foto/Texto
+            </label>
+        </div>
+
+        <div class="card">
             <h2>📜 Histórico de Análises (IA)</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Toda vez que a Análise de Aposta é executada (pelo botão manual ou automaticamente), o resultado fica guardado aqui, com data, hora e o confronto analisado. A análise entra sempre retraída na tabela — use "Expandir análise" para ler o texto completo, ou "Remover" para apagar uma entrada que não precisa mais.
@@ -1531,7 +1558,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.29.0 · 30/08/2026
+  Banca Pro · v1.29.1 · 31/08/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1595,6 +1622,48 @@ function alterarAnaliseAutomatica(ativa) {
     analiseAutomaticaAtiva = !!ativa;
     localStorage.setItem(CHAVE_ANALISE_AUTOMATICA, String(analiseAutomaticaAtiva));
     showToast(analiseAutomaticaAtiva ? '✅ Análise automática ativada' : '✅ Análise automática desativada — use o botão manual quando quiser', 'success');
+}
+
+// ---- Preferência: buscar Liga e Data/Hora da Partida automaticamente com IA
+// (usando busca na web) assim que o formulário é preenchido por Foto/Texto —
+// útil para bilhetes que não trazem essas informações no próprio bilhete
+// (comum na Betano). Só busca eventos com o nome do Evento preenchido e a
+// Liga OU a Data/Hora da Partida ainda vazias — eventos já completos não são
+// sobrescritos. Fica salva neste dispositivo/navegador, igual à paginação e
+// à análise automática. Padrão: ligada.
+const CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA = 'bancapro_buscaLigaHorarioAutomatica';
+function lerBuscaLigaHorarioAutomaticaSalva() {
+    const salvo = localStorage.getItem(CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA);
+    return salvo === null ? true : salvo === 'true';
+}
+let buscaLigaHorarioAutomaticaAtiva = lerBuscaLigaHorarioAutomaticaSalva();
+function alterarBuscaLigaHorarioAutomatica(ativa) {
+    buscaLigaHorarioAutomaticaAtiva = !!ativa;
+    localStorage.setItem(CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA, String(buscaLigaHorarioAutomaticaAtiva));
+    showToast(buscaLigaHorarioAutomaticaAtiva ? '✅ Busca automática de Liga e Horário ativada' : '✅ Busca automática de Liga e Horário desativada — use o botão manual "🔎 Buscar Liga/Horário" quando quiser', 'success');
+}
+
+// ---- Preferência: recolher/expandir o painel de resumo (totais) fixo no
+// topo. Fica salva neste dispositivo/navegador, igual à paginação e à
+// análise automática. Padrão: expandido.
+const CHAVE_RESUMO_RECOLHIDO = 'bancapro_resumoRecolhido';
+function lerResumoRecolhidoSalvo() {
+    return localStorage.getItem(CHAVE_RESUMO_RECOLHIDO) === 'true';
+}
+let resumoGlobalRecolhido = lerResumoRecolhidoSalvo();
+function aplicarEstadoResumoGlobal() {
+    const grid = document.getElementById('resumoGlobalGrid');
+    const btn  = document.getElementById('btnRecolherResumo');
+    if (!grid || !btn) return;
+    grid.style.display = resumoGlobalRecolhido ? 'none' : '';
+    btn.textContent = resumoGlobalRecolhido ? '▼' : '▲';
+    btn.setAttribute('aria-expanded', String(!resumoGlobalRecolhido));
+    btn.setAttribute('aria-label', resumoGlobalRecolhido ? 'Expandir resumo do filtro' : 'Recolher resumo do filtro');
+}
+function alternarResumoGlobal() {
+    resumoGlobalRecolhido = !resumoGlobalRecolhido;
+    localStorage.setItem(CHAVE_RESUMO_RECOLHIDO, String(resumoGlobalRecolhido));
+    aplicarEstadoResumoGlobal();
 }
 
 // ---- Provedor de IA por funcionalidade ----
@@ -3469,6 +3538,52 @@ async function buscarLigaTodosEventos() {
     showToast((encontrados > 0 ? '✅ ' : 'ℹ️ ') + resumo, encontrados > 0 ? 'success' : 'info', 9000);
 }
 
+/* Versão automática da busca acima: roda sozinha, sem botão, logo depois que
+   a IA preenche o formulário por Foto/Texto (ver preencherFormularioComExtracao)
+   — para eventos com o nome do Evento preenchido e a Liga OU a Data/Hora da
+   Partida ainda vazias (comum em bilhetes da Betano, que muitas vezes não
+   trazem liga nem horário do confronto). Eventos já completos não são
+   sobrescritos. Pode ser desligada em Configurações → 🔎 Liga e Horário
+   (buscaLigaHorarioAutomaticaAtiva); o botão manual continua disponível
+   independente desta opção. Reaproveita _buscarLigaCore, que já aplica os
+   valores encontrados diretamente nos campos do formulário; ao final,
+   sincroniza esses mesmos valores de volta no objeto "dados" (a leitura
+   original do bilhete), para que o Painel de Conferência já mostre os dados
+   completos assim que for exibido. */
+async function buscarLigaHorarioAutomatico(dados) {
+    const divs = Array.from(document.querySelectorAll('.event'));
+    const elegiveis = divs.filter(function (div) {
+        const inputEvento = div.querySelector('.evento');
+        const evento = inputEvento ? inputEvento.value.trim() : '';
+        const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+        const campoDataEvento = div.querySelector('.dataEventoEvento');
+        const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
+        return !!evento && (!ligaAtual || !dataEventoAtual);
+    });
+    if (elegiveis.length === 0) return;
+
+    for (let i = 0; i < elegiveis.length; i++) {
+        mostrarOverlayExtracao(true, `Buscando liga e horário da partida (${i + 1} de ${elegiveis.length})...`, 'Isso pode levar alguns segundos.');
+        anunciarExtracao(`Buscando liga e horário do evento ${i + 1} de ${elegiveis.length}.`);
+        await _buscarLigaCore(elegiveis[i]);
+    }
+
+    // _buscarLigaCore aplica os valores encontrados diretamente nos campos do
+    // formulário, não no objeto "dados" original — sincroniza de volta aqui,
+    // lendo o valor final de cada campo, para o Painel de Conferência refletir
+    // o resultado da busca.
+    elegiveis.forEach((div) => {
+        const idx = divs.indexOf(div);
+        if (idx === -1 || !dados.eventos || !dados.eventos[idx]) return;
+        const liga = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+        const esporte = valorEfetivoComOutro(div.querySelector('.esporteEvento'), 'esporteEventoOutro');
+        const campoDataEvento = div.querySelector('.dataEventoEvento');
+        if (liga) dados.eventos[idx].liga = liga;
+        if (esporte) dados.eventos[idx].esporte = esporte;
+        if (campoDataEvento && campoDataEvento.value) dados.eventos[idx].dataEvento = campoDataEvento.value;
+    });
+}
+
 /* ==================== ANALISAR APOSTA (IA) ====================
    Gera uma análise de RISCO e CONTEXTO sobre a aposta que está sendo
    preenchida no formulário no momento — NUNCA uma previsão de resultado
@@ -3663,10 +3778,21 @@ function construirHtmlAnalise(dados) {
 
 const LIMIAR_BAIXA_CONFIANCA = 0.6;
 
-function mostrarOverlayExtracao(mostrar) {
+// mensagemPrincipal/mensagemSecundaria são opcionais — se o overlay já estiver
+// visível (ex.: passando da leitura do bilhete para a busca de liga/horário,
+// ver buscarLigaHorarioAutomatico), o texto é apenas atualizado no lugar, sem
+// recriar o elemento (evita um "flash" e mantém o foco onde estava).
+function mostrarOverlayExtracao(mostrar, mensagemPrincipal, mensagemSecundaria) {
     let overlay = document.getElementById('overlayExtracaoFoto');
+    const principal = mensagemPrincipal || 'Lendo o bilhete na imagem...';
+    const secundaria = mensagemSecundaria || 'Isso pode levar alguns segundos.';
     if (mostrar) {
-        if (overlay) return;
+        if (overlay) {
+            const textos = overlay.querySelectorAll('.foto-bilhete-box p');
+            if (textos[0]) textos[0].textContent = principal;
+            if (textos[1]) textos[1].textContent = secundaria;
+            return;
+        }
         overlay = document.createElement('div');
         overlay.id = 'overlayExtracaoFoto';
         overlay.className = 'foto-bilhete-overlay';
@@ -3675,8 +3801,8 @@ function mostrarOverlayExtracao(mostrar) {
         overlay.innerHTML = `
             <div class="foto-bilhete-box">
                 <div class="foto-bilhete-spinner" aria-hidden="true"></div>
-                <p style="margin:0;font-weight:600;">Lendo o bilhete na imagem...</p>
-                <p style="margin:6px 0 0;font-size:13px;color:var(--text-secondary);">Isso pode levar alguns segundos.</p>
+                <p style="margin:0;font-weight:600;">${principal}</p>
+                <p style="margin:6px 0 0;font-size:13px;color:var(--text-secondary);">${secundaria}</p>
             </div>`;
         document.body.appendChild(overlay);
     } else if (overlay) {
@@ -3724,7 +3850,7 @@ async function processarFotoBilhete(event) {
             dados.confiancaGeral.identificador = 0.95; // alta confiança — veio do nome do arquivo
         }
 
-        preencherFormularioComExtracao(dados, 'foto');
+        await preencherFormularioComExtracao(dados, 'foto');
     } finally {
         mostrarOverlayExtracao(false);
         input.value = ''; // permite selecionar a mesma imagem de novo, se preciso
@@ -3786,7 +3912,7 @@ async function processarTextoBilhete() {
         const dados = await resposta.json();
         if (!resposta.ok) throw new Error(dados.error || 'Erro ao processar o texto.');
 
-        preencherFormularioComExtracao(dados, 'texto');
+        await preencherFormularioComExtracao(dados, 'texto');
     } catch (err) {
         showToast('❌ Não foi possível ler o bilhete: ' + err.message, 'error', 9000);
         console.error('processarTextoBilhete erro:', err);
@@ -4042,7 +4168,7 @@ function garantirOpcaoLocal(field, valorBruto) {
     return true;
 }
 
-function preencherFormularioComExtracao(dados, origem) {
+async function preencherFormularioComExtracao(dados, origem) {
     extracaoAtualDados = dados;
     limparFormulario();
     limparAvisosExtracao();
@@ -4236,24 +4362,36 @@ function preencherFormularioComExtracao(dados, origem) {
 
         const primeiroRadioCasa = document.querySelector('#rg-casa input[type="radio"]');
         if (primeiroRadioCasa) primeiroRadioCasa.focus();
-
-        // Dispara a análise de risco/estatística automaticamente, sem bloquear
-        // a tela — só se a preferência "Analisar automaticamente" (Configurações)
-        // estiver ativada. Modo "automático" não mostra toast de erro se faltar
-        // algum dado, e não é exibido nenhum aviso caso a preferência esteja desligada.
-        if (analiseAutomaticaAtiva) {
-            setTimeout(() => analisarApostaAtual(true), 300);
-        }
     }
 
     // Preenche o formulário imediatamente. Itens que ainda não existem nas
     // listas aparecem como chips de sugestão (não bloqueia o preenchimento).
     aplicarExtracao();
+
+    // Busca automática de Liga e Data/Hora da Partida para eventos que a
+    // leitura do bilhete não conseguiu preencher (comum em bilhetes da
+    // Betano, que muitas vezes não trazem liga nem horário do confronto).
+    // Roda ANTES do Painel de Conferência ser exibido, para que ele já
+    // mostre os dados completos. Pode ser desligada em Configurações →
+    // 🔎 Liga e Horário; o botão manual "🔎 Buscar Liga/Horário" continua
+    // disponível a qualquer momento, independente desta opção.
+    if (buscaLigaHorarioAutomaticaAtiva) {
+        await buscarLigaHorarioAutomatico(dados);
+    }
+
     mostrarPainelConferencia(dados, origem);
     if (itensNovos.length > 0) {
         renderizarSugestoesNovosItens(itensNovos);
     } else {
         limparSugestoesNovosItens();
+    }
+
+    // Dispara a análise de risco/estatística automaticamente, sem bloquear a
+    // tela — só se a preferência "Analisar automaticamente" (Configurações)
+    // estiver ativada. Roda depois da busca de liga/horário acima, para que a
+    // análise já tenha a liga (quando encontrada) disponível no formulário.
+    if (analiseAutomaticaAtiva) {
+        setTimeout(() => analisarApostaAtual(true), 300);
     }
 }
 
@@ -4311,16 +4449,21 @@ function mostrarPainelConferencia(dados, origem) {
         linha('Stake', dados.stake != null ? formatarMoeda(dados.stake) : null, baixa('stake')),
     ];
 
-    const linhasEventos = (dados.eventos || []).flatMap((ev, i) => [
-        '',
-        `Evento ${i + 1}:`,
-        linha('Esporte', ev.esporte, false),
-        linha('Liga', ev.liga, ev.confiancaLiga != null && ev.confiancaLiga < LIMIAR_BAIXA_CONFIANCA),
-        linha('Evento', ev.evento, false),
-        linha('Mercados', ev.mercado, false),
-        linha('Seleção', ev.selecao, false),
-        linha('Odd', ev.odd, ev.confianca != null && ev.confianca < LIMIAR_BAIXA_CONFIANCA),
-    ]);
+    const linhasEventos = (dados.eventos || []).flatMap((ev, i) => {
+        const { data: dataPartida, hora: horaPartida } = separarDataHora(ev.dataEvento);
+        return [
+            '',
+            `Evento ${i + 1}:`,
+            linha('Esporte', ev.esporte, false),
+            linha('Liga', ev.liga, ev.confiancaLiga != null && ev.confiancaLiga < LIMIAR_BAIXA_CONFIANCA),
+            linha('Evento', ev.evento, false),
+            linha('Data da Partida', dataPartida, false),
+            linha('Hora da Partida', horaPartida, false),
+            linha('Mercados', ev.mercado, false),
+            linha('Seleção', ev.selecao, false),
+            linha('Odd', ev.odd, ev.confianca != null && ev.confianca < LIMIAR_BAIXA_CONFIANCA),
+        ];
+    });
 
     const textoCompleto = [...linhasGerais, ...linhasEventos].join('\n');
 
@@ -5130,6 +5273,7 @@ function renderResumo(dados) {
     // Painel global fixo no topo (todas as telas)
     if (globalGrid)  globalGrid.innerHTML  = html;
     if (globalWrap)  globalWrap.style.display = 'block';
+    aplicarEstadoResumoGlobal();
 }
 
 function renderTabela(dados) {
@@ -5524,6 +5668,9 @@ function renderConfiguracoes() {
 
     const chkAnaliseAuto = document.getElementById('config-analise-automatica');
     if (chkAnaliseAuto) chkAnaliseAuto.checked = analiseAutomaticaAtiva;
+
+    const chkBuscaLigaHorarioAuto = document.getElementById('config-busca-liga-horario-automatica');
+    if (chkBuscaLigaHorarioAuto) chkBuscaLigaHorarioAuto.checked = buscaLigaHorarioAutomaticaAtiva;
 
     const selProvedorBilhete = document.getElementById('config-provedor-bilhete');
     if (selProvedorBilhete) selProvedorBilhete.value = provedorBilhete;

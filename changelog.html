@@ -114,6 +114,26 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-29-1">v1.29.1</h2>
+  <p class="versao-data">31/08/2026</p>
+  <h3>Botão para recolher/expandir o Resumo do Filtro</h3>
+  <ul>
+    <li>O painel "📊 Resumo do Filtro" (fixo no topo, com os totais de entradas, ganhas, perdidas, abertas, stake, lucro, unidades, ROI e % de acerto) agora tem um botão para recolher e expandir, ao lado do título do painel.</li>
+    <li>O estado (recolhido ou expandido) fica salvo neste dispositivo/navegador — igual à paginação e à análise automática — e é lembrado da próxima vez que o app for aberto. Padrão: expandido.</li>
+    <li>Acessibilidade: o botão tem aria-label que muda entre "Recolher resumo do filtro" e "Expandir resumo do filtro", e aria-expanded reflete o estado atual — o símbolo visual (▲/▼) não é lido pelo leitor de tela, só o rótulo.</li>
+  </ul>
+  <h3>Busca automática de Liga e Horário da Partida (Foto/Texto)</h3>
+  <ul>
+    <li>Bilhetes que não trazem a liga e/ou o horário da partida no próprio bilhete (comum na Betano) agora têm esses dados buscados automaticamente com IA (busca na web), logo depois que a leitura do bilhete por Foto ou Texto termina — e antes do Painel de Conferência ser exibido, para que ele já mostre os dados completos.</li>
+    <li>Só busca eventos com o nome do Evento preenchido e a Liga OU a Data/Hora da Partida ainda vazias; eventos já completos (lidos certo pelo bilhete ou já corrigidos) não são sobrescritos. Reaproveita a mesma busca do botão manual "🔎 Buscar Liga/Horário", que continua disponível a qualquer momento.</li>
+    <li>Nova preferência em Configurações → "🔎 Liga e Horário da Partida (IA)", ligada por padrão — pode ser desligada se você preferir só usar o botão manual.</li>
+    <li>A análise de risco/estatística automática (quando ativada) agora roda depois dessa busca, para já ter a liga disponível ao analisar.</li>
+  </ul>
+  <h3>Painel de Conferência agora mostra a Data/Hora da Partida</h3>
+  <ul>
+    <li>O Painel de Conferência (janela persistente exibida após a leitura do bilhete) agora inclui, por evento, "Data da Partida" e "Hora da Partida" — além dos campos que já existiam (Esporte, Liga, Evento, Mercados, Seleção, Odd). Antes, só a data/hora de registro do bilhete (geral) aparecia.</li>
+  </ul>
+
   <h2 id="v1-29-0">v1.29.0</h2>
   <p class="versao-data">30/08/2026</p>
   <h3>Repaginação completa: "Checar Resultados" + "Checar Estatísticas" viram "🔎 Checar Apostas"</h3>

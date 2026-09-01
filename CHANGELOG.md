@@ -4,6 +4,46 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.29.1 — 31/08/2026
+
+### Botão para recolher/expandir o Resumo do Filtro
+
+- O painel "📊 Resumo do Filtro" (fixo no topo, com os totais de entradas,
+  ganhas, perdidas, abertas, stake, lucro, unidades, ROI e % de acerto) agora
+  tem um botão para recolher e expandir, ao lado do título do painel.
+- O estado (recolhido ou expandido) fica salvo neste dispositivo/navegador —
+  igual à paginação e à análise automática — e é lembrado da próxima vez que
+  o app for aberto. Padrão: expandido.
+- Acessibilidade: o botão tem `aria-label` que muda entre "Recolher resumo
+  do filtro" e "Expandir resumo do filtro", e `aria-expanded` reflete o
+  estado atual — o símbolo visual (▲/▼) não é lido pelo leitor de tela,
+  só o rótulo.
+
+### Busca automática de Liga e Horário da Partida (Foto/Texto)
+
+- Bilhetes que não trazem a liga e/ou o horário da partida no próprio
+  bilhete (comum na Betano) agora têm esses dados buscados automaticamente
+  com IA (busca na web), logo depois que a leitura do bilhete por Foto ou
+  Texto termina — e antes do Painel de Conferência ser exibido, para que ele
+  já mostre os dados completos.
+- Só busca eventos com o nome do Evento preenchido e a Liga OU a Data/Hora
+  da Partida ainda vazias; eventos já completos (lidos certo pelo bilhete ou
+  já corrigidos) não são sobrescritos. Reaproveita a mesma busca do botão
+  manual "🔎 Buscar Liga/Horário", que continua disponível a qualquer
+  momento.
+- Nova preferência em Configurações → "🔎 Liga e Horário da Partida (IA)",
+  ligada por padrão — pode ser desligada se você preferir só usar o botão
+  manual.
+- A análise de risco/estatística automática (quando ativada) agora roda
+  depois dessa busca, para já ter a liga disponível ao analisar.
+
+### Painel de Conferência agora mostra a Data/Hora da Partida
+
+- O Painel de Conferência (janela persistente exibida após a leitura do
+  bilhete) agora inclui, por evento, "Data da Partida" e "Hora da Partida" —
+  além dos campos que já existiam (Esporte, Liga, Evento, Mercados, Seleção,
+  Odd). Antes, só a data/hora de registro do bilhete (geral) aparecia.
+
 ## v1.29.0 — 30/08/2026
 
 ### Repaginação completa: "Checar Resultados" + "Checar Estatísticas" viram "🔎 Checar Apostas"
