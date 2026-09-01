@@ -1003,7 +1003,7 @@
             <div id="modalTextoBilhete" role="dialog" aria-modal="true" aria-labelledby="modalTextoTitulo" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:2000; align-items:center; justify-content:center; padding:16px;">
                 <div style="background:var(--card); border-radius:var(--radius); padding:24px; max-width:480px; width:100%; box-shadow:var(--shadow-lg);">
                     <h2 id="modalTextoTitulo" style="margin:0 0 8px; font-size:16px;">📋 Preencher por Texto</h2>
-                    <p style="margin:0 0 12px; font-size:13px; color:var(--text-secondary);">Cole abaixo o texto copiado do bilhete (Betano, Superbet, etc.). O app vai identificar os dados e preencher o formulário para revisão.</p>
+                    <p style="margin:0 0 12px; font-size:13px; color:var(--text-secondary);">Cole abaixo o texto copiado do bilhete (Betano, Superbet, etc.), ou cole um print/foto do bilhete — nos dois casos o app vai identificar os dados e preencher o formulário para revisão.</p>
                     <label for="inputTextoBilhete" class="sr-only">Texto do bilhete</label>
                     <textarea id="inputTextoBilhete" rows="10" style="width:100%; box-sizing:border-box; font-family:var(--font-ui); font-size:13px; padding:8px; border:1.5px solid var(--border); border-radius:6px; background:var(--input); color:var(--text); resize:vertical;" placeholder="Cole aqui o texto do bilhete..."></textarea>
                     <div class="btn-row" style="margin-top:12px; gap:8px; justify-content:flex-end;">
@@ -1869,6 +1869,7 @@ async function iniciarApp() {
     if (campoData) campoData.value = new Date().toISOString().slice(0,10);
     // Garantir que a seção de cadastro esteja visível no início
     irPara('cadastro', document.querySelector('.tab-btn[data-secao="cadastro"]'));
+    registrarColarImagemBilhete();
 
     showToast(`✅ Pronto para uso! ${apostas.length} aposta(s) carregada(s).`, 'success');
 }
@@ -3814,10 +3815,18 @@ async function processarFotoBilhete(event) {
     const input = event.target;
     const file = input.files && input.files[0];
     if (!file) return;
+    try {
+        await processarImagemBilhete(file);
+    } finally {
+        input.value = ''; // permite selecionar a mesma imagem de novo, se preciso
+    }
+}
 
+// Núcleo compartilhado pelo seletor de arquivo e por colar (Ctrl+V / long-press)
+// uma imagem do bilhete direto no campo de texto.
+async function processarImagemBilhete(file) {
     if (!file.type.startsWith('image/')) {
         showToast('⚠️ Selecione um arquivo de imagem (foto ou print do bilhete).', 'error');
-        input.value = '';
         return;
     }
 
@@ -3825,7 +3834,8 @@ async function processarFotoBilhete(event) {
     // A Superbet gera arquivos no padrão "ticket-XXXX-XXXXXX.png" (ex: ticket-891Q-YDC5PH.png),
     // onde o identificador é o trecho que casa com o padrão XXXX-XXXXXX (4+ chars, hífen, 4+ chars).
     // Isso é feito aqui (client-side) porque esse código não fica visível na imagem do bilhete.
-    const idDoNomeArquivo = extrairIdentificadorDoNomeArquivo(file.name);
+    // Imagens coladas geralmente não têm esse nome de arquivo, então isso simplesmente não se aplica.
+    const idDoNomeArquivo = extrairIdentificadorDoNomeArquivo(file.name || '');
 
     mostrarOverlayExtracao(true);
     try {
@@ -3853,8 +3863,48 @@ async function processarFotoBilhete(event) {
         await preencherFormularioComExtracao(dados, 'foto');
     } finally {
         mostrarOverlayExtracao(false);
-        input.value = ''; // permite selecionar a mesma imagem de novo, se preciso
     }
+}
+
+// ═══════════════════════════════════════════════════
+//  COLAR IMAGEM DO BILHETE no campo de texto — a pessoa tira print do
+//  bilhete e cola (Ctrl+V no Windows, ou toque-e-segure > Colar no
+//  iPhone) direto no mesmo campo onde colaria o texto do bilhete.
+//  Se o que foi colado for uma imagem, vai pelo fluxo de leitura por
+//  IA de imagem; se for texto normal, comportamento padrão do campo
+//  continua igual, sem nenhuma mudança.
+// ═══════════════════════════════════════════════════
+function extrairImagemDoClipboard(clipboardData) {
+    if (!clipboardData) return null;
+
+    if (clipboardData.files && clipboardData.files.length > 0) {
+        const arquivo = clipboardData.files[0];
+        if (arquivo.type && arquivo.type.startsWith('image/')) return arquivo;
+    }
+
+    if (clipboardData.items) {
+        for (const item of clipboardData.items) {
+            if (item.kind === 'file' && item.type && item.type.startsWith('image/')) {
+                const arquivo = item.getAsFile();
+                if (arquivo) return arquivo;
+            }
+        }
+    }
+    return null;
+}
+
+function registrarColarImagemBilhete() {
+    const campo = document.getElementById('inputTextoBilhete');
+    if (!campo) return;
+    campo.addEventListener('paste', function (e) {
+        const imagem = extrairImagemDoClipboard(e.clipboardData);
+        if (!imagem) return; // não é imagem: deixa colar o texto normalmente
+
+        e.preventDefault();
+        fecharModalTexto();
+        anunciar('Imagem do bilhete detectada. Lendo com a IA...');
+        processarImagemBilhete(imagem);
+    });
 }
 
 // Extrai o identificador do bilhete a partir do nome do arquivo.
@@ -3883,7 +3933,7 @@ function abrirModalTexto() {
     const modal = document.getElementById('modalTextoBilhete');
     modal.style.display = 'flex';
     setTimeout(() => { document.getElementById('inputTextoBilhete').focus(); }, 50);
-    anunciar('Modal aberto. Cole o texto do bilhete no campo e clique em Preencher.');
+    anunciar('Modal aberto. Cole o texto do bilhete, ou uma imagem do bilhete, no campo.');
 }
 
 function fecharModalTexto() {
