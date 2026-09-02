@@ -4,6 +4,36 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.29.5 — 02/09/2026
+
+### Correção de julgamento em mercados combinados (bilhete Superbet Copa do Brasil)
+
+Um bilhete de Finalizações + Chutes no Gol combinados foi lido pela IA como
+"Ganhou" quando na verdade tinha perdido — dois problemas foram
+identificados e corrigidos:
+
+- **Ordem de gravação:** em mercados combinados (ex.: "Chutes no gol,
+  Finalizações"), o campo `mercado` às vezes saía em ordem alfabética
+  enquanto o campo `selecao` saía na ordem do bilhete — isso quebra o
+  pareamento entre cada mercado e o valor apostado correspondente,
+  especialmente quando nenhuma condição tem nome de time pra servir de
+  referência. A instrução de leitura do bilhete foi reforçada com aviso
+  explícito e um exemplo real desse caso: os dois campos agora devem sempre
+  sair na mesma ordem, a ordem em que as condições aparecem no bilhete —
+  nunca alfabética.
+- **Julgamento por IA em mercados combinados:** o prompt que decide o
+  resultado (Ganhou/Perdeu) não tinha nenhuma regra explícita pra mercados
+  combinados por vírgula (só existia pra mercados unidos por "&"). Agora
+  essa regra existe: cada condição precisa ser verdadeira individualmente
+  pra o conjunto "Ganhar", e foi adicionada uma verificação obrigatória de
+  direção da comparação ("Menos de X" só ganha se o valor real for menor
+  que X) antes de concluir o resultado — evita a inversão lógica que causou
+  esse erro específico.
+
+O bilhete específico (Superbet, identificador 892W-1QVRUW) foi corrigido
+manualmente no banco de dados para "Perdeu", conforme o resultado oficial
+confirmado na casa de apostas.
+
 ## v1.29.4 — 01/09/2026
 
 ### Remoção da rota temporária de diagnóstico

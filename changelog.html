@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-29-5">v1.29.5</h2>
+  <p class="versao-data">02/09/2026</p>
+  <h3>Correção de julgamento em mercados combinados (bilhete Superbet Copa do Brasil)</h3>
+  <p>Um bilhete de Finalizações + Chutes no Gol combinados foi lido pela IA como "Ganhou" quando na verdade tinha perdido — dois problemas foram identificados e corrigidos:</p>
+  <ul>
+    <li><strong>Ordem de gravação:</strong> em mercados combinados (ex.: "Chutes no gol, Finalizações"), o campo <code>mercado</code> às vezes saía em ordem alfabética enquanto o campo <code>selecao</code> saía na ordem do bilhete — isso quebra o pareamento entre cada mercado e o valor apostado correspondente, especialmente quando nenhuma condição tem nome de time pra servir de referência. A instrução de leitura do bilhete foi reforçada com aviso explícito e um exemplo real desse caso: os dois campos agora devem sempre sair na mesma ordem, a ordem em que as condições aparecem no bilhete — nunca alfabética.</li>
+    <li><strong>Julgamento por IA em mercados combinados:</strong> o prompt que decide o resultado (Ganhou/Perdeu) não tinha nenhuma regra explícita pra mercados combinados por vírgula (só existia pra mercados unidos por "&"). Agora essa regra existe: cada condição precisa ser verdadeira individualmente pra o conjunto "Ganhar", e foi adicionada uma verificação obrigatória de direção da comparação ("Menos de X" só ganha se o valor real for menor que X) antes de concluir o resultado — evita a inversão lógica que causou esse erro específico.</li>
+  </ul>
+  <p>O bilhete específico (Superbet, identificador 892W-1QVRUW) foi corrigido manualmente no banco de dados para "Perdeu", conforme o resultado oficial confirmado na casa de apostas.</p>
+
   <h2 id="v1-29-4">v1.29.4</h2>
   <p class="versao-data">01/09/2026</p>
   <h3>Remoção da rota temporária de diagnóstico</h3>
