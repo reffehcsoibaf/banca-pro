@@ -188,6 +188,42 @@ CREATE POLICY "banca_correcoes_ia: somente o proprio usuario" ON public.banca_co
 
 
 -- ============================================================================
+-- banca_cache_partidas — cache local de Liga/Data-Hora por confronto (48h)
+-- ============================================================================
+-- Guarda, por até 48h a partir de quando foi salvo (não da data do jogo, para
+-- não confundir dois jogos diferentes entre os mesmos times em datas
+-- distintas), a Liga e a Data/Hora da Partida já conhecidas de um confronto
+-- (mesmo esporte + mesmos times, em qualquer ordem). Reaproveitado
+-- automaticamente ao preencher outro bilhete do MESMO jogo, sem gastar IA.
+-- "esporte" e "evento_chave" ficam normalizados (minúsculo, sem acento,
+-- times ordenados alfabeticamente) só para casar confrontos entre bilhetes;
+-- "evento_exibicao" guarda o confronto como apareceu, só para referência.
+CREATE TABLE public.banca_cache_partidas (
+    id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         uuid NOT NULL DEFAULT auth.uid() REFERENCES auth.users(id),
+    esporte         text NOT NULL,
+    evento_chave    text NOT NULL,
+    evento_exibicao text,
+    liga            text,
+    data_evento     timestamptz,
+    origem          text,
+    criado_em       timestamptz NOT NULL DEFAULT now(),
+    expira_em       timestamptz NOT NULL DEFAULT (now() + interval '48 hours'),
+    CONSTRAINT banca_cache_partidas_user_confronto_unique UNIQUE (user_id, esporte, evento_chave)
+);
+
+ALTER TABLE public.banca_cache_partidas ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "banca_cache_partidas: somente o proprio usuario" ON public.banca_cache_partidas
+    FOR ALL
+    USING (auth.uid() = user_id AND modulo_habilitado('banca'))
+    WITH CHECK (auth.uid() = user_id AND modulo_habilitado('banca'));
+
+CREATE INDEX banca_cache_partidas_busca_idx
+    ON public.banca_cache_partidas (user_id, esporte, evento_chave, expira_em);
+
+
+-- ============================================================================
 -- banca_ai_usage — contador de uso de IA por usuário, por finalidade
 -- ============================================================================
 CREATE TABLE public.banca_ai_usage (

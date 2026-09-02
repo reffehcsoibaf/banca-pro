@@ -4,6 +4,88 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.30.0 — 02/09/2026
+
+### Cache local de Liga/Data-Hora por confronto (substitui a busca automática por IA)
+
+A busca automática de Liga e Data/Hora da Partida (que rodava sozinha logo
+após preencher por Foto/Texto) não usa mais IA/busca na web — passou a
+reaproveitar um **cache local**, guardado no Supabase, do que já foi lido em
+bilhetes recentes do **mesmo confronto** (mesmo esporte, mesmos times, em
+qualquer ordem). Motivo: a inferência por IA para esses campos vinha
+gerando resultados pouco confiáveis.
+
+- **Nova tabela `banca_cache_partidas`:** guarda Liga e Data/Hora por
+  confronto, com validade de **48h a partir de quando foi salva** (não da
+  data do jogo — evita misturar dois jogos diferentes entre os mesmos times
+  em datas distintas). Toda vez que um evento sai com Liga e Data/Hora
+  completas — do próprio bilhete, de uma anotação manual (ver abaixo) ou de
+  uma leitura anterior do cache — os dados são gravados/atualizados aqui
+  automaticamente, sem ação manual.
+- **Preenchimento automático (Configurações → 🔎 Liga e Horário da Partida):**
+  agora consulta esse cache em vez de pesquisar na web. Só preenche eventos
+  com o nome do Evento preenchido e Liga ou Data/Hora ainda vazias; nunca
+  sobrescreve o que já está preenchido. Mesma preferência de antes
+  (`bancapro_buscaLigaHorarioAutomatica`), só muda a fonte dos dados.
+- **Anotação manual ao colar texto:** na opção "📋 Preencher por Texto",
+  agora é possível digitar, junto ao texto colado, a liga numa linha ACIMA
+  do confronto e a data/horário numa linha ABAIXO dele — a leitura do
+  bilhete reconhece esse padrão automaticamente e usa como fonte confiável
+  (não é mais preciso buscar/inferir depois). Útil para bilhetes que não
+  trazem essa informação (comum na Betano) quando você já conferiu os
+  dados na casa de apostas no momento de apostar.
+- **O que NÃO mudou:** o botão manual "🔎 Buscar Liga/Horário" (que
+  continua pesquisando na web com IA, via Sofascore/365scores) segue
+  disponível exatamente como antes, sem nenhuma alteração — inclusive não
+  grava no cache o que encontra (fica isolado do cache, de propósito, para
+  não alterar esse fluxo em nada).
+
+Requer aplicar a migração `supabase_migracao_v1.30.0.sql` no Supabase antes
+de publicar esta versão.
+
+## v1.29.5 — 02/09/2026
+
+### Correção de julgamento em mercados combinados (bilhete Superbet Copa do Brasil)
+
+Um bilhete de Finalizações + Chutes no Gol combinados foi lido pela IA como
+"Ganhou" quando na verdade tinha perdido — dois problemas foram
+identificados e corrigidos:
+
+- **Ordem de gravação:** em mercados combinados (ex.: "Chutes no gol,
+  Finalizações"), o campo `mercado` às vezes saía em ordem alfabética
+  enquanto o campo `selecao` saía na ordem do bilhete — isso quebra o
+  pareamento entre cada mercado e o valor apostado correspondente,
+  especialmente quando nenhuma condição tem nome de time pra servir de
+  referência. A instrução de leitura do bilhete foi reforçada com aviso
+  explícito e um exemplo real desse caso: os dois campos agora devem sempre
+  sair na mesma ordem, a ordem em que as condições aparecem no bilhete —
+  nunca alfabética.
+- **Julgamento por IA em mercados combinados:** o prompt que decide o
+  resultado (Ganhou/Perdeu) não tinha nenhuma regra explícita pra mercados
+  combinados por vírgula (só existia pra mercados unidos por "&"). Agora
+  essa regra existe: cada condição precisa ser verdadeira individualmente
+  pra o conjunto "Ganhar", e foi adicionada uma verificação obrigatória de
+  direção da comparação ("Menos de X" só ganha se o valor real for menor
+  que X) antes de concluir o resultado — evita a inversão lógica que causou
+  esse erro específico.
+
+O bilhete específico (Superbet, identificador 892W-1QVRUW) foi corrigido
+manualmente no banco de dados para "Perdeu", conforme o resultado oficial
+confirmado na casa de apostas.
+
+## v1.29.4 — 01/09/2026
+
+### Remoção da rota temporária de diagnóstico
+
+Testamos em produção o parâmetro `ids` da API-Football (que permitiria
+buscar estatísticas de várias partidas numa chamada só) e a própria API
+confirmou que ele **não está disponível no plano gratuito** ("Free plans do
+not have access to the Ids parameter"). Como essa otimização não é viável
+no plano atual, a rota interna `/api/debug-fixture-ids` criada na v1.29.3
+para esse teste foi removida. A solução real para o erro de limite de
+requisições continua sendo a da v1.29.2 (espaçamento entre chamadas +
+retentativa automática), que já está em produção.
+
 ## v1.29.3 — 01/09/2026
 
 ### Rota interna temporária de diagnóstico (não é uma funcionalidade do app)

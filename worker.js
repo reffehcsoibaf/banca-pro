@@ -32,7 +32,7 @@ const SCHEMA_JSON = `
       "liga": "string ou null (nome do campeonato/liga)",
       "evento": "string (nome do confronto, ex: Time A - Time B)",
       "dataEvento": "string no formato AAAA-MM-DDTHH:MM ou null (DATA/HORA DO JOGO em si, distinta da data de registro do bilhete — ver regra DATA DO JOGO abaixo)",
-      "mercado": "string — um nome da lista de mercados cadastrados (ver MAPEAMENTO DE MERCADOS). Se o evento combinar VÁRIAS condições cujos mercados são todos reconhecidos na lista, use os nomes reconhecidos separados por ', ' (ex.: \"Gols, Escanteios\") em vez de 'Criador de Apostas' — ver regra CRIADOR DE APOSTAS abaixo.",
+      "mercado": "string — um nome da lista de mercados cadastrados (ver MAPEAMENTO DE MERCADOS). Se o evento combinar VÁRIAS condições cujos mercados são todos reconhecidos na lista, use os nomes reconhecidos separados por ', ' NA ORDEM EM QUE AS CONDIÇÕES APARECEM NO BILHETE (ex.: \"Gols, Escanteios\") — NUNCA reordene em ordem alfabética. O campo 'selecao' correspondente DEVE seguir exatamente essa mesma ordem, condição por condição — ver regra CRIADOR DE APOSTAS abaixo.",
       "selecao": "string (a seleção escolhida, ex: nome do time, Mais de 2.5, etc.)",
       "odd": "number (a odd daquele evento)",
       "confianca": "number entre 0 e 1, sua confiança nessa leitura específica",
@@ -245,6 +245,10 @@ Regra especial — CRIADOR DE APOSTAS / MÚLTIPLAS CONDIÇÕES NO MESMO CONFRONT
   2. Se TODAS as condições do confronto tiverem mercado reconhecido: "mercado" = os nomes reconhecidos, na ordem do bilhete, separados por ", " (ex.: "Gols, Escanteios"). NÃO use "Criador de Apostas" nesse caso — o Banca Pro já permite marcar múltiplos mercados no mesmo evento, então prefira sempre os nomes reais dos mercados quando eles existem na lista.
   3. Se PELO MENOS UMA condição não tiver mercado reconhecido na lista (nem variação aproximada clara), aí sim use "mercado" = "Criador de Apostas" para o confronto inteiro (mesmo que outras condições daquele confronto sejam reconhecidas) — mais simples e seguro do que misturar nomes reais com um item não mapeado.
   - Em ambos os casos: "selecao" = todas as condições unidas com ", " na ordem do bilhete; "odd" = a odd combinada do conjunto (não a soma das individuais).
+  - ATENÇÃO CRÍTICA (erro recorrente): "mercado" e "selecao" precisam estar na MESMA ordem — a ordem em que as condições aparecem no bilhete, de cima para baixo. NUNCA reordene "mercado" em ordem alfabética (é o erro mais comum: colocar "Chutes no gol" antes de "Finalizações" só porque C vem antes de F na lista de mapeamento, mesmo quando o bilhete mostra Finalizações primeiro). Isso é especialmente crítico quando NENHUMA das condições tem nome de time na seleção (ex.: duas estatísticas do jogo inteiro combinadas) — nesse caso não sobra nenhuma pista pra saber depois qual valor pertence a qual mercado, então a ordem é a ÚNICA informação que garante o pareamento correto.
+    Exemplo (bilhete mostra, nessa ordem: "Menos de 27.5" / "Total de Finalizações", depois "Menos de 9.5" / "Total de Chutes no Gol"):
+    CORRETO → mercado: "Finalizações, Chutes no gol", selecao: "Menos de 27.5, Menos de 9.5" (mesma ordem nos dois campos, igual ao bilhete)
+    ERRADO → mercado: "Chutes no gol, Finalizações" (reordenado alfabeticamente) com selecao: "Menos de 27.5, Menos de 9.5" (ordem do bilhete) — os dois campos ficam em ordens diferentes e a informação de qual valor é de qual mercado se perde.
 
 Regra especial — SUPERBET NO APP MÓVEL (tela "Cupom de Aposta"):
 - Um cabeçalho vermelho "CUPOM DE APOS..." no topo indica esse formato específico (print do aplicativo, não do site).
@@ -352,6 +356,22 @@ ODDS TOTAIS1.84APOSTA2,00R$
 → Nota: "1º Tempo - Finalizações 1X2" na Superbet corresponde ao mercado "Intervalo" na lista cadastrada.
 
 Observação para texto da Betano: o padrão é geralmente "SeleçãoODD" colado (ex: "Grêmio1.62"), seguido do mercado na linha seguinte, e depois o confronto ("Time A - Time B"). Extraia o confronto exatamente nesse formato, com hífen entre os nomes: "Time A - Time B".
+
+Regra especial — ANOTAÇÃO MANUAL DE LIGA/HORÁRIO (só quando existir, no texto colado):
+- Além do texto oficial copiado da casa de apostas, o usuário às vezes acrescenta manualmente, junto ao texto que cola, uma linha com o nome da liga/competição bem ACIMA do confronto ("Time A - Time B"), e/ou uma linha com a data e/ou horário do jogo bem ABAIXO do confronto — informação que ele mesmo conferiu na casa de apostas no momento de apostar, mas que a casa não imprime no bilhete (comum na Betano).
+- Essas linhas normalmente NÃO fazem parte do layout padrão de nenhuma casa (Betano/Superbet/Betfair): não têm ícones, códigos, odds coladas nem os rótulos típicos de interface que aparecem no resto do texto colado — são só uma linha simples de texto digitada pelo usuário, com o nome de uma liga (ex.: "Brasil - Série A") ou com uma data/horário (ex.: "02/09 20:00", "hoje 20h", "02/09/2026").
+- Quando reconhecer esse padrão junto a um confronto específico: use o valor da linha ACIMA como "liga" e o valor da linha ABAIXO como "dataEvento" (convertendo para o formato AAAA-MM-DDTHH:MM, assumindo o ano da data de registro do bilhete quando vier só dia/mês — mesma regra de ano usada em "DATA DO JOGO" acima) desse evento, com confiancaLiga 1.0 e confiança alta para o evento — é informação que o próprio usuário confirmou pessoalmente, mais confiável que qualquer inferência sua pelo nome dos times.
+- NÃO aplique esta regra se a liga e/ou a data/horário do jogo já vierem no formato padrão e oficial da própria casa de apostas (ex.: liga já escrita do jeito típico da Superbet) — nesse caso use a regra "LIGA" normal (ou a regra "DATA DO JOGO" normal) acima; a anotação manual só entra em jogo quando a casa não trouxe essa informação no próprio bilhete.
+- Exemplo:
+"""
+Brasil - Série A
+Grêmio1.62
+Resultado Final
+Grêmio - Atlético-GO
+02/09 20:00
+Ganhou devido ao pagamento antecipado
+"""
+→ "Brasil - Série A" (linha acima do confronto) é a liga digitada manualmente pelo usuário, e "02/09 20:00" (linha abaixo do confronto) é a data/horário do jogo digitada manualmente → liga: "Brasil - Série A" (confiancaLiga 1.0), dataEvento: "2026-09-02T20:00" (assumindo o ano da data de registro deste bilhete).
 
 Agora extraia os dados do texto do bilhete que será enviado a seguir, na mensagem do usuário, e devolva ESTRITAMENTE um JSON válido no seguinte formato:
 ${SCHEMA_JSON}
@@ -562,11 +582,7 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    // '/api/debug-fixture-ids' é TEMPORÁRIA (diagnóstico do formato da
-    // API-Football em /fixtures?ids=... — ver handleDebugFixtureIds) e deve
-    // ser removida assim que confirmarmos o formato e implementarmos o uso
-    // real dele em handleCheckApostas.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas', '/api/debug-fixture-ids'];
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -580,12 +596,6 @@ async function handleFetch(request, env, ctx) {
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers });
-    }
-
-    // Rota temporária de diagnóstico — GET direto pelo navegador, sem passar
-    // pela checagem de acesso de IA (não usa IA nenhuma, só API-Football).
-    if (url.pathname === '/api/debug-fixture-ids') {
-      return await handleDebugFixtureIds(url, env, headers);
     }
 
     if (request.method !== 'POST') {
@@ -1239,6 +1249,8 @@ Regras:
 - "Ganho Parcial"/"Perda Parcial" só se aplicam quando a linha de handicap ou total é "de quarto" (ex.: -0.25, -0.75, 2.25, 2.75) e a aposta cobre só metade do valor.
 - "Anulada" (push) só se aplica quando a linha inteira empata exatamente com o resultado apostado.
 - Mercados com "&" no nome (ex.: "Resultado Final & Total de Gols", "Chance Dupla & Total de Gols") são mercados COMPOSTOS: TODAS as condições unidas pelo "&" precisam ser verdadeiras para "Ganhou" — se qualquer uma falhar, é "Perdeu" (aplique "Ganho Parcial"/"Anulada" apenas se uma das condições individualmente permitir isso, seguindo a regra de linha de quarto/push acima).
+- Mercado com VÍRGULA no nome (ex.: "Chutes no gol, Finalizações") também é COMPOSTO, mesma regra do "&" acima: cada nome de mercado antes de uma vírgula corresponde, NA MESMA POSIÇÃO, a uma condição na "Seleção apostada" (que também vem separada por vírgula) — TODAS precisam ser verdadeiras para "Ganhou"; se qualquer uma falhar, é "Perdeu". Resolva CADA condição separadamente usando o dado bruto correspondente daquele mercado específico antes de combinar o resultado final, e cite no "motivo" o valor bruto usado em cada uma (ex.: "Finalizações: 18+12=30, excedeu 27.5 → perdeu essa condição; não precisa checar a outra.").
+- VERIFICAÇÃO OBRIGATÓRIA ANTES DE RESPONDER (evita o erro mais comum): depois de calcular o valor real de cada condição, releia a seleção apostada e confirme a direção literalmente — "Menos de X" só GANHA se o valor real for MENOR que X (se o valor real for igual ou maior, é "Perdeu"); "Mais de X" só GANHA se o valor real for MAIOR que X (se for igual ou menor, é "Perdeu"). Nunca conclua "Ganhou" para uma condição sem antes reconferir essa comparação explicitamente.
 - Mercado "Ganhar qualquer um dos Tempos" (ou variação de texto equivalente): GANHA se o time apostado venceu o 1º tempo OU o 2º tempo (não precisa ser os dois) — use o placar do intervalo (1º tempo) e a diferença entre o placar final e o do intervalo (2º tempo) para verificar cada metade separadamente. Se o placar do intervalo não estiver disponível, esse mercado é "Indeterminado".
 - Mercado "Cartões": ao somar amarelos + vermelhos, o critério de contagem pode variar entre casas de apostas (ex.: 2º amarelo que também vira vermelho pode contar 1 ou 2 vezes dependendo da casa) — julgue com o critério mais comum (soma simples de todos os cartões amarelos e vermelhos mostrados nas estatísticas) e mencione essa ressalva no "motivo" quando o mercado for Cartões.`;
 
@@ -1540,67 +1552,13 @@ function resolverMercadoEstatisticas(mercado, selecao, ctx) {
 // dia, não por evento) e por PARTIDA distinta pra estatísticas (1 chamada por
 // jogo, não por evento — jogos repetidos entre apostas do mesmo lote não
 // geram chamada extra).
-
-// ==================== DIAGNÓSTICO TEMPORÁRIO — FORMATO DE /fixtures?ids= ====================
-// ROTA TEMPORÁRIA — remover depois de confirmarmos o formato e implementarmos
-// o uso real dele em handleCheckApostas.
 //
-// Objetivo: inspecionar exatamente como a API-Football devolve estatísticas
-// quando consultamos várias partidas de uma vez via
-// /fixtures?ids=ID1-ID2-ID3 (documentado como retornando eventos, escalação,
-// ESTATÍSTICAS e jogadores embutidos, ao contrário de /fixtures?date=...,
-// que só traz os dados básicos do jogo). Se confirmado, isso substitui N
-// chamadas individuais a /fixtures/statistics (1 por jogo) por 1 única
-// chamada em lote (até 20 jogos), reduzindo bastante o consumo de cota.
-//
-// Uso: GET /api/debug-fixture-ids?data=YYYY-MM-DD&qtd=3
-//   - data: uma data no passado com jogos já finalizados (padrão: ontem)
-//   - qtd: quantos jogos incluir no teste em lote (padrão: 3, máx. 5)
-async function handleDebugFixtureIds(url, env, headers) {
-  if (!env.API_FOOTBALL_KEY) {
-    return new Response(JSON.stringify({ error: 'API_FOOTBALL_KEY não configurada no servidor.' }), { status: 500, headers });
-  }
-
-  const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const data = url.searchParams.get('data') || ontem.toISOString().slice(0, 10);
-  const qtd = Math.min(Math.max(Number(url.searchParams.get('qtd')) || 3, 1), 5);
-
-  const estado = { numChamadas: 0, cotaDiariaEsgotada: false };
-
-  // Passo 1: pegar alguns fixture IDs reais e finalizados dessa data.
-  const respData = await chamarApiFootball(
-    `https://v3.football.api-sports.io/fixtures?date=${data}&timezone=America/Sao_Paulo&status=FT-AET-PEN`,
-    env, estado
-  );
-  if (!respData.ok) {
-    return new Response(JSON.stringify({ etapa: 'busca-por-data', erro: respData.erro }, null, 2), { status: 200, headers });
-  }
-  const fixturesDaData = (respData.dados.response || []).slice(0, qtd);
-  if (!fixturesDaData.length) {
-    return new Response(JSON.stringify({
-      etapa: 'busca-por-data',
-      aviso: `Nenhum jogo finalizado encontrado em ${data}. Tente outra data com ?data=YYYY-MM-DD.`
-    }, null, 2), { status: 200, headers });
-  }
-  const ids = fixturesDaData.map(f => f.fixture.id);
-
-  // Passo 2: a chamada que queremos inspecionar — várias partidas de uma vez.
-  const respLote = await chamarApiFootball(
-    `https://v3.football.api-sports.io/fixtures?ids=${ids.join('-')}`,
-    env, estado
-  );
-  if (!respLote.ok) {
-    return new Response(JSON.stringify({ etapa: 'busca-em-lote', idsConsultados: ids, erro: respLote.erro }, null, 2), { status: 200, headers });
-  }
-
-  return new Response(JSON.stringify({
-    etapa: 'sucesso',
-    dataConsultada: data,
-    idsConsultados: ids,
-    respostaCrua: respLote.dados
-  }, null, 2), { status: 200, headers });
-}
-
+// NOTA: cogitamos usar /fixtures?ids=... pra buscar estatísticas de várias
+// partidas numa chamada só, mas a própria API-Football confirmou que esse
+// parâmetro não está disponível no plano gratuito ("Free plans do not have
+// access to the Ids parameter"). Por isso a estratégia continua sendo 1
+// chamada por partida distinta, com o espaçamento e a retentativa de
+// chamarApiFootball cuidando do limite de 10/minuto.
 
 async function handleCheckApostas(payload, env, headers) {
   if (!env.API_FOOTBALL_KEY) {
