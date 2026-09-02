@@ -1558,7 +1558,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.29.5 · 02/09/2026
+  Banca Pro · v1.29.6 · 02/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1729,6 +1729,63 @@ function mercadosDoEsporte(esporte) {
         .filter(v => mercadoDecompor(v).esporte === esporte)
         .sort((a,b) => mercadoNomeExibicao(a).localeCompare(mercadoNomeExibicao(b)));
 }
+
+// ---- Ordem dos mercados combinados dentro de um evento ----
+// A lista de checkboxes de mercado é sempre exibida em ordem alfabética (pra ser
+// fácil de encontrar visualmente), mas quando várias condições do MESMO evento são
+// combinadas (ex.: "Gols, Escanteios"), a ordem em que elas foram marcadas/vieram do
+// bilhete original precisa ser preservada — NUNCA a ordem alfabética/DOM da lista de
+// opções. Isso é feito guardando um índice em data-ordem-mercado em cada checkbox.
+//
+// marcarMercadosNaOrdem: aplica .checked + data-ordem-mercado a partir de uma lista
+// JÁ NA ORDEM correta (ex.: vinda do bilhete, da IA, ou já salva no banco).
+function marcarMercadosNaOrdem(merDiv, nomesEmOrdem) {
+    if (!merDiv) return;
+    const porValor = new Map();
+    merDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.removeAttribute('data-ordem-mercado');
+        porValor.set(cb.value, cb);
+    });
+    (nomesEmOrdem || []).forEach((nome, i) => {
+        const cb = porValor.get(nome);
+        if (cb) { cb.checked = true; cb.setAttribute('data-ordem-mercado', String(i + 1)); }
+    });
+}
+
+// lerMercadosEmOrdem: lê os checkboxes marcados respeitando data-ordem-mercado.
+// Um checkbox marcado sem esse atributo (ex.: clicado manualmente antes de existir
+// a delegação de evento, ou algum fluxo legado) vai pro fim, na ordem em que aparece
+// no DOM — nunca antes de um mercado com ordem já conhecida.
+function lerMercadosEmOrdem(merDiv) {
+    if (!merDiv) return [];
+    return Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked'))
+        .map((cb, i) => ({
+            valor: cb.value,
+            ordem: cb.hasAttribute('data-ordem-mercado') ? parseInt(cb.getAttribute('data-ordem-mercado'), 10) : (100000 + i)
+        }))
+        .sort((a, b) => a.ordem - b.ordem)
+        .map(x => x.valor);
+}
+
+// Delegação única: sempre que o usuário marcar/desmarcar manualmente um checkbox de
+// mercado (clique direto, sem passar por marcarMercadosNaOrdem), atualiza
+// data-ordem-mercado pra refletir a ordem real do clique. Ao marcar, entra como o
+// último da lista atual; ao desmarcar, perde a posição (se marcado de novo depois,
+// volta a entrar como o mais recente).
+document.addEventListener('change', (evt) => {
+    const cb = evt.target;
+    if (!cb.matches || !cb.matches('.option-group.mercado input[type="checkbox"]')) return;
+    const merDiv = cb.closest('.option-group.mercado');
+    if (!merDiv) return;
+    if (!cb.checked) { cb.removeAttribute('data-ordem-mercado'); return; }
+    let maxOrdem = 0;
+    merDiv.querySelectorAll('input[type="checkbox"][data-ordem-mercado]').forEach(outro => {
+        const o = parseInt(outro.getAttribute('data-ordem-mercado'), 10);
+        if (!isNaN(o) && o > maxOrdem) maxOrdem = o;
+    });
+    cb.setAttribute('data-ordem-mercado', String(maxOrdem + 1));
+});
 
 /* ==================== INIT ==================== */
 let appJaIniciado = false;
@@ -3121,7 +3178,7 @@ async function addDynamicOption(field, button) {
             if (eventDiv) {
                 const merDiv = eventDiv.querySelector('.mercado');
                 const cb = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor) : null;
-                if (cb) cb.checked = true;
+                if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
             }
         }, 50);
         showToast(`✅ "${r.valor}" adicionado em ${esporte}`, 'success');
@@ -3233,15 +3290,16 @@ function updateDynamicSelects(field) {
             const merDiv = eventDiv.querySelector('.mercado.option-group');
             const selEsp = eventDiv.querySelector('.esporteEvento');
             if (!merDiv || !selEsp) return;
-            const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+            const checked = lerMercadosEmOrdem(merDiv);
             const opcoes = mercadosDoEsporte(selEsp.value);
             if (opcoes.length === 0) {
                 merDiv.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);">Nenhum mercado cadastrado para ${selEsp.value}</span>`;
             } else {
                 merDiv.innerHTML = opcoes.map(v => {
                     const nome = mercadoNomeExibicao(v);
-                    return `<label><input type="checkbox" value="${nome}" ${checked.includes(nome)?'checked':''}><span>${nome}</span></label>`;
+                    return `<label><input type="checkbox" value="${nome}"><span>${nome}</span></label>`;
                 }).join('');
+                marcarMercadosNaOrdem(merDiv, checked);
             }
         });
     } else if (field === 'liga') {
@@ -3293,7 +3351,7 @@ function atualizarLigasDoEvento(selectEsporte) {
 
     const merDiv = div.querySelector('.mercado');
     if (merDiv) {
-        const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        const checked = lerMercadosEmOrdem(merDiv);
         const opcoesMercado = esporteEhOutro ? [] : mercadosDoEsporte(esporte);
         if (opcoesMercado.length === 0) {
             const msg = esporteEhOutro ? 'Nenhum mercado cadastrado (esporte digitado manualmente)' : `Nenhum mercado cadastrado para ${esporte}`;
@@ -3301,8 +3359,9 @@ function atualizarLigasDoEvento(selectEsporte) {
         } else {
             merDiv.innerHTML = opcoesMercado.map(v => {
                 const nome = mercadoNomeExibicao(v);
-                return `<label><input type="checkbox" value="${nome}" ${checked.includes(nome)?'checked':''}><span>${nome}</span></label>`;
+                return `<label><input type="checkbox" value="${nome}"><span>${nome}</span></label>`;
             }).join('');
+            marcarMercadosNaOrdem(merDiv, checked);
         }
     }
 }
@@ -3613,7 +3672,7 @@ function coletarDadosApostaParaAnalise() {
         const liga = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
         const evento = div.querySelector('.evento') ? div.querySelector('.evento').value : '';
         const merDiv = div.querySelector('.mercado');
-        const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
+        const mercado = merDiv ? lerMercadosEmOrdem(merDiv).join(', ') : '';
         const selecao = div.querySelector('.selecao') ? div.querySelector('.selecao').value : '';
         const odd = div.querySelector('.odd') ? parseFloat2(div.querySelector('.odd').value) : 0;
         if (evento || mercado || odd > 0) {
@@ -4195,11 +4254,10 @@ function reaplicarItemNoFormulario(item, valorFinal) {
                 // Reconstrói as opções mas preserva os mercados já marcados nesse
                 // evento antes de adicionar o recém-aprovado (evita desmarcar
                 // outros mercados que já estavam certos nessa mesma lista).
-                const jaMarcados = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+                const jaMarcados = lerMercadosEmOrdem(merDiv);
+                if (!jaMarcados.includes(valorFinal)) jaMarcados.push(valorFinal);
                 merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v => `<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
-                Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
-                    if (jaMarcados.includes(cb.value) || cb.value === valorFinal) cb.checked = true;
-                });
+                marcarMercadosNaOrdem(merDiv, jaMarcados);
                 marcarCampoComoNovo(merDiv);
             }
         }
@@ -4362,15 +4420,20 @@ async function preencherFormularioComExtracao(dados, origem) {
                 const merDiv = bloco.querySelector('.mercado');
                 merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v=>`<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
                 let algumPendente = false;
+                // nomesMercado já está na ordem do bilhete (garantida pelo prompt da IA) —
+                // marcarMercadosNaOrdem preserva essa ordem via data-ordem-mercado, em vez
+                // de deixar a leitura posterior cair na ordem alfabética da lista de opções.
+                const nomesResolvidos = [];
                 nomesMercado.forEach(nomeMercado => {
                     const r = buscarOuPrepararValor(mercadosExibicao, nomeMercado);
-                    const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor);
-                    if (cb) {
-                        cb.checked = true;
+                    const existe = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).some(c => c.value === r.valor);
+                    if (existe) {
+                        nomesResolvidos.push(r.valor);
                     } else if (itensNovos.some(i => i.field === 'mercado' && i.valor === r.valor && i.esporte === ev.esporte)) {
                         algumPendente = true;
                     }
                 });
+                marcarMercadosNaOrdem(merDiv, nomesResolvidos);
                 if (algumPendente) marcarCampoBaixaConfianca(merDiv);
             }
 
@@ -4884,7 +4947,7 @@ async function salvar() {
         const liga    = valorEfetivoComOutro(e.querySelector(".ligaEvento"), 'ligaEventoOutro');
         // mercado: checkboxes
         const merDiv  = e.querySelector(".mercado");
-        const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
+        const mercado = merDiv ? lerMercadosEmOrdem(merDiv).join(', ') : '';
 
         const campoDataEvento = e.querySelector(".dataEventoEvento");
         listaEventos.push({
@@ -5001,10 +5064,12 @@ function editar(idx) {
         atualizarLigasDoEvento(selEsporte);
         aplicarValorComOutro(e.querySelector(".ligaEvento"), 'ligaEventoOutro', ev.liga);
         e.querySelector(".evento").value = ev.evento;
-        // Restaurar mercados (checkboxes)
-        const mercadosEv = (ev.mercado || '').split(', ').filter(Boolean);
+        // Restaurar mercados (checkboxes), preservando a ordem original salva
+        // (data-ordem-mercado) — sem isso, salvar de novo sem tocar nos mercados
+        // reordenaria tudo alfabeticamente.
+        const mercadosEv = (ev.mercado || '').split(',').map(m => m.trim()).filter(Boolean);
         const merDiv = e.querySelector(".mercado");
-        if (merDiv) merDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = mercadosEv.includes(cb.value); });
+        marcarMercadosNaOrdem(merDiv, mercadosEv);
         e.querySelector(".selecao").value = ev.selecao || '';
         e.querySelector(".odd").value = ev.odd;
         const campoDataEvento = e.querySelector(".dataEventoEvento");

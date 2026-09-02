@@ -4,6 +4,32 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.29.6 — 02/09/2026
+
+### Ordem dos mercados combinados agora é preservada no formulário (não só na leitura por IA)
+
+A v1.29.5 corrigiu a instrução da IA para nunca reordenar mercados combinados
+em ordem alfabética, mas o formulário manual (marcar/desmarcar checkboxes de
+mercado) ainda tinha o mesmo problema: a lista de checkboxes é sempre exibida
+em ordem alfabética (pra facilitar achar visualmente), e ao salvar, os
+mercados marcados eram lidos na ordem em que apareciam na tela — não na
+ordem em que foram marcados nem na ordem do bilhete original. Isso afetava:
+
+- **Preenchimento manual** de uma aposta com mercados combinados: marcar as
+  caixas fora de ordem alfabética não tinha efeito — o valor salvo sempre
+  saía em ordem alfabética.
+- **Edição de uma aposta já salva**: reabrir uma aposta com mercados
+  combinados e salvar de novo (mesmo sem tocar no campo Mercado)
+  silenciosamente reordenava os mercados em ordem alfabética, podendo
+  quebrar o pareamento com o campo Seleção em casos sem nome de time.
+- **Revisão/aprovação de um mercado novo** sugerido pela extração por IA.
+
+Corrigido guardando a ordem real (de marcação ou já salva) em cada checkbox
+via `data-ordem-mercado`, e usando essa ordem — nunca a ordem alfabética da
+lista de opções — em todo lugar que grava ou relê os mercados marcados de um
+evento (extração por IA, edição, salvar, análise de aposta, e reconstrução
+da lista ao trocar o esporte do evento).
+
 ## v1.29.5 — 02/09/2026
 
 ### Correção de julgamento em mercados combinados (bilhete Superbet Copa do Brasil)
