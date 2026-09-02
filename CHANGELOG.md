@@ -4,6 +4,19 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.29.4 — 01/09/2026
+
+### Remoção da rota temporária de diagnóstico
+
+Testamos em produção o parâmetro `ids` da API-Football (que permitiria
+buscar estatísticas de várias partidas numa chamada só) e a própria API
+confirmou que ele **não está disponível no plano gratuito** ("Free plans do
+not have access to the Ids parameter"). Como essa otimização não é viável
+no plano atual, a rota interna `/api/debug-fixture-ids` criada na v1.29.3
+para esse teste foi removida. A solução real para o erro de limite de
+requisições continua sendo a da v1.29.2 (espaçamento entre chamadas +
+retentativa automática), que já está em produção.
+
 ## v1.29.3 — 01/09/2026
 
 ### Rota interna temporária de diagnóstico (não é uma funcionalidade do app)

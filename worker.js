@@ -562,11 +562,7 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    // '/api/debug-fixture-ids' é TEMPORÁRIA (diagnóstico do formato da
-    // API-Football em /fixtures?ids=... — ver handleDebugFixtureIds) e deve
-    // ser removida assim que confirmarmos o formato e implementarmos o uso
-    // real dele em handleCheckApostas.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas', '/api/debug-fixture-ids'];
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -580,12 +576,6 @@ async function handleFetch(request, env, ctx) {
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers });
-    }
-
-    // Rota temporária de diagnóstico — GET direto pelo navegador, sem passar
-    // pela checagem de acesso de IA (não usa IA nenhuma, só API-Football).
-    if (url.pathname === '/api/debug-fixture-ids') {
-      return await handleDebugFixtureIds(url, env, headers);
     }
 
     if (request.method !== 'POST') {
@@ -1540,67 +1530,13 @@ function resolverMercadoEstatisticas(mercado, selecao, ctx) {
 // dia, não por evento) e por PARTIDA distinta pra estatísticas (1 chamada por
 // jogo, não por evento — jogos repetidos entre apostas do mesmo lote não
 // geram chamada extra).
-
-// ==================== DIAGNÓSTICO TEMPORÁRIO — FORMATO DE /fixtures?ids= ====================
-// ROTA TEMPORÁRIA — remover depois de confirmarmos o formato e implementarmos
-// o uso real dele em handleCheckApostas.
 //
-// Objetivo: inspecionar exatamente como a API-Football devolve estatísticas
-// quando consultamos várias partidas de uma vez via
-// /fixtures?ids=ID1-ID2-ID3 (documentado como retornando eventos, escalação,
-// ESTATÍSTICAS e jogadores embutidos, ao contrário de /fixtures?date=...,
-// que só traz os dados básicos do jogo). Se confirmado, isso substitui N
-// chamadas individuais a /fixtures/statistics (1 por jogo) por 1 única
-// chamada em lote (até 20 jogos), reduzindo bastante o consumo de cota.
-//
-// Uso: GET /api/debug-fixture-ids?data=YYYY-MM-DD&qtd=3
-//   - data: uma data no passado com jogos já finalizados (padrão: ontem)
-//   - qtd: quantos jogos incluir no teste em lote (padrão: 3, máx. 5)
-async function handleDebugFixtureIds(url, env, headers) {
-  if (!env.API_FOOTBALL_KEY) {
-    return new Response(JSON.stringify({ error: 'API_FOOTBALL_KEY não configurada no servidor.' }), { status: 500, headers });
-  }
-
-  const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const data = url.searchParams.get('data') || ontem.toISOString().slice(0, 10);
-  const qtd = Math.min(Math.max(Number(url.searchParams.get('qtd')) || 3, 1), 5);
-
-  const estado = { numChamadas: 0, cotaDiariaEsgotada: false };
-
-  // Passo 1: pegar alguns fixture IDs reais e finalizados dessa data.
-  const respData = await chamarApiFootball(
-    `https://v3.football.api-sports.io/fixtures?date=${data}&timezone=America/Sao_Paulo&status=FT-AET-PEN`,
-    env, estado
-  );
-  if (!respData.ok) {
-    return new Response(JSON.stringify({ etapa: 'busca-por-data', erro: respData.erro }, null, 2), { status: 200, headers });
-  }
-  const fixturesDaData = (respData.dados.response || []).slice(0, qtd);
-  if (!fixturesDaData.length) {
-    return new Response(JSON.stringify({
-      etapa: 'busca-por-data',
-      aviso: `Nenhum jogo finalizado encontrado em ${data}. Tente outra data com ?data=YYYY-MM-DD.`
-    }, null, 2), { status: 200, headers });
-  }
-  const ids = fixturesDaData.map(f => f.fixture.id);
-
-  // Passo 2: a chamada que queremos inspecionar — várias partidas de uma vez.
-  const respLote = await chamarApiFootball(
-    `https://v3.football.api-sports.io/fixtures?ids=${ids.join('-')}`,
-    env, estado
-  );
-  if (!respLote.ok) {
-    return new Response(JSON.stringify({ etapa: 'busca-em-lote', idsConsultados: ids, erro: respLote.erro }, null, 2), { status: 200, headers });
-  }
-
-  return new Response(JSON.stringify({
-    etapa: 'sucesso',
-    dataConsultada: data,
-    idsConsultados: ids,
-    respostaCrua: respLote.dados
-  }, null, 2), { status: 200, headers });
-}
-
+// NOTA: cogitamos usar /fixtures?ids=... pra buscar estatísticas de várias
+// partidas numa chamada só, mas a própria API-Football confirmou que esse
+// parâmetro não está disponível no plano gratuito ("Free plans do not have
+// access to the Ids parameter"). Por isso a estratégia continua sendo 1
+// chamada por partida distinta, com o espaçamento e a retentativa de
+// chamarApiFootball cuidando do limite de 10/minuto.
 
 async function handleCheckApostas(payload, env, headers) {
   if (!env.API_FOOTBALL_KEY) {

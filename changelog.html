@@ -114,6 +114,11 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-29-4">v1.29.4</h2>
+  <p class="versao-data">01/09/2026</p>
+  <h3>Remoção da rota temporária de diagnóstico</h3>
+  <p>Testamos em produção o parâmetro <code>ids</code> da API-Football (que permitiria buscar estatísticas de várias partidas numa chamada só) e a própria API confirmou que ele <strong>não está disponível no plano gratuito</strong> ("Free plans do not have access to the Ids parameter"). Como essa otimização não é viável no plano atual, a rota interna <code>/api/debug-fixture-ids</code> criada na v1.29.3 para esse teste foi removida. A solução real para o erro de limite de requisições continua sendo a da v1.29.2 (espaçamento entre chamadas + retentativa automática), que já está em produção.</p>
+
   <h2 id="v1-29-3">v1.29.3</h2>
   <p class="versao-data">01/09/2026</p>
   <h3>Rota interna temporária de diagnóstico (não é uma funcionalidade do app)</h3>
