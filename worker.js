@@ -357,6 +357,22 @@ ODDS TOTAIS1.84APOSTA2,00R$
 
 Observação para texto da Betano: o padrão é geralmente "SeleçãoODD" colado (ex: "Grêmio1.62"), seguido do mercado na linha seguinte, e depois o confronto ("Time A - Time B"). Extraia o confronto exatamente nesse formato, com hífen entre os nomes: "Time A - Time B".
 
+Regra especial — ANOTAÇÃO MANUAL DE LIGA/HORÁRIO (só quando existir, no texto colado):
+- Além do texto oficial copiado da casa de apostas, o usuário às vezes acrescenta manualmente, junto ao texto que cola, uma linha com o nome da liga/competição bem ACIMA do confronto ("Time A - Time B"), e/ou uma linha com a data e/ou horário do jogo bem ABAIXO do confronto — informação que ele mesmo conferiu na casa de apostas no momento de apostar, mas que a casa não imprime no bilhete (comum na Betano).
+- Essas linhas normalmente NÃO fazem parte do layout padrão de nenhuma casa (Betano/Superbet/Betfair): não têm ícones, códigos, odds coladas nem os rótulos típicos de interface que aparecem no resto do texto colado — são só uma linha simples de texto digitada pelo usuário, com o nome de uma liga (ex.: "Brasil - Série A") ou com uma data/horário (ex.: "02/09 20:00", "hoje 20h", "02/09/2026").
+- Quando reconhecer esse padrão junto a um confronto específico: use o valor da linha ACIMA como "liga" e o valor da linha ABAIXO como "dataEvento" (convertendo para o formato AAAA-MM-DDTHH:MM, assumindo o ano da data de registro do bilhete quando vier só dia/mês — mesma regra de ano usada em "DATA DO JOGO" acima) desse evento, com confiancaLiga 1.0 e confiança alta para o evento — é informação que o próprio usuário confirmou pessoalmente, mais confiável que qualquer inferência sua pelo nome dos times.
+- NÃO aplique esta regra se a liga e/ou a data/horário do jogo já vierem no formato padrão e oficial da própria casa de apostas (ex.: liga já escrita do jeito típico da Superbet) — nesse caso use a regra "LIGA" normal (ou a regra "DATA DO JOGO" normal) acima; a anotação manual só entra em jogo quando a casa não trouxe essa informação no próprio bilhete.
+- Exemplo:
+"""
+Brasil - Série A
+Grêmio1.62
+Resultado Final
+Grêmio - Atlético-GO
+02/09 20:00
+Ganhou devido ao pagamento antecipado
+"""
+→ "Brasil - Série A" (linha acima do confronto) é a liga digitada manualmente pelo usuário, e "02/09 20:00" (linha abaixo do confronto) é a data/horário do jogo digitada manualmente → liga: "Brasil - Série A" (confiancaLiga 1.0), dataEvento: "2026-09-02T20:00" (assumindo o ano da data de registro deste bilhete).
+
 Agora extraia os dados do texto do bilhete que será enviado a seguir, na mensagem do usuário, e devolva ESTRITAMENTE um JSON válido no seguinte formato:
 ${SCHEMA_JSON}
 ${REGRAS_COMUNS}`;

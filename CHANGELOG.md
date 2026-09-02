@@ -4,6 +4,45 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.30.0 — 02/09/2026
+
+### Cache local de Liga/Data-Hora por confronto (substitui a busca automática por IA)
+
+A busca automática de Liga e Data/Hora da Partida (que rodava sozinha logo
+após preencher por Foto/Texto) não usa mais IA/busca na web — passou a
+reaproveitar um **cache local**, guardado no Supabase, do que já foi lido em
+bilhetes recentes do **mesmo confronto** (mesmo esporte, mesmos times, em
+qualquer ordem). Motivo: a inferência por IA para esses campos vinha
+gerando resultados pouco confiáveis.
+
+- **Nova tabela `banca_cache_partidas`:** guarda Liga e Data/Hora por
+  confronto, com validade de **48h a partir de quando foi salva** (não da
+  data do jogo — evita misturar dois jogos diferentes entre os mesmos times
+  em datas distintas). Toda vez que um evento sai com Liga e Data/Hora
+  completas — do próprio bilhete, de uma anotação manual (ver abaixo) ou de
+  uma leitura anterior do cache — os dados são gravados/atualizados aqui
+  automaticamente, sem ação manual.
+- **Preenchimento automático (Configurações → 🔎 Liga e Horário da Partida):**
+  agora consulta esse cache em vez de pesquisar na web. Só preenche eventos
+  com o nome do Evento preenchido e Liga ou Data/Hora ainda vazias; nunca
+  sobrescreve o que já está preenchido. Mesma preferência de antes
+  (`bancapro_buscaLigaHorarioAutomatica`), só muda a fonte dos dados.
+- **Anotação manual ao colar texto:** na opção "📋 Preencher por Texto",
+  agora é possível digitar, junto ao texto colado, a liga numa linha ACIMA
+  do confronto e a data/horário numa linha ABAIXO dele — a leitura do
+  bilhete reconhece esse padrão automaticamente e usa como fonte confiável
+  (não é mais preciso buscar/inferir depois). Útil para bilhetes que não
+  trazem essa informação (comum na Betano) quando você já conferiu os
+  dados na casa de apostas no momento de apostar.
+- **O que NÃO mudou:** o botão manual "🔎 Buscar Liga/Horário" (que
+  continua pesquisando na web com IA, via Sofascore/365scores) segue
+  disponível exatamente como antes, sem nenhuma alteração — inclusive não
+  grava no cache o que encontra (fica isolado do cache, de propósito, para
+  não alterar esse fluxo em nada).
+
+Requer aplicar a migração `supabase_migracao_v1.30.0.sql` no Supabase antes
+de publicar esta versão.
+
 ## v1.29.6 — 02/09/2026
 
 ### Ordem dos mercados combinados agora é preservada no formulário (não só na leitura por IA)

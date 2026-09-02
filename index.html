@@ -1004,6 +1004,7 @@
                 <div style="background:var(--card); border-radius:var(--radius); padding:24px; max-width:480px; width:100%; box-shadow:var(--shadow-lg);">
                     <h2 id="modalTextoTitulo" style="margin:0 0 8px; font-size:16px;">📋 Preencher por Texto</h2>
                     <p style="margin:0 0 12px; font-size:13px; color:var(--text-secondary);">Cole abaixo o texto copiado do bilhete (Betano, Superbet, etc.), ou cole um print/foto do bilhete — nos dois casos o app vai identificar os dados e preencher o formulário para revisão.</p>
+                    <p style="margin:0 0 12px; font-size:12px; color:var(--text-secondary);">Dica: se souber a liga e/ou o horário do jogo que o bilhete não traz (ex.: você conferiu na casa de apostas na hora de apostar), digite a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO — a leitura reconhece automaticamente, sem precisar buscar depois.</p>
                     <label for="inputTextoBilhete" class="sr-only">Texto do bilhete</label>
                     <textarea id="inputTextoBilhete" rows="10" style="width:100%; box-sizing:border-box; font-family:var(--font-ui); font-size:13px; padding:8px; border:1.5px solid var(--border); border-radius:6px; background:var(--input); color:var(--text); resize:vertical;" placeholder="Cole aqui o texto do bilhete..."></textarea>
                     <div class="btn-row" style="margin-top:12px; gap:8px; justify-content:flex-end;">
@@ -1415,13 +1416,13 @@
         </div>
 
         <div class="card">
-            <h2>🔎 Liga e Horário da Partida (IA)</h2>
+            <h2>🔎 Liga e Horário da Partida (cache local)</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
-                Controla se a Liga e a Data/Hora da Partida de cada evento são buscadas automaticamente com IA (usando busca na web) assim que o formulário é preenchido por Foto/Texto — útil para bilhetes que não trazem essas informações no próprio bilhete (comum na Betano). Só busca eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias; eventos já completos não são sobrescritos. O botão manual "🔎 Buscar Liga/Horário" continua disponível a qualquer momento, independente desta opção.
+                Controla se a Liga e a Data/Hora da Partida de cada evento são preenchidas automaticamente assim que o formulário é preenchido por Foto/Texto, reaproveitando bilhetes recentes do MESMO confronto (mesmo esporte e mesmos times, guardados por até 48h) — útil para bilhetes que não trazem essas informações no próprio bilhete (comum na Betano), quando você já apostou nesse mesmo jogo em outro bilhete recente. Não usa IA nem busca na web — é só reaproveitamento local do que já foi lido antes. Só preenche eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias; eventos já completos não são sobrescritos. Se preferir informar você mesmo, ao colar o texto do bilhete (opção "📋 Preencher por Texto") digite a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO — a leitura reconhece isso automaticamente. O botão manual "🔎 Buscar Liga/Horário" (que pesquisa na web com IA) continua disponível a qualquer momento, independente desta opção.
             </p>
             <label style="display:flex; align-items:center; gap:10px; font-size:14px; text-transform:none; letter-spacing:0; color:var(--text); font-weight:500; cursor:pointer;">
                 <input type="checkbox" id="config-busca-liga-horario-automatica" onchange="alterarBuscaLigaHorarioAutomatica(this.checked)" style="width:18px; height:18px; accent-color:var(--primary-light); flex-shrink:0;">
-                Buscar Liga e Horário automaticamente após preencher por Foto/Texto
+                Preencher Liga e Horário automaticamente com bilhetes recentes (cache) após Foto/Texto
             </label>
         </div>
 
@@ -1558,7 +1559,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.29.6 · 02/09/2026
+  Banca Pro · v1.30.0 · 02/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1625,9 +1626,10 @@ function alterarAnaliseAutomatica(ativa) {
 }
 
 // ---- Preferência: buscar Liga e Data/Hora da Partida automaticamente com IA
-// (usando busca na web) assim que o formulário é preenchido por Foto/Texto —
+// (reaproveitando o cache local de confrontos recentes, 48h — ver bloco
+// "CACHE DE PARTIDAS") assim que o formulário é preenchido por Foto/Texto —
 // útil para bilhetes que não trazem essas informações no próprio bilhete
-// (comum na Betano). Só busca eventos com o nome do Evento preenchido e a
+// (comum na Betano). Só preenche eventos com o nome do Evento preenchido e a
 // Liga OU a Data/Hora da Partida ainda vazias — eventos já completos não são
 // sobrescritos. Fica salva neste dispositivo/navegador, igual à paginação e
 // à análise automática. Padrão: ligada.
@@ -1640,7 +1642,7 @@ let buscaLigaHorarioAutomaticaAtiva = lerBuscaLigaHorarioAutomaticaSalva();
 function alterarBuscaLigaHorarioAutomatica(ativa) {
     buscaLigaHorarioAutomaticaAtiva = !!ativa;
     localStorage.setItem(CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA, String(buscaLigaHorarioAutomaticaAtiva));
-    showToast(buscaLigaHorarioAutomaticaAtiva ? '✅ Busca automática de Liga e Horário ativada' : '✅ Busca automática de Liga e Horário desativada — use o botão manual "🔎 Buscar Liga/Horário" quando quiser', 'success');
+    showToast(buscaLigaHorarioAutomaticaAtiva ? '✅ Preenchimento automático de Liga e Horário (cache) ativado' : '✅ Preenchimento automático de Liga e Horário (cache) desativado — use o botão manual "🔎 Buscar Liga/Horário" quando quiser', 'success');
 }
 
 // ---- Preferência: recolher/expandir o painel de resumo (totais) fixo no
@@ -3610,6 +3612,164 @@ async function buscarLigaTodosEventos() {
    sincroniza esses mesmos valores de volta no objeto "dados" (a leitura
    original do bilhete), para que o Painel de Conferência já mostre os dados
    completos assim que for exibido. */
+/* ==================== CACHE DE PARTIDAS (Liga/Data-Hora por confronto, 48h) ====================
+   Guarda, por até 48h a partir de quando foi salvo (não da data do jogo —
+   evita confundir dois jogos diferentes entre os mesmos times em datas
+   distintas), a Liga e a Data/Hora da Partida já conhecidas de um confronto
+   (mesmo esporte + mesmos times, em qualquer ordem). Fonte pode ser o
+   próprio bilhete (liga/data já vinham escritas nele), uma anotação manual
+   digitada ao colar o texto (ver PROMPT_TEXTO no worker), ou uma busca
+   manual pelo botão "🔎 Buscar Liga/Horário" (_buscarLigaCore) — o cache
+   trata todas do mesmo jeito. Substituiu, na leitura automática pós-
+   importação, a antiga busca automática por IA na web: mais rápido, não
+   gasta chamada de IA nenhuma, e só reaproveita o que já foi confirmado
+   antes, sem arriscar inferência. */
+
+// Remove acentos para a chave de cache bater independente de acentuação
+// (ex.: "Grêmio" e "Gremio" viram a mesma chave).
+function removerAcentos(s) {
+    return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Chave estável do confronto: esporte + nomes dos times normalizados
+// (minúsculo, sem acento, sem espaço extra) e ORDENADOS alfabeticamente,
+// para "Time A - Time B" bater com "Time B - Time A" (a ordem pode variar
+// entre casas/bilhetes do mesmo jogo). Retorna null se o Evento não seguir
+// o padrão "Time A - Time B" esperado — não arrisca cruzar dado errado.
+function chaveConfrontoCache(esporte, evento) {
+    const esp = chaveNormalizada(removerAcentos(esporte || ''));
+    const times = String(evento || '')
+        .split(' - ')
+        .map(t => chaveNormalizada(removerAcentos(t)))
+        .filter(Boolean)
+        .sort();
+    if (!esp || times.length < 2) return null;
+    return { esporte: esp, chave: times.join('|') };
+}
+
+// Consulta o cache por um confronto ainda válido (expira_em no futuro).
+// Retorna { liga, data_evento } ou null se não achar nada aproveitável.
+async function consultarCachePartida(esporte, evento) {
+    const k = chaveConfrontoCache(esporte, evento);
+    if (!k) return null;
+    try {
+        const { data, error } = await sb.from('banca_cache_partidas')
+            .select('liga, data_evento')
+            .eq('esporte', k.esporte)
+            .eq('evento_chave', k.chave)
+            .gt('expira_em', new Date().toISOString())
+            .order('criado_em', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (error || !data) return null;
+        return {
+            liga: data.liga || null,
+            data_evento: data.data_evento ? String(data.data_evento).slice(0, 16) : null
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+// Grava (ou atualiza, "tocando" a validade por mais 48h) a Liga/Data-Hora
+// conhecidas de um confronto. Só grava se tiver pelo menos liga ou
+// dataEvento. Roda em segundo plano: falha silenciosamente (é só uma
+// otimização de reuso, nunca deve travar o preenchimento do bilhete).
+async function salvarCachePartida(esporte, evento, liga, dataEvento, origem) {
+    const k = chaveConfrontoCache(esporte, evento);
+    if (!k || (!liga && !dataEvento)) return;
+    try {
+        await sb.from('banca_cache_partidas').upsert({
+            esporte: k.esporte,
+            evento_chave: k.chave,
+            evento_exibicao: String(evento).trim(),
+            liga: liga || null,
+            data_evento: dataEvento || null,
+            origem: origem || null,
+            criado_em: new Date().toISOString(),
+            expira_em: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+        }, { onConflict: 'user_id,esporte,evento_chave' });
+    } catch (e) {
+        // silencioso — ver comentário acima
+    }
+}
+
+// Percorre os eventos já preenchidos no formulário e salva no cache todo
+// confronto que já tenha Liga E Data/Hora da Partida completas — vindas do
+// próprio bilhete, de anotação manual, do cache reaproveitado agora mesmo
+// (só atualiza a validade) ou de uma busca manual pelo botão "🔎 Buscar
+// Liga/Horário". Chamado sempre, independente da preferência de
+// preenchimento automático (ver CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA) — essa
+// preferência controla só a LEITURA automática do cache, não a gravação.
+async function salvarCacheDosEventosPreenchidos() {
+    const divs = Array.from(document.querySelectorAll('.event'));
+    for (const div of divs) {
+        const inputEvento = div.querySelector('.evento');
+        const evento = inputEvento ? inputEvento.value.trim() : '';
+        const esporte = valorEfetivoComOutro(div.querySelector('.esporteEvento'), 'esporteEventoOutro');
+        const liga = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+        const campoDataEvento = div.querySelector('.dataEventoEvento');
+        const dataEvento = campoDataEvento ? campoDataEvento.value : '';
+        if (evento && esporte && liga && dataEvento) {
+            await salvarCachePartida(esporte, evento, liga, dataEvento, 'bilhete');
+        }
+    }
+}
+
+// Aplica ao formulário a Liga/Data-Hora já conhecidas do MESMO confronto,
+// vindas do cache local (sem gastar nenhuma chamada de IA). Espelha o
+// formato de aplicação de campos de _buscarLigaCore (que continua existindo,
+// intocada, para a busca manual pelo botão "🔎 Buscar Liga/Horário").
+async function _aplicarCachePartida(div) {
+    const inputEvento = div.querySelector('.evento');
+    const evento = inputEvento ? inputEvento.value.trim() : '';
+    if (!evento) return { status: 'sem-evento' };
+
+    const selEsp = div.querySelector('.esporteEvento');
+    const esporteAtual = valorEfetivoComOutro(selEsp, 'esporteEventoOutro');
+    const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+    const campoDataEvento = div.querySelector('.dataEventoEvento');
+    const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
+
+    if (ligaAtual && dataEventoAtual) return { status: 'ja-preenchido' };
+    if (!esporteAtual) return { status: 'sem-esporte' };
+
+    const cache = await consultarCachePartida(esporteAtual, evento);
+    if (!cache) return { status: 'nao-encontrado' };
+
+    let ligaAplicada = null;
+    if (cache.liga && !ligaAtual) {
+        const selLig = div.querySelector('.ligaEvento');
+        const r = buscarOuPrepararValor(ligasDoEsporte(esporteAtual).map(ligaNomeExibicao), cache.liga);
+        selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporteAtual), ligaNomeExibicao, '— Liga —');
+        if (r.duplicado) {
+            selLig.value = r.valor;
+            toggleCampoOutro(selLig, 'ligaEventoOutro');
+        } else {
+            selLig.value = OUTRO_VALOR;
+            toggleCampoOutro(selLig, 'ligaEventoOutro');
+            const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
+            if (inputOutro) inputOutro.value = r.valor;
+        }
+        ligaAplicada = r.valor;
+    }
+
+    let dataAplicada = null;
+    if (cache.data_evento && campoDataEvento && !dataEventoAtual) {
+        campoDataEvento.value = cache.data_evento;
+        dataAplicada = cache.data_evento;
+    }
+
+    return { status: (ligaAplicada || dataAplicada) ? 'encontrado' : 'sem-novidade', liga: ligaAplicada, dataHora: dataAplicada };
+}
+
+/* Preenche Liga e Data/Hora da Partida, para eventos que a leitura do
+   bilhete não conseguiu preencher, reaproveitando o CACHE LOCAL de
+   confrontos recentes (ver bloco acima) — não faz mais busca por IA
+   automaticamente (isso ficou só no botão manual "🔎 Buscar Liga/Horário").
+   Considera elegível todo evento com o nome do Evento preenchido E (Liga OU
+   Data/Hora da Partida ainda vazias); eventos já completos não são
+   sobrescritos. */
 async function buscarLigaHorarioAutomatico(dados) {
     const divs = Array.from(document.querySelectorAll('.event'));
     const elegiveis = divs.filter(function (div) {
@@ -3622,16 +3782,16 @@ async function buscarLigaHorarioAutomatico(dados) {
     });
     if (elegiveis.length === 0) return;
 
-    for (let i = 0; i < elegiveis.length; i++) {
-        mostrarOverlayExtracao(true, `Buscando liga e horário da partida (${i + 1} de ${elegiveis.length})...`, 'Isso pode levar alguns segundos.');
-        anunciarExtracao(`Buscando liga e horário do evento ${i + 1} de ${elegiveis.length}.`);
-        await _buscarLigaCore(elegiveis[i]);
+    let encontrados = 0;
+    for (const div of elegiveis) {
+        const r = await _aplicarCachePartida(div);
+        if (r.status === 'encontrado') encontrados++;
     }
 
-    // _buscarLigaCore aplica os valores encontrados diretamente nos campos do
-    // formulário, não no objeto "dados" original — sincroniza de volta aqui,
-    // lendo o valor final de cada campo, para o Painel de Conferência refletir
-    // o resultado da busca.
+    // _aplicarCachePartida aplica os valores encontrados diretamente nos
+    // campos do formulário, não no objeto "dados" original — sincroniza de
+    // volta aqui, lendo o valor final de cada campo, para o Painel de
+    // Conferência refletir o resultado.
     elegiveis.forEach((div) => {
         const idx = divs.indexOf(div);
         if (idx === -1 || !dados.eventos || !dados.eventos[idx]) return;
@@ -3642,6 +3802,10 @@ async function buscarLigaHorarioAutomatico(dados) {
         if (esporte) dados.eventos[idx].esporte = esporte;
         if (campoDataEvento && campoDataEvento.value) dados.eventos[idx].dataEvento = campoDataEvento.value;
     });
+
+    if (encontrados > 0) {
+        anunciarExtracao(`Liga e/ou horário preenchidos automaticamente a partir de bilhetes recentes (cache) em ${encontrados} evento${encontrados > 1 ? 's' : ''}.`);
+    }
 }
 
 /* ==================== ANALISAR APOSTA (IA) ====================
@@ -4491,6 +4655,15 @@ async function preencherFormularioComExtracao(dados, origem) {
     if (buscaLigaHorarioAutomaticaAtiva) {
         await buscarLigaHorarioAutomatico(dados);
     }
+
+    // Salva no cache local (48h) todo confronto que já tenha Liga e
+    // Data/Hora completas neste momento — do próprio bilhete, de anotação
+    // manual reconhecida na leitura, ou do cache que acabou de ser
+    // reaproveitado acima — para bilhetes futuros do mesmo jogo
+    // aproveitarem. Roda sempre, mesmo com a preferência acima desligada
+    // (essa preferência controla só a leitura automática, não a gravação).
+    // Não bloqueia a abertura do Painel de Conferência.
+    salvarCacheDosEventosPreenchidos();
 
     mostrarPainelConferencia(dados, origem);
     if (itensNovos.length > 0) {

@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.29.6</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.30.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -537,6 +537,26 @@
       <li><strong>Superbet</strong> costuma exibir a liga/campeonato escrita diretamente no bilhete — quando isso acontece, o campo é preenchido com alta confiança, sem destaque.</li>
       <li><strong>Betano</strong> frequentemente não exibe a liga, só os nomes dos times. Nesse caso, a liga pode ser deduzida pelo conhecimento da inteligência artificial sobre os times envolvidos — esse preenchimento recebe o destaque <strong>⚠️ Confira este campo</strong>, mesmo quando o palpite está correto, justamente para sinalizar que não foi uma leitura direta da imagem.</li>
     </ul>
+
+    <h3 id="cache-liga-horario">🗄️ Preenchimento automático de Liga/Horário via cache (48h)</h3>
+    <p>Além da extração descrita acima, o app tenta preencher sozinho a Liga e a Data/Hora da Partida de eventos que a leitura do bilhete não conseguiu identificar (comum na Betano) — mas isso não usa mais busca por IA na web. Em vez disso, reaproveita um <strong>cache local</strong>: se você já tiver outro bilhete recente (até 48h) do MESMO confronto (mesmo esporte e mesmos times, em qualquer ordem) com Liga e/ou Data/Hora preenchidas, esses valores são copiados automaticamente para o novo bilhete, sem nenhuma chamada de IA.</p>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li>Só entra em campos vazios — Liga ou Data/Hora já preenchidas (pelo próprio bilhete ou por você) nunca são sobrescritas.</li>
+      <li>Pode ser desligado em <a href="#configuracoes">Configurações → 🔎 Liga e Horário da Partida (cache local)</a>; o botão manual <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> (que pesquisa na web com IA) continua funcionando normalmente, independente dessa preferência.</li>
+      <li>Toda vez que um evento sai com Liga e Data/Hora completas — pelo próprio bilhete ou pela anotação manual descrita a seguir — esses dados ficam guardados por 48h a partir de então, para beneficiar automaticamente o próximo bilhete do mesmo jogo.</li>
+    </ul>
+    <div class="callout info">
+      <div class="callout-title">ℹ️ O botão manual não alimenta o cache</div>
+      Por enquanto, apenas o que é lido diretamente do bilhete (ou digitado como anotação manual, abaixo) entra nesse cache automático — o resultado do botão <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> fica isolado dele, de propósito, para não alterar em nada o funcionamento desse botão.
+    </div>
+
+    <h3 id="anotacao-manual-liga-horario">✏️ Informar Liga/Horário manualmente ao colar texto</h3>
+    <p>Ao usar <strong>📋 Preencher por Texto</strong>, se você já sabe a liga e/ou o horário do jogo que o bilhete não traz — por exemplo, porque conferiu isso na própria casa de apostas no momento de apostar — pode digitar essa informação junto ao texto colado, e a leitura reconhece automaticamente, sem precisar de nenhuma busca depois:</p>
+    <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li>Digite a <strong>liga</strong> numa linha logo ACIMA do nome do confronto (ex: "Brasil - Série A").</li>
+      <li>Digite a <strong>data e/ou horário</strong> do jogo numa linha logo ABAIXO do confronto (ex: "02/09 20:00").</li>
+    </ul>
+    <p>Essa informação é tratada com prioridade máxima — a leitura entende que foi você mesmo quem conferiu, então não tenta adivinhar por conta própria por cima do que foi digitado. Funciona apenas no texto colado (não em foto), e só entra em ação quando o bilhete em si ainda não trouxer a liga e/ou a data no formato oficial da própria casa de apostas.</p>
 
     <h3 id="criador-apostas">Criador de Apostas (múltiplas condições no mesmo confronto)</h3>
     <p>Recursos como "Criador de Apostas" ou "Bet Builder" permitem combinar várias condições dentro de um único jogo (por exemplo: vencedor do jogo, mais de 2.5 gols, ambas as equipes marcam, tudo no mesmo confronto). Esse tipo de aposta é reconhecido e tratado como <strong>um único evento</strong>, em vez de ser separado em vários:</p>

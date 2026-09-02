@@ -114,6 +114,17 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-30-0">v1.30.0</h2>
+  <p class="versao-data">02/09/2026</p>
+  <h3>Cache local de Liga/Data-Hora por confronto (substitui a busca automática por IA)</h3>
+  <p>A busca automática de Liga e Data/Hora da Partida (que rodava sozinha logo após preencher por Foto/Texto) não usa mais IA/busca na web — passou a reaproveitar um <strong>cache local</strong>, guardado no Supabase, do que já foi lido em bilhetes recentes do <strong>mesmo confronto</strong> (mesmo esporte, mesmos times, em qualquer ordem). Motivo: a inferência por IA para esses campos vinha gerando resultados pouco confiáveis.</p>
+  <ul>
+    <li><strong>Nova tabela <code>banca_cache_partidas</code>:</strong> guarda Liga e Data/Hora por confronto, com validade de 48h a partir de quando foi salva (não da data do jogo — evita misturar dois jogos diferentes entre os mesmos times em datas distintas). Toda vez que um evento sai com Liga e Data/Hora completas — do próprio bilhete, de uma anotação manual (ver abaixo) ou de uma leitura anterior do cache — os dados são gravados/atualizados aqui automaticamente.</li>
+    <li><strong>Preenchimento automático (Configurações → 🔎 Liga e Horário da Partida):</strong> agora consulta esse cache em vez de pesquisar na web. Só preenche eventos com o nome do Evento preenchido e Liga ou Data/Hora ainda vazias; nunca sobrescreve o que já está preenchido.</li>
+    <li><strong>Anotação manual ao colar texto:</strong> na opção "📋 Preencher por Texto", agora é possível digitar, junto ao texto colado, a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO dele — a leitura do bilhete reconhece esse padrão automaticamente e usa como fonte confiável.</li>
+    <li><strong>O que não mudou:</strong> o botão manual "🔎 Buscar Liga/Horário" (que continua pesquisando na web com IA, via Sofascore/365scores) segue disponível exatamente como antes, sem nenhuma alteração — inclusive não grava no cache o que encontra, de propósito, para não alterar esse fluxo em nada.</li>
+  </ul>
+
   <h2 id="v1-29-6">v1.29.6</h2>
   <p class="versao-data">02/09/2026</p>
   <h3>Ordem dos mercados combinados agora é preservada no formulário (não só na leitura por IA)</h3>
