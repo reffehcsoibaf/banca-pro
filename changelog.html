@@ -114,6 +114,11 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-31-1">v1.31.1</h2>
+  <p class="versao-data">02/09/2026</p>
+  <h3>Correção: rate limit da API-Football disfarçado de HTTP 200 não era retentado</h3>
+  <p>A API-Football às vezes sinaliza limite de requisições por minuto excedido devolvendo <strong>HTTP 200</strong> com o erro dentro do corpo (<code>{"errors":{"rateLimit":"Too many requests..."}}</code>), em vez do HTTP 429 "de verdade". A retentativa automática só reconhecia o 429 — nesse formato alternativo, desistia na primeira tentativa e ainda vazava o JSON bruto da API pro painel de revisão como motivo do "não encontrado". Agora os dois formatos são tratados da mesma forma: uma retentativa automática após a espera, e a mesma mensagem amigável de limite por minuto/cota diária se persistir.</p>
+
   <h2 id="v1-31-0">v1.31.0</h2>
   <p class="versao-data">02/09/2026</p>
   <h3>Checagem de Resultados agora tenta 3 fontes em cascata (API-Football → football-data.org → TheSportsDB)</h3>

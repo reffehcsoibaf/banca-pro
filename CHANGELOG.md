@@ -4,6 +4,20 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.31.1 — 02/09/2026
+
+### Correção: rate limit da API-Football disfarçado de HTTP 200 não era retentado
+
+A API-Football às vezes sinaliza limite de requisições por minuto excedido
+devolvendo **HTTP 200** com o erro dentro do corpo
+(`{"errors":{"rateLimit":"Too many requests..."}}`), em vez do HTTP 429
+"de verdade". A retentativa automática (introduzida para lidar com o limite
+por minuto) só reconhecia o 429 — nesse formato alternativo, desistia na
+primeira tentativa e ainda vazava o JSON bruto da API pro painel de revisão
+como motivo do "não encontrado". Agora os dois formatos são tratados da
+mesma forma: uma retentativa automática após a espera, e a mesma mensagem
+amigável de limite por minuto/cota diária se persistir.
+
 ## v1.31.0 — 02/09/2026
 
 ### Checagem de Resultados agora tenta 3 fontes em cascata (API-Football → football-data.org → TheSportsDB)

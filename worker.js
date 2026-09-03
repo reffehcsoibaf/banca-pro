@@ -1343,7 +1343,20 @@ async function chamarApiFootball(url, env, estado) {
       estado.cotaDiariaEsgotada = true;
     }
 
-    if (resp.status === 429) {
+    // A API-Football normalmente sinaliza limite excedido com HTTP 429, mas
+    // às vezes devolve HTTP 200 com o erro DENTRO do corpo
+    // ({ errors: { rateLimit: "Too many requests..." } }) — sem isso, esse
+    // caso escapava da retentativa/mensagem amigável abaixo e vazava o JSON
+    // bruto pro painel de revisão. Lê o corpo uma vez aqui (quando a resposta
+    // é 200) pra poder detectar os dois formatos com a mesma lógica.
+    let corpoJson = null;
+    if (resp.status !== 429 && resp.ok) {
+      try { corpoJson = await resp.json(); } catch (e) { corpoJson = null; }
+    }
+    const rateLimitNoCorpo = !!(corpoJson && corpoJson.errors &&
+      Object.values(corpoJson.errors).some(v => /too many requests|rate ?limit/i.test(String(v))));
+
+    if (resp.status === 429 || rateLimitNoCorpo) {
       if (tentativa === 0 && !estado.cotaDiariaEsgotada) {
         // Provavelmente o limite por MINUTO (não o diário) — espera mais um
         // pouco e tenta de novo, uma única vez.
@@ -1363,13 +1376,14 @@ async function chamarApiFootball(url, env, estado) {
       return { ok: false, erro: `API-Football retornou ${resp.status}: ${texto.slice(0, 200)}` };
     }
 
-    const dados = await resp.json();
+    const dados = corpoJson !== null ? corpoJson : await resp.json();
     if (dados.errors && Object.keys(dados.errors).length) {
       return { ok: false, erro: 'API-Football: ' + JSON.stringify(dados.errors) };
     }
     return { ok: true, dados };
   }
 }
+
 
 // Busca os jogos finalizados de cada data única em "datasUnicas" — 1 chamada
 // à API-Football por dia (não por evento), já que /fixtures?date=... devolve
