@@ -1559,7 +1559,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.32.0 · 03/09/2026
+  Banca Pro · v1.32.1 · 03/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -4840,7 +4840,21 @@ function _apostaProntaParaChecar(a) {
     });
 }
 
+// Evita que duas checagens rodem em paralelo (ex.: duplo toque/clique, ou o
+// atalho Alt+C acionado de novo enquanto a anterior ainda está em andamento).
+// Isso importa especialmente pra API-Football: cada chamada a esta função
+// coordena seu próprio espaçamento com o Supabase, mas duas checagens em
+// paralelo ainda assim disputariam a MESMA cota da conta ao mesmo tempo, sem
+// necessidade — é mais simples e mais rápido simplesmente não deixar rodar
+// duas ao mesmo tempo.
+let _checagemApostasEmAndamento = false;
+
 async function checarApostas(idxs) {
+    if (_checagemApostasEmAndamento) {
+        showToast('Já existe uma checagem em andamento — aguarde ela terminar.', 'error');
+        return;
+    }
+
     const idxsValidos = (idxs || []).filter(idx => apostas[idx]);
     if (!idxsValidos.length) { showToast('Nenhuma aposta selecionada.', 'error'); return; }
 
@@ -4860,6 +4874,10 @@ async function checarApostas(idxs) {
     });
     if (!eventosParaChecar.length) { showToast('Nenhum evento nas apostas selecionadas.', 'error'); return; }
 
+    _checagemApostasEmAndamento = true;
+    const btnEnviar = document.getElementById('btnEnviarConsultaApostas');
+    if (btnEnviar) btnEnviar.disabled = true;
+
     showToast(idxsValidos.length > 1 ? `🔎 Checando ${idxsValidos.length} apostas...` : '🔎 Checando aposta...', 'success', 4000);
     let json;
     try {
@@ -4873,9 +4891,13 @@ async function checarApostas(idxs) {
     } catch (err) {
         showToast('❌ ' + err.message, 'error', 10000);
         return;
+    } finally {
+        _checagemApostasEmAndamento = false;
+        if (btnEnviar) btnEnviar.disabled = false;
     }
     mostrarPainelChecagemApostas(json.resultados || []);
 }
+
 
 // Botão dentro do Cadastro — opera sobre a aposta atualmente em edição (editIndex).
 async function checarApostaAtual() {
@@ -4962,7 +4984,7 @@ function abrirSeletorChecarApostas() {
             </div>
             ${itens}
             <div class="btn-row" style="margin-top:6px;">
-                <button type="button" class="btn btn-success" onclick="enviarConsultaApostasSelecionadas()">🔎 Enviar Consulta</button>
+                <button type="button" class="btn btn-success" id="btnEnviarConsultaApostas" onclick="enviarConsultaApostasSelecionadas()">🔎 Enviar Consulta</button>
             </div>
         </div>`;
     overlay.classList.add('open');

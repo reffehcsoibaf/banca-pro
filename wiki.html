@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.32.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.32.1</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -769,6 +769,10 @@
     <div class="callout info">
       <div class="callout-title">ℹ️ Requisitos e limitações</div>
       Precisa da Data / Hora da Partida preenchida no evento (veja seção <a href="#eventos">Eventos</a>) e só cobre Futebol por enquanto. Desarmes e Tiros de Meta nunca são suportados — a API-Football não tem esses dados em nenhum plano, então não existe dado bruto disponível nem para a lógica local nem para a IA julgar.
+    </div>
+    <div class="callout tip">
+      <div class="callout-title">💡 Se aparecer "limite por minuto excedido"</div>
+      O plano gratuito da API-Football permite 10 requisições por minuto na conta toda (não por checagem). Desde a v1.32.1, o app coordena isso entre checagens diferentes (não só dentro de uma mesma consulta), então é bem mais raro acontecer — mas se acontecer mesmo assim, é só tentar de novo depois de cerca de 1 minuto; o próprio app já espaça as chamadas automaticamente. Enquanto uma checagem está em andamento, o botão "🔎 Enviar Consulta" fica desabilitado, e uma segunda checagem não pode começar até a primeira terminar.
     </div>
     <div class="callout tip">
       <div class="callout-title">🟢 Filtro rápido: Somente Abertas</div>

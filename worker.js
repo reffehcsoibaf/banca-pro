@@ -627,7 +627,7 @@ async function handleFetch(request, env, ctx) {
     // (a chamada de IA, quando acontece, é feita internamente por
     // julgarMercadoComIA, sem busca na web).
     if (url.pathname === '/api/checar-apostas') {
-      return await handleCheckApostas(payload, env, headers);
+      return await handleCheckApostas(payload, env, headers, accessToken);
     }
 
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
@@ -1299,16 +1299,26 @@ Seleção apostada: ${dados.selecao}`;
 
 // ==================== CONTROLE DE LIMITE DE REQUISIÇÕES DA API-FOOTBALL ====================
 // O plano gratuito da API-Football permite só 10 requisições por MINUTO (além
-// de um teto de 100 por DIA). Como handleCheckApostas pode gerar várias
-// chamadas em sequência (1 por data única + 1 por partida distinta), sem
-// espaçamento elas saem quase simultâneas e estouram o limite por minuto
-// mesmo em lotes pequenos (ex.: 5 eventos em datas/jogos diferentes já geram
-// até 10 chamadas). Este helper centraliza toda chamada à API-Football:
-//   1. Espaça as chamadas (>6s entre uma e outra) para nunca ultrapassar
-//      10/minuto, mesmo em sequência contínua.
+// de um teto de 100 por DIA) — e esse limite é da CONTA (da chave), não desta
+// requisição específica ao Worker. Um espaçamento controlado só na memória
+// desta requisição (como era antes) não sabe nada sobre outra checagem feita
+// segundos atrás em outra requisição — cada requisição HTTP ao Worker roda
+// isolada, sem memória compartilhada. Resultado: checagens seguidas (ex.:
+// checar uma aposta, depois checar outra logo em seguida) podiam facilmente
+// estourar o limite real da conta mesmo respeitando o espaçamento "local".
+//
+// Por isso o espaçamento agora é reservado no Supabase (tabela
+// banca_api_football_slot + função banca_reservar_slot_api_football), que
+// vale entre requisições diferentes: cada chamada reserva atomicamente o
+// próximo horário livre (sempre >= 6,5s depois da reserva anterior, não
+// importa de qual requisição ela veio), e esta função espera até esse
+// horário antes de disparar o fetch. Se o Supabase não responder por algum
+// motivo, cai de volta pro espaçamento só-local antigo (melhor que nada).
+// Este helper centraliza toda chamada à API-Football:
+//   1. Reserva um horário coordenado (ver acima) para nunca ultrapassar
+//      10/minuto da conta, mesmo com checagens em requisições diferentes.
 //   2. Se ainda assim vier 429, tenta mais UMA vez após uma espera maior —
-//      cobre o caso de o minuto anterior já estar quase estourado por outro
-//      uso do app.
+//      cobre qualquer uso da chave fora do controle deste Worker.
 //   3. Distingue limite por MINUTO (temporário, resolve sozinho) de limite
 //      DIÁRIO esgotado (só volta amanhã) usando o cabeçalho
 //      x-ratelimit-requests-remaining que a API-Football devolve em toda
@@ -1320,12 +1330,45 @@ function esperar(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// "estado" é um objeto { numChamadas: 0, cotaDiariaEsgotada: false } criado
-// uma vez no início de handleCheckApostas e passado adiante, para que o
-// espaçamento e a detecção de cota valham para TODAS as chamadas do lote
-// (tanto as de fixtures quanto as de estatísticas).
+// Reserva, no Supabase, o próximo horário livre para uma chamada à
+// API-Football — atômico entre requisições concorrentes (a linha fica
+// travada durante o UPDATE). Retorna a Date reservada, ou null se o Supabase
+// não respondeu (ex.: configuração ausente, instabilidade) — nesse caso o
+// chamador cai de volta pro espaçamento só-local, de melhor esforço.
+async function reservarSlotApiFootball(env, accessToken, intervaloMs) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY || !accessToken) return null;
+  try {
+    const resp = await fetch(env.SUPABASE_URL + '/rest/v1/rpc/banca_reservar_slot_api_football', {
+      method: 'POST',
+      headers: {
+        apikey: env.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ intervalo_ms: intervaloMs })
+    });
+    if (!resp.ok) return null;
+    const slotTexto = await resp.json(); // a função RPC devolve o timestamptz cru
+    const slot = typeof slotTexto === 'string' ? new Date(slotTexto) : null;
+    return (slot && !isNaN(slot.getTime())) ? slot : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// "estado" é um objeto { numChamadas: 0, cotaDiariaEsgotada: false, accessToken }
+// criado uma vez no início de handleCheckApostas e passado adiante, para que
+// a detecção de cota valha para TODAS as chamadas do lote (tanto as de
+// fixtures quanto as de estatísticas). O espaçamento em si é coordenado pelo
+// Supabase (ver reservarSlotApiFootball acima), não mais só por este objeto.
 async function chamarApiFootball(url, env, estado) {
-  if (estado.numChamadas > 0) {
+  const slotReservado = await reservarSlotApiFootball(env, estado.accessToken, INTERVALO_MIN_API_FOOTBALL_MS);
+  if (slotReservado) {
+    const esperaMs = slotReservado.getTime() - Date.now();
+    if (esperaMs > 0) await esperar(esperaMs);
+  } else if (estado.numChamadas > 0) {
+    // Supabase não respondeu: mantém pelo menos o espaçamento local antigo,
+    // válido só dentro desta requisição.
     await esperar(INTERVALO_MIN_API_FOOTBALL_MS);
   }
   estado.numChamadas++;
@@ -1716,7 +1759,7 @@ function resolverMercadoEstatisticas(mercado, selecao, ctx) {
 // chamada por partida distinta, com o espaçamento e a retentativa de
 // chamarApiFootball cuidando do limite de 10/minuto.
 
-async function handleCheckApostas(payload, env, headers) {
+async function handleCheckApostas(payload, env, headers, accessToken) {
   if (!env.API_FOOTBALL_KEY) {
     return new Response(JSON.stringify({
       error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
@@ -1749,7 +1792,7 @@ async function handleCheckApostas(payload, env, headers) {
   // Estado compartilhado de controle de limite de requisições da API-Football
   // (espaçamento anti-rajada + detecção de cota diária esgotada) — vale para
   // TODAS as chamadas deste lote, tanto de fixtures quanto de estatísticas.
-  const estadoApiFootball = { numChamadas: 0, cotaDiariaEsgotada: false };
+  const estadoApiFootball = { numChamadas: 0, cotaDiariaEsgotada: false, accessToken };
 
   // Etapa 1: localizar o fixture (jogo) de cada evento — 1 chamada por DATA
   // única, POR FONTE (API-Football, football-data.org, TheSportsDB), buscadas

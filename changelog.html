@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-32-1">v1.32.1</h2>
+  <p class="versao-data">03/09/2026</p>
+  <h3>Correção: limite "10 requisições/minuto" da API-Football estourando mesmo com o espaçamento</h3>
+  <p>O espaçamento entre chamadas à API-Football (&gt;6,5s) já existia desde antes, mas só valia <strong>dentro de uma mesma checagem</strong> — cada requisição ao Worker roda isolada, sem memória compartilhada com outras. Checagens seguidas em pouco tempo (ex.: checar uma aposta, depois checar outra logo em seguida) podiam estourar o limite real de 10/minuto <strong>da conta</strong>, mesmo cada uma respeitando seu próprio espaçamento "local" — e quando isso acontecia no passo de achar o jogo (Etapa 1), dava a impressão de que nenhuma fonte alternativa era tentada, porque o football-data.org (que depende da secret <code>FOOTBALL_DATA_API_KEY</code>) e o TheSportsDB gratuito nem sempre cobrem as ligas menores acompanhadas no app.</p>
+  <ul>
+    <li><strong>Novo:</strong> o espaçamento agora é coordenado no Supabase (tabela <code>banca_api_football_slot</code> + função <code>banca_reservar_slot_api_football</code>) — cada chamada reserva atomicamente o próximo horário livre, valendo entre checagens diferentes, não só dentro de uma. Se o Supabase não responder por algum motivo, o app cai de volta pro espaçamento só-local antigo, como segurança.</li>
+    <li><strong>Novo:</strong> o botão "🔎 Enviar Consulta" fica desabilitado enquanto uma checagem já está em andamento, e uma segunda checagem simultânea (ex.: duplo toque) é bloqueada com um aviso, em vez de disparar duas sequências de chamadas em paralelo disputando a mesma cota.</li>
+    <li>As estatísticas de partida (escanteios, cartões etc.) continuam vindo só da API-Football — não existe uma fonte alternativa com esse nível de detalhe hoje integrada ao app. Quando a API-Football está indisponível, essa etapa fica sem dado (a checagem segue pro julgamento por IA usando só o placar).</li>
+  </ul>
+
   <h2 id="v1-32-0">v1.32.0</h2>
   <p class="versao-data">03/09/2026</p>
   <h3>Correção: a leitura do bilhete "chutava" a liga antes do cache local ter chance de agir</h3>

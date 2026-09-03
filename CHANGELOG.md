@@ -4,6 +4,36 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.32.1 — 03/09/2026
+
+### Correção: limite "10 requisições/minuto" da API-Football estourando mesmo com o espaçamento
+
+O espaçamento entre chamadas à API-Football (>6,5s) já existia desde antes, mas
+só valia **dentro de uma mesma checagem** — cada requisição ao Worker roda
+isolada, sem memória compartilhada com outras. Checagens seguidas em pouco
+tempo (ex.: checar uma aposta, depois checar outra logo em seguida) podiam
+estourar o limite real de 10/minuto **da conta**, mesmo cada uma respeitando
+seu próprio espaçamento "local" — e quando isso acontecia no passo de achar o
+jogo (Etapa 1), dava a impressão de que nenhuma fonte alternativa era
+tentada, porque o football-data.org (que depende da secret
+`FOOTBALL_DATA_API_KEY`) e o TheSportsDB gratuito nem sempre cobrem as ligas
+menores acompanhadas no app.
+
+- **Novo:** o espaçamento agora é coordenado no Supabase (tabela
+  `banca_api_football_slot` + função `banca_reservar_slot_api_football`) —
+  cada chamada reserva atomicamente o próximo horário livre, valendo entre
+  checagens diferentes, não só dentro de uma. Se o Supabase não responder por
+  algum motivo, o app cai de volta pro espaçamento só-local antigo, como
+  segurança.
+- **Novo:** o botão "🔎 Enviar Consulta" fica desabilitado enquanto uma
+  checagem já está em andamento, e uma segunda checagem simultânea (ex.:
+  duplo toque) é bloqueada com um aviso, em vez de disparar duas sequências
+  de chamadas em paralelo disputando a mesma cota.
+- As estatísticas de partida (escanteios, cartões etc.) continuam vindo só da
+  API-Football — não existe uma fonte alternativa com esse nível de detalhe
+  hoje integrada ao app. Quando a API-Football está indisponível, essa etapa
+  fica sem dado (a checagem segue pro julgamento por IA usando só o placar).
+
 ## v1.32.0 — 03/09/2026
 
 ### Correção: a leitura do bilhete "chutava" a liga antes do cache local ter chance de agir
