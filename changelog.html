@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-31-0">v1.31.0</h2>
+  <p class="versao-data">02/09/2026</p>
+  <h3>Checagem de Resultados agora tenta 3 fontes em cascata (API-Football → football-data.org → TheSportsDB)</h3>
+  <p>A checagem automática ("Checar Resultados") dependia só da API-Football pra localizar o jogo — quando o confronto não era achado ali (liga fora da cobertura, jogo ainda não sincronizado, etc.), o evento ficava "não encontrado" sem mais tentativas. Agora, quando a API-Football não acha o jogo numa data, a Etapa 1 tenta mais duas fontes gratuitas antes de desistir:</p>
+  <ul>
+    <li><strong>football-data.org</strong> — cobre ~12 competições grandes (Champions, principais ligas europeias, Brasileirão Série A). Requer o novo secret <code>FOOTBALL_DATA_API_KEY</code> no Worker (cadastro gratuito); se não configurado, essa fonte é pulada silenciosamente e um aviso aparece na resposta da API.</li>
+    <li><strong>TheSportsDB</strong> — cobertura bem mais ampla (Série B, Copa do Brasil, ligas menores), dados colaborativos da comunidade. Usa a chave de teste pública <code>123</code> por padrão (sem cadastro necessário); dá pra configurar uma chave própria em <code>THESPORTSDB_API_KEY</code> se precisar de mais confiabilidade.</li>
+  </ul>
+  <p>Nenhuma das duas fontes novas tem dado de ESTATÍSTICA (cartões, escanteios etc.) — só placar. Eventos resolvidos por elas pulam a etapa de estatística e, se o mercado não for de placar, vão direto pro julgamento por IA (mesmo comportamento de quando a própria API-Football não tinha estatística registrada). Cada resultado devolvido agora inclui <code>fonteResultado</code> (<code>api-football</code>, <code>football-data.org</code> ou <code>thesportsdb</code>) para rastrear qual fonte resolveu cada evento.</p>
+
   <h2 id="v1-30-0">v1.30.0</h2>
   <p class="versao-data">02/09/2026</p>
   <h3>Cache local de Liga/Data-Hora por confronto (substitui a busca automática por IA)</h3>

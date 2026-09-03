@@ -4,6 +4,33 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.31.0 — 02/09/2026
+
+### Checagem de Resultados agora tenta 3 fontes em cascata (API-Football → football-data.org → TheSportsDB)
+
+A checagem automática (botão "Checar Resultados") dependia só da API-Football
+pra localizar o jogo — quando o confronto não era achado ali (liga fora da
+cobertura, jogo ainda não sincronizado, etc.), o evento ficava "não
+encontrado" sem mais tentativas. Agora, quando a API-Football não acha o
+jogo numa data, a Etapa 1 tenta mais duas fontes gratuitas antes de desistir:
+
+1. **football-data.org** — cobre ~12 competições grandes (Champions,
+   principais ligas europeias, Brasileirão Série A). Requer o novo secret
+   `FOOTBALL_DATA_API_KEY` no Worker (cadastro gratuito); se não configurado,
+   essa fonte é pulada silenciosamente e um aviso aparece na resposta da API.
+2. **TheSportsDB** — cobertura bem mais ampla (Série B, Copa do Brasil, ligas
+   menores), dados colaborativos da comunidade. Usa a chave de teste pública
+   `123` por padrão (sem cadastro necessário); dá pra configurar uma chave
+   própria em `THESPORTSDB_API_KEY` se precisar de mais confiabilidade.
+
+Nenhuma das duas fontes novas tem dado de ESTATÍSTICA (cartões, escanteios
+etc.) — só placar. Eventos resolvidos por elas pulam a etapa de estatística e,
+se o mercado não for de placar, vão direto pro julgamento por IA (mesmo
+comportamento de quando a própria API-Football não tinha estatística
+registrada). Cada resultado devolvido agora inclui `fonteResultado`
+(`api-football`, `football-data.org` ou `thesportsdb`) para rastrear qual
+fonte resolveu cada evento.
+
 ## v1.30.0 — 02/09/2026
 
 ### Cache local de Liga/Data-Hora por confronto (substitui a busca automática por IA)

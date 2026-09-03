@@ -1403,6 +1403,139 @@ function encontrarFixture(infoData, nomeTimeA, nomeTimeB) {
   );
 }
 
+// ==================== FONTES ALTERNATIVAS DE RESULTADO (CASCATA) ====================
+// A API-Football (fonte principal) às vezes não acha o confronto: liga fora da
+// cobertura do plano, nome de time divergente, jogo ainda não sincronizado etc.
+// Quando isso acontece, tentamos mais duas fontes GRATUITAS, nesta ordem, antes
+// de desistir (e cair no julgamento por IA sem placar nenhum pra trabalhar):
+//   1. football-data.org — só ~12 competições grandes (Champions, principais
+//      ligas europeias, Brasileirão Série A), mas tende a ser estável nessas.
+//      Grátis pra sempre, 10 requisições/minuto.
+//   2. TheSportsDB — cobertura bem mais ampla (Série B, Copa do Brasil, ligas
+//      menores), dados colaborativos (comunidade) — podem faltar ou estar
+//      errados ocasionalmente. Usa a chave de teste pública "123" (sem
+//      cadastro), 30 requisições/minuto.
+// NENHUMA das duas tem dado de ESTATÍSTICA (cartões, escanteios, etc.) — só
+// placar. Por isso só entram na Etapa 1 (localizar o jogo/placar); eventos
+// resolvidos por uma delas pulam a Etapa 2 (estatísticas) e, se o mercado não
+// for de placar, vão direto pro julgamento por IA (sem dado de estatística
+// disponível, exatamente como já acontecia quando a própria API-Football não
+// tinha estatística registrada pra um jogo).
+//
+// Cada fonte devolve os jogos de uma data já normalizados no MESMO formato que
+// a API-Football usa internamente (fixture.teams.home/away.name,
+// fixture.goals.home/away, fixture.score.halftime.home/away) — assim
+// encontrarFixture, resolverMercadoFutebol etc. funcionam sem nenhuma
+// alteração, não importa qual fonte achou o jogo. O campo extra `fonte` fica
+// só pra rastreio (aparece no resultado devolvido ao app).
+function normalizarFixtureGenerico(fonte, fixtureId, nomeTimeCasa, nomeTimeFora, golsCasa, golsFora, golsIntervaloCasa, golsIntervaloFora) {
+  return {
+    fonte,
+    teams: {
+      home: { id: null, name: nomeTimeCasa },
+      away: { id: null, name: nomeTimeFora },
+    },
+    goals: { home: golsCasa, away: golsFora },
+    score: {
+      halftime: {
+        home: (golsIntervaloCasa === undefined ? null : golsIntervaloCasa),
+        away: (golsIntervaloFora === undefined ? null : golsIntervaloFora),
+      }
+    },
+    fixture: { id: fixtureId },
+  };
+}
+
+// ---- football-data.org ----
+// Requer secret FOOTBALL_DATA_API_KEY (cadastro gratuito em
+// https://www.football-data.org/client/register). Se a variável não estiver
+// configurada, a fonte é simplesmente pulada (não é erro fatal — a checagem
+// continua funcionando só com API-Football + TheSportsDB).
+const INTERVALO_MIN_FOOTBALL_DATA_MS = 6500; // ~9/min, com folga sobre o limite de 10/min do plano gratuito
+
+async function buscarFixturesFootballData(datasUnicas, env) {
+  const porData = new Map();
+  if (!env.FOOTBALL_DATA_API_KEY) {
+    for (const data of datasUnicas) porData.set(data, { erro: 'FOOTBALL_DATA_API_KEY não configurada — fonte football-data.org pulada.' });
+    return porData;
+  }
+  let numChamadas = 0;
+  for (const data of datasUnicas) {
+    if (numChamadas > 0) await esperar(INTERVALO_MIN_FOOTBALL_DATA_MS);
+    numChamadas++;
+    try {
+      const resp = await fetch(`https://api.football-data.org/v4/matches?date=${data}&status=FINISHED`, {
+        headers: { 'X-Auth-Token': env.FOOTBALL_DATA_API_KEY }
+      });
+      if (!resp.ok) {
+        const texto = await resp.text();
+        porData.set(data, { erro: `football-data.org retornou ${resp.status}: ${texto.slice(0, 200)}` });
+        continue;
+      }
+      const dados = await resp.json();
+      const fixtures = (dados.matches || [])
+        .filter(m => m.score && m.score.fullTime && m.score.fullTime.home !== null && m.score.fullTime.away !== null)
+        .map(m => normalizarFixtureGenerico(
+          'football-data.org',
+          `fd-${m.id}`,
+          m.homeTeam && m.homeTeam.name,
+          m.awayTeam && m.awayTeam.name,
+          m.score.fullTime.home,
+          m.score.fullTime.away,
+          m.score.halfTime ? m.score.halfTime.home : null,
+          m.score.halfTime ? m.score.halfTime.away : null,
+        ));
+      porData.set(data, { fixtures });
+    } catch (e) {
+      porData.set(data, { erro: 'Falha de rede ao consultar football-data.org: ' + e.message });
+    }
+  }
+  return porData;
+}
+
+// ---- TheSportsDB ----
+// Chave de teste pública "123" — não exige cadastro, mas é compartilhada e tem
+// método/quantidade de resultados limitados. Dá pra configurar uma chave
+// própria (paga, ~US$9/mês) na variável THESPORTSDB_API_KEY se um dia fizer
+// sentido; por padrão usa a chave de teste.
+const INTERVALO_MIN_THESPORTSDB_MS = 2100; // ~28/min, com folga sobre o limite de 30/min
+
+async function buscarFixturesTheSportsDB(datasUnicas, env) {
+  const porData = new Map();
+  const chave = env.THESPORTSDB_API_KEY || '123';
+  let numChamadas = 0;
+  for (const data of datasUnicas) {
+    if (numChamadas > 0) await esperar(INTERVALO_MIN_THESPORTSDB_MS);
+    numChamadas++;
+    try {
+      const resp = await fetch(`https://www.thesportsdb.com/api/v1/json/${chave}/eventsday.php?d=${data}&s=Soccer`);
+      if (!resp.ok) {
+        const texto = await resp.text();
+        porData.set(data, { erro: `TheSportsDB retornou ${resp.status}: ${texto.slice(0, 200)}` });
+        continue;
+      }
+      const dados = await resp.json();
+      const eventos = (dados && Array.isArray(dados.events)) ? dados.events : [];
+      const fixtures = eventos
+        .filter(ev => ev.intHomeScore !== null && ev.intHomeScore !== undefined && ev.intAwayScore !== null && ev.intAwayScore !== undefined)
+        .map(ev => normalizarFixtureGenerico(
+          'thesportsdb',
+          `tsdb-${ev.idEvent}`,
+          ev.strHomeTeam,
+          ev.strAwayTeam,
+          parseInt(ev.intHomeScore, 10),
+          parseInt(ev.intAwayScore, 10),
+          null, // TheSportsDB não expõe placar de intervalo na chave de teste gratuita
+          null,
+        ));
+      porData.set(data, { fixtures });
+    } catch (e) {
+      porData.set(data, { erro: 'Falha de rede ao consultar TheSportsDB: ' + e.message });
+    }
+  }
+  return porData;
+}
+
 // ==================== RESOLUÇÃO LOCAL DE MERCADOS DE ESTATÍSTICA ====================
 // Usada dentro da cascata de handleCheckApostas (ver comentário acima da
 // função) como 2º passo, depois da resolução de placar. Cobre Finalizações,
@@ -1529,8 +1662,17 @@ function resolverMercadoEstatisticas(mercado, selecao, ctx) {
 // Rota: POST /api/checar-apostas
 // Entrada: { eventos: [{ idAposta, idEvento, esporte, evento, mercado, selecao, dataEvento }, ...] }
 // Um único fluxo (era dividido em /api/checar-resultados + /api/checar-estatisticas
-// até a v1.28.0) — pra cada evento válido: busca o placar (final + intervalo) E as
-// estatísticas completas da partida, então resolve em cascata:
+// até a v1.28.0) — pra cada evento válido: LOCALIZA o jogo (Etapa 1, ver cascata
+// de fontes abaixo), busca o placar (final + intervalo) E as estatísticas
+// completas da partida quando a fonte que achou o jogo for a API-Football
+// (única com dado de estatística), então resolve o mercado em cascata:
+//
+// Etapa 1 (localizar o jogo) tenta, nesta ordem, até uma fonte encontrar o
+// confronto naquela data: 1) API-Football (fonte principal, com estatística),
+// 2) football-data.org, 3) TheSportsDB — ver comentário da seção "FONTES
+// ALTERNATIVAS DE RESULTADO" mais acima no arquivo para detalhes de cada uma.
+// Isso NÃO muda a cascata de resolução de MERCADO abaixo — só aumenta a chance
+// de achar o jogo em si antes de tentar resolver o mercado:
 //   1. resolverMercadoFutebol — lógica local determinística a partir do placar
 //      (rápida, sem custo de IA, cobre os mercados mais comuns: Resultado,
 //      Resultado Final, Empate, Empate Anula, Chance Dupla, Gols, Handicap,
@@ -1595,28 +1737,54 @@ async function handleCheckApostas(payload, env, headers) {
   // TODAS as chamadas deste lote, tanto de fixtures quanto de estatísticas.
   const estadoApiFootball = { numChamadas: 0, cotaDiariaEsgotada: false };
 
-  // Etapa 1: localizar o fixture (jogo) de cada evento — 1 chamada por DATA única.
+  // Etapa 1: localizar o fixture (jogo) de cada evento — 1 chamada por DATA
+  // única, POR FONTE (API-Football, football-data.org, TheSportsDB), buscadas
+  // em paralelo antes do casamento. Ver comentário da seção "FONTES
+  // ALTERNATIVAS DE RESULTADO" acima para o porquê da ordem/cascata.
   const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
-  const fixturesPorData = await buscarFixturesPorData(datasUnicas, env, estadoApiFootball);
+  const [fixturesPorData, fixturesPorDataFD, fixturesPorDataTSDB] = await Promise.all([
+    buscarFixturesPorData(datasUnicas, env, estadoApiFootball),
+    buscarFixturesFootballData(datasUnicas, env),
+    buscarFixturesTheSportsDB(datasUnicas, env),
+  ]);
 
-  const fixturePorEvento = new Map(); // "idAposta::idEvento" -> fixture
-  const fixturesUnicos = new Map();   // fixture.fixture.id -> fixture (dedupe entre eventos da mesma partida)
+  // Avisa (sem falhar a requisição) quando uma fonte opcional não está
+  // configurada, pra ficar claro no teste por que ela nunca resolveu nada.
+  const avisosFontes = [];
+  if (!env.FOOTBALL_DATA_API_KEY) avisosFontes.push('football-data.org não configurada (defina o secret FOOTBALL_DATA_API_KEY no Worker para habilitar essa fonte).');
+
+  const fixturePorEvento = new Map(); // "idAposta::idEvento" -> fixture (com .fonte)
+  const fixturesUnicos = new Map();   // fixture.fixture.id -> fixture — só fixtures da API-Football entram aqui (só ela tem estatística)
   for (const ev of eventosValidos) {
     const chaveEvento = `${ev.idAposta}::${ev.idEvento}`;
     const data = String(ev.dataEvento).slice(0, 10);
-    const infoData = fixturesPorData.get(data);
-    if (infoData && infoData.erro) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: infoData.erro });
-      continue;
-    }
     const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
-    const fixture = encontrarFixture(infoData, nomeTimeA, nomeTimeB);
+
+    const infoApiFootball = fixturesPorData.get(data);
+    let fixture = encontrarFixture(infoApiFootball, nomeTimeA, nomeTimeB);
+    if (fixture) fixture.fonte = 'api-football';
+
     if (!fixture) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Confronto "${ev.evento}" não encontrado (ou ainda não finalizado) na data ${data}.` });
+      fixture = encontrarFixture(fixturesPorDataFD.get(data), nomeTimeA, nomeTimeB);
+    }
+    if (!fixture) {
+      fixture = encontrarFixture(fixturesPorDataTSDB.get(data), nomeTimeA, nomeTimeB);
+    }
+
+    if (!fixture) {
+      // Erro de fonte principal (cota/rede) só é reportado como motivo se
+      // nenhuma das três fontes encontrou o jogo — senão mascararia um "achou
+      // via fallback" com um erro que na prática não impediu a checagem.
+      const motivo = (infoApiFootball && infoApiFootball.erro)
+        ? infoApiFootball.erro
+        : `Confronto "${ev.evento}" não encontrado (ou ainda não finalizado) na data ${data}, em nenhuma das fontes (API-Football, football-data.org, TheSportsDB).`;
+      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo });
       continue;
     }
     fixturePorEvento.set(chaveEvento, fixture);
-    fixturesUnicos.set(fixture.fixture.id, fixture);
+    if (fixture.fonte === 'api-football') {
+      fixturesUnicos.set(fixture.fixture.id, fixture);
+    }
   }
 
   // Etapa 2: buscar estatísticas — 1 chamada por PARTIDA distinta (não por evento).
@@ -1692,11 +1860,12 @@ async function handleCheckApostas(payload, env, headers) {
       idEvento: ev.idEvento,
       encontrado: true,
       placar: placarTexto,
+      fonteResultado: fixture.fonte || 'api-football',
       ...resolucao
     });
   }
 
-  return new Response(JSON.stringify({ resultados }), { status: 200, headers });
+  return new Response(JSON.stringify({ resultados, avisos: avisosFontes }), { status: 200, headers });
 }
 
 // ==================== AUXILIAR ====================
