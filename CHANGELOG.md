@@ -4,6 +4,39 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.32.0 — 03/09/2026
+
+### Correção: a leitura do bilhete "chutava" a liga antes do cache local ter chance de agir
+
+O preenchimento automático de Liga/Horário (implantado na v1.30.0) foi pensado para
+consultar primeiro os dados locais — bilhetes recentes do mesmo confronto — antes de
+qualquer inferência. Só que a própria leitura do bilhete (a IA que lê a foto/texto)
+continuava, num passo anterior, tentando adivinhar a liga pelo seu conhecimento dos
+times sempre que a Betano não escrevia isso no bilhete. Como esse "chute" já
+preenchia o campo (mesmo com confiança baixa), o cache local nunca tinha chance de
+substituí-lo por um dado mais confiável, porque a lógica só entra em campos vazios.
+
+- **Leitura do bilhete (worker.js):** a regra de LIGA foi reescrita — quando o
+  bilhete não escreve a liga explicitamente, o campo agora sai `null` da leitura,
+  sem tentativa de adivinhação por conhecimento próprio da IA. A leitura continua
+  copiando e normalizando a liga normalmente quando ela **está** escrita no bilhete
+  (ex.: Superbet).
+- **Preenchimento automático (index.html):** agora roda em duas etapas, sempre nessa
+  ordem, e a segunda só entra no que sobrar da primeira — exatamente o "local
+  primeiro, inferir depois" que já era a intenção original:
+  1. **Cache local (48h):** como antes, reaproveita Liga/Data-Hora de bilhetes
+     recentes do mesmo confronto, sem gastar nenhuma chamada de IA.
+  2. **Busca real na web:** para o que ainda ficar sem Liga ou Data/Hora depois do
+     cache, o app aciona automaticamente a mesma busca do botão manual "🔎 Buscar
+     Liga/Horário" (pesquisa de verdade via Sofascore/365scores, não mais uma
+     "lembrança" da IA) — um evento de cada vez.
+- Resultados dessa nova etapa 2 automática também alimentam o cache local, iguais
+  aos vindos do próprio bilhete ou de anotação manual — só o botão manual acionado
+  fora do fluxo de importação continua isolado do cache, como já era antes.
+- Configurações → 🔎 Liga e Horário da Partida foi renomeado e a descrição
+  atualizada para refletir as duas etapas; o texto do toast ao ligar/desligar
+  também foi ajustado.
+
 ## v1.31.1 — 02/09/2026
 
 ### Correção: rate limit da API-Football disfarçado de HTTP 200 não era retentado

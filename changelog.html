@@ -114,6 +114,22 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-32-0">v1.32.0</h2>
+  <p class="versao-data">03/09/2026</p>
+  <h3>Correção: a leitura do bilhete "chutava" a liga antes do cache local ter chance de agir</h3>
+  <p>O preenchimento automático de Liga/Horário (implantado na v1.30.0) foi pensado para consultar primeiro os dados locais — bilhetes recentes do mesmo confronto — antes de qualquer inferência. Só que a própria leitura do bilhete (a IA que lê a foto/texto) continuava, num passo anterior, tentando adivinhar a liga pelo seu conhecimento dos times sempre que a Betano não escrevia isso no bilhete. Como esse "chute" já preenchia o campo (mesmo com confiança baixa), o cache local nunca tinha chance de substituí-lo por um dado mais confiável, porque a lógica só entra em campos vazios.</p>
+  <ul>
+    <li><strong>Leitura do bilhete (worker.js):</strong> a regra de LIGA foi reescrita — quando o bilhete não escreve a liga explicitamente, o campo agora sai <code>null</code> da leitura, sem tentativa de adivinhação por conhecimento próprio da IA. A leitura continua copiando e normalizando a liga normalmente quando ela <strong>está</strong> escrita no bilhete (ex.: Superbet).</li>
+    <li><strong>Preenchimento automático (index.html):</strong> agora roda em duas etapas, sempre nessa ordem, e a segunda só entra no que sobrar da primeira — exatamente o "local primeiro, inferir depois" que já era a intenção original:
+      <ol>
+        <li><strong>Cache local (48h):</strong> como antes, reaproveita Liga/Data-Hora de bilhetes recentes do mesmo confronto, sem gastar nenhuma chamada de IA.</li>
+        <li><strong>Busca real na web:</strong> para o que ainda ficar sem Liga ou Data/Hora depois do cache, o app aciona automaticamente a mesma busca do botão manual "🔎 Buscar Liga/Horário" (pesquisa de verdade via Sofascore/365scores, não mais uma "lembrança" da IA) — um evento de cada vez.</li>
+      </ol>
+    </li>
+    <li>Resultados dessa nova etapa 2 automática também alimentam o cache local, iguais aos vindos do próprio bilhete ou de anotação manual — só o botão manual acionado fora do fluxo de importação continua isolado do cache, como já era antes.</li>
+    <li>Configurações → 🔎 Liga e Horário da Partida foi renomeado e a descrição atualizada para refletir as duas etapas; o texto do toast ao ligar/desligar também foi ajustado.</li>
+  </ul>
+
   <h2 id="v1-31-1">v1.31.1</h2>
   <p class="versao-data">02/09/2026</p>
   <h3>Correção: rate limit da API-Football disfarçado de HTTP 200 não era retentado</h3>

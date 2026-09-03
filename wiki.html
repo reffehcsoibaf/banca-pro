@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.30.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.32.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -531,23 +531,27 @@
       Para a Superbet, mantenha o nome original do arquivo gerado ao salvar ou compartilhar o bilhete — é dele que o Identificador é extraído. Se o arquivo for renomeado antes do envio, esse preenchimento automático deixa de funcionar e o campo precisa ser preenchido manualmente.
     </div>
 
-    <h3 id="liga-inferida">Liga lida vs. liga deduzida</h3>
+    <h3 id="liga-inferida">Liga lida do bilhete vs. liga preenchida depois</h3>
     <p>O preenchimento da Liga também varia conforme a casa, e isso afeta o nível de confiança reportado:</p>
     <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
       <li><strong>Superbet</strong> costuma exibir a liga/campeonato escrita diretamente no bilhete — quando isso acontece, o campo é preenchido com alta confiança, sem destaque.</li>
-      <li><strong>Betano</strong> frequentemente não exibe a liga, só os nomes dos times. Nesse caso, a liga pode ser deduzida pelo conhecimento da inteligência artificial sobre os times envolvidos — esse preenchimento recebe o destaque <strong>⚠️ Confira este campo</strong>, mesmo quando o palpite está correto, justamente para sinalizar que não foi uma leitura direta da imagem.</li>
+      <li><strong>Betano</strong> frequentemente não exibe a liga, só os nomes dos times. Nesse caso, o campo fica vazio ao final da leitura do bilhete — a IA que lê a imagem/texto não tenta mais "chutar" a liga de memória. Logo em seguida, entra o preenchimento automático descrito abaixo (cache local e, se preciso, busca real na web), que resolve isso de forma bem mais confiável do que uma dedução por conhecimento próprio.</li>
     </ul>
 
-    <h3 id="cache-liga-horario">🗄️ Preenchimento automático de Liga/Horário via cache (48h)</h3>
-    <p>Além da extração descrita acima, o app tenta preencher sozinho a Liga e a Data/Hora da Partida de eventos que a leitura do bilhete não conseguiu identificar (comum na Betano) — mas isso não usa mais busca por IA na web. Em vez disso, reaproveita um <strong>cache local</strong>: se você já tiver outro bilhete recente (até 48h) do MESMO confronto (mesmo esporte e mesmos times, em qualquer ordem) com Liga e/ou Data/Hora preenchidas, esses valores são copiados automaticamente para o novo bilhete, sem nenhuma chamada de IA.</p>
+    <h3 id="cache-liga-horario">🗄️ Preenchimento automático de Liga/Horário (cache local → busca na web)</h3>
+    <p>Além da extração descrita acima, o app tenta preencher sozinho a Liga e a Data/Hora da Partida de eventos que a leitura do bilhete não conseguiu identificar (comum na Betano). Isso acontece em duas etapas, sempre nessa ordem — a segunda só é usada no que sobrar da primeira:</p>
+    <ol style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
+      <li><strong>Cache local (até 48h):</strong> se você já tiver outro bilhete recente do MESMO confronto (mesmo esporte e mesmos times, em qualquer ordem) com Liga e/ou Data/Hora preenchidas, esses valores são copiados automaticamente para o novo bilhete, sem nenhuma chamada de IA.</li>
+      <li><strong>Busca real na web:</strong> para o que ainda ficar sem Liga ou Data/Hora depois do cache, o app faz a mesma busca do botão manual <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> (pesquisa de verdade via Sofascore/365scores), um evento de cada vez.</li>
+    </ol>
     <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
-      <li>Só entra em campos vazios — Liga ou Data/Hora já preenchidas (pelo próprio bilhete ou por você) nunca são sobrescritas.</li>
-      <li>Pode ser desligado em <a href="#configuracoes">Configurações → 🔎 Liga e Horário da Partida (cache local)</a>; o botão manual <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> (que pesquisa na web com IA) continua funcionando normalmente, independente dessa preferência.</li>
-      <li>Toda vez que um evento sai com Liga e Data/Hora completas — pelo próprio bilhete ou pela anotação manual descrita a seguir — esses dados ficam guardados por 48h a partir de então, para beneficiar automaticamente o próximo bilhete do mesmo jogo.</li>
+      <li>As duas etapas só entram em campos vazios — Liga ou Data/Hora já preenchidas (pelo próprio bilhete ou por você) nunca são sobrescritas.</li>
+      <li>Pode ser desligado por completo em <a href="#configuracoes">Configurações → 🔎 Liga e Horário da Partida (automático)</a>; o botão manual continua funcionando normalmente, independente dessa preferência, caso queira acionar a busca na web sozinho depois.</li>
+      <li>Toda vez que um evento sai com Liga e Data/Hora completas — pelo próprio bilhete, pela anotação manual descrita a seguir, ou por uma dessas duas etapas automáticas — esses dados ficam guardados por 48h a partir de então, para beneficiar automaticamente o próximo bilhete do mesmo jogo.</li>
     </ul>
     <div class="callout info">
-      <div class="callout-title">ℹ️ O botão manual não alimenta o cache</div>
-      Por enquanto, apenas o que é lido diretamente do bilhete (ou digitado como anotação manual, abaixo) entra nesse cache automático — o resultado do botão <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> fica isolado dele, de propósito, para não alterar em nada o funcionamento desse botão.
+      <div class="callout-title">ℹ️ Só o botão manual isolado não alimenta o cache</div>
+      O que é lido diretamente do bilhete, a anotação manual (abaixo), o cache reaproveitado e a busca na web feita AUTOMATICAMENTE (etapa 2 acima) — todos alimentam o cache normalmente. A única exceção é acionar o botão <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> por conta própria, fora do momento de importar um bilhete novo: esse resultado fica isolado do cache, de propósito, para não alterar o funcionamento desse botão.
     </div>
 
     <h3 id="anotacao-manual-liga-horario">✏️ Informar Liga/Horário manualmente ao colar texto</h3>

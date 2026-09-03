@@ -1416,13 +1416,13 @@
         </div>
 
         <div class="card">
-            <h2>🔎 Liga e Horário da Partida (cache local)</h2>
+            <h2>🔎 Liga e Horário da Partida (automático)</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
-                Controla se a Liga e a Data/Hora da Partida de cada evento são preenchidas automaticamente assim que o formulário é preenchido por Foto/Texto, reaproveitando bilhetes recentes do MESMO confronto (mesmo esporte e mesmos times, guardados por até 48h) — útil para bilhetes que não trazem essas informações no próprio bilhete (comum na Betano), quando você já apostou nesse mesmo jogo em outro bilhete recente. Não usa IA nem busca na web — é só reaproveitamento local do que já foi lido antes. Só preenche eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias; eventos já completos não são sobrescritos. Se preferir informar você mesmo, ao colar o texto do bilhete (opção "📋 Preencher por Texto") digite a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO — a leitura reconhece isso automaticamente. O botão manual "🔎 Buscar Liga/Horário" (que pesquisa na web com IA) continua disponível a qualquer momento, independente desta opção.
+                Controla se a Liga e a Data/Hora da Partida de cada evento são preenchidas automaticamente assim que o formulário é preenchido por Foto/Texto — útil para bilhetes que não trazem essas informações no próprio bilhete (comum na Betano). Acontece em duas etapas, nessa ordem, e a segunda só entra se a primeira não resolver: 1) reaproveita bilhetes recentes do MESMO confronto (mesmo esporte e mesmos times, guardados por até 48h) — não gasta IA nem busca na web; 2) se ainda faltar liga ou data/hora, faz uma busca real na web (mesma do botão manual, via Sofascore/365scores). Só preenche eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias; eventos já completos não são sobrescritos. Se preferir informar você mesmo, ao colar o texto do bilhete (opção "📋 Preencher por Texto") digite a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO — a leitura reconhece isso automaticamente e pula as duas etapas acima. O botão manual "🔎 Buscar Liga/Horário" continua disponível a qualquer momento, independente desta opção.
             </p>
             <label style="display:flex; align-items:center; gap:10px; font-size:14px; text-transform:none; letter-spacing:0; color:var(--text); font-weight:500; cursor:pointer;">
                 <input type="checkbox" id="config-busca-liga-horario-automatica" onchange="alterarBuscaLigaHorarioAutomatica(this.checked)" style="width:18px; height:18px; accent-color:var(--primary-light); flex-shrink:0;">
-                Preencher Liga e Horário automaticamente com bilhetes recentes (cache) após Foto/Texto
+                Preencher Liga e Horário automaticamente após Foto/Texto (cache local e, se preciso, busca na web)
             </label>
         </div>
 
@@ -1559,7 +1559,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.31.1 · 02/09/2026
+  Banca Pro · v1.32.0 · 03/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1642,7 +1642,7 @@ let buscaLigaHorarioAutomaticaAtiva = lerBuscaLigaHorarioAutomaticaSalva();
 function alterarBuscaLigaHorarioAutomatica(ativa) {
     buscaLigaHorarioAutomaticaAtiva = !!ativa;
     localStorage.setItem(CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA, String(buscaLigaHorarioAutomaticaAtiva));
-    showToast(buscaLigaHorarioAutomaticaAtiva ? '✅ Preenchimento automático de Liga e Horário (cache) ativado' : '✅ Preenchimento automático de Liga e Horário (cache) desativado — use o botão manual "🔎 Buscar Liga/Horário" quando quiser', 'success');
+    showToast(buscaLigaHorarioAutomaticaAtiva ? '✅ Preenchimento automático de Liga e Horário ativado (cache local e, se preciso, busca na web)' : '✅ Preenchimento automático de Liga e Horário desativado — use o botão manual "🔎 Buscar Liga/Horário" quando quiser', 'success');
 }
 
 // ---- Preferência: recolher/expandir o painel de resumo (totais) fixo no
@@ -3620,10 +3620,16 @@ async function buscarLigaTodosEventos() {
    próprio bilhete (liga/data já vinham escritas nele), uma anotação manual
    digitada ao colar o texto (ver PROMPT_TEXTO no worker), ou uma busca
    manual pelo botão "🔎 Buscar Liga/Horário" (_buscarLigaCore) — o cache
-   trata todas do mesmo jeito. Substituiu, na leitura automática pós-
-   importação, a antiga busca automática por IA na web: mais rápido, não
-   gasta chamada de IA nenhuma, e só reaproveita o que já foi confirmado
-   antes, sem arriscar inferência. */
+   trata todas do mesmo jeito. Na leitura automática pós-importação, o
+   cache é sempre a PRIMEIRA fonte tentada (mais rápido, não gasta
+   nenhuma chamada de IA, e só reaproveita o que já foi confirmado antes).
+   Só para o que sobrar sem liga/data-hora depois do cache, a busca real
+   na web (mesma do botão manual, com pesquisa de verdade via Sofascore/
+   365scores) entra como último recurso — ver buscarLigaHorarioAutomatico
+   mais abaixo. A leitura do bilhete em si (worker.js) NÃO tenta mais
+   "chutar" a liga por conhecimento próprio da IA: fica null quando não
+   está explícita no bilhete, exatamente para essas duas etapas (cache →
+   busca real) terem a chance de preencher com algo confiável. */
 
 // Remove acentos para a chave de cache bater independente de acentuação
 // (ex.: "Grêmio" e "Gremio" viram a mesma chave).
@@ -3764,12 +3770,19 @@ async function _aplicarCachePartida(div) {
 }
 
 /* Preenche Liga e Data/Hora da Partida, para eventos que a leitura do
-   bilhete não conseguiu preencher, reaproveitando o CACHE LOCAL de
-   confrontos recentes (ver bloco acima) — não faz mais busca por IA
-   automaticamente (isso ficou só no botão manual "🔎 Buscar Liga/Horário").
+   bilhete não conseguiu preencher, em DUAS etapas em cascata — nunca a
+   segunda sem antes tentar a primeira:
+   1) CACHE LOCAL de confrontos recentes (_aplicarCachePartida, ver bloco
+      acima) — não gasta chamada de IA, só reaproveita o que já foi
+      confirmado antes (do próprio bilhete, de anotação manual, ou de uma
+      busca anterior).
+   2) Para o que sobrar sem liga e/ou data-hora depois do cache: busca real
+      na web (_buscarLigaCore, mesma função do botão manual "🔎 Buscar
+      Liga/Horário", com pesquisa de verdade via Sofascore/365scores) —
+      último recurso, um evento de cada vez.
    Considera elegível todo evento com o nome do Evento preenchido E (Liga OU
    Data/Hora da Partida ainda vazias); eventos já completos não são
-   sobrescritos. */
+   sobrescritos em nenhuma das duas etapas. */
 async function buscarLigaHorarioAutomatico(dados) {
     const divs = Array.from(document.querySelectorAll('.event'));
     const elegiveis = divs.filter(function (div) {
@@ -3782,16 +3795,32 @@ async function buscarLigaHorarioAutomatico(dados) {
     });
     if (elegiveis.length === 0) return;
 
-    let encontrados = 0;
+    // Etapa 1: cache local, para todos os eventos elegíveis.
+    let encontradosCache = 0;
+    const aindaIncompletos = [];
     for (const div of elegiveis) {
         const r = await _aplicarCachePartida(div);
-        if (r.status === 'encontrado') encontrados++;
+        if (r.status === 'encontrado') encontradosCache++;
+
+        const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+        const campoDataEvento = div.querySelector('.dataEventoEvento');
+        const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
+        if (!ligaAtual || !dataEventoAtual) aindaIncompletos.push(div);
     }
 
-    // _aplicarCachePartida aplica os valores encontrados diretamente nos
-    // campos do formulário, não no objeto "dados" original — sincroniza de
-    // volta aqui, lendo o valor final de cada campo, para o Painel de
-    // Conferência refletir o resultado.
+    // Etapa 2: só para quem o cache não resolveu — busca real na web,
+    // um evento de cada vez (mesma chamada do botão manual).
+    let encontradosBusca = 0, errosBusca = 0;
+    for (const div of aindaIncompletos) {
+        const r = await _buscarLigaCore(div);
+        if (r.status === 'encontrado') encontradosBusca++;
+        else if (r.status === 'erro') errosBusca++;
+    }
+
+    // _aplicarCachePartida e _buscarLigaCore aplicam os valores encontrados
+    // diretamente nos campos do formulário, não no objeto "dados" original —
+    // sincroniza de volta aqui, lendo o valor final de cada campo, para o
+    // Painel de Conferência refletir o resultado.
     elegiveis.forEach((div) => {
         const idx = divs.indexOf(div);
         if (idx === -1 || !dados.eventos || !dados.eventos[idx]) return;
@@ -3803,8 +3832,14 @@ async function buscarLigaHorarioAutomatico(dados) {
         if (campoDataEvento && campoDataEvento.value) dados.eventos[idx].dataEvento = campoDataEvento.value;
     });
 
-    if (encontrados > 0) {
-        anunciarExtracao(`Liga e/ou horário preenchidos automaticamente a partir de bilhetes recentes (cache) em ${encontrados} evento${encontrados > 1 ? 's' : ''}.`);
+    const total = encontradosCache + encontradosBusca;
+    if (total > 0) {
+        const fontes = [];
+        if (encontradosCache > 0) fontes.push(`${encontradosCache} de bilhetes recentes (cache)`);
+        if (encontradosBusca > 0) fontes.push(`${encontradosBusca} por busca na web`);
+        anunciarExtracao(`Liga e/ou horário preenchidos automaticamente em ${total} evento${total > 1 ? 's' : ''}: ${fontes.join(', ')}.`);
+    } else if (errosBusca > 0) {
+        anunciarExtracao(`Não foi possível confirmar liga/horário automaticamente (${errosBusca} erro${errosBusca > 1 ? 's' : ''} na busca na web). Use o botão "🔎 Buscar Liga/Horário" se quiser tentar de novo.`);
     }
 }
 
