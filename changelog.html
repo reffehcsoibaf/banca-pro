@@ -114,6 +114,23 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-33-0">v1.33.0</h2>
+  <p class="versao-data">05/09/2026</p>
+  <h3>Painel "Resumo do Filtro": agora só nas abas Lista e Filtros, e recolhido por padrão</h3>
+  <p>O painel fixo de totais no topo (Entradas, Ganhas, Perdidas, Stake, Lucro, ROI etc.) aparecia em todas as abas sempre que havia dados carregados, e nascia expandido por padrão para quem nunca tinha mexido nele.</p>
+  <ul>
+    <li><strong>Visibilidade:</strong> o painel agora só aparece nas abas Lista e Filtros — nas abas Cadastro, Saldos e Configurações ele fica sempre escondido, mesmo com dados carregados.</li>
+    <li><strong>Estado padrão:</strong> passa a nascer recolhido. Quem já tinha usado o botão ▲/▼ antes mantém a própria escolha salva; a mudança de padrão só afeta quem nunca tinha mexido nisso.</li>
+  </ul>
+
+  <h2 id="v1-32-2">v1.32.2</h2>
+  <p class="versao-data">04/09/2026</p>
+  <h3>Correção: horário da partida (Data/Hora da Partida) exibido/gravado 3h errado</h3>
+  <p>A coluna <code>banca_eventos.data_evento</code> (e também <code>banca_cache_partidas.data_evento</code>) é <code>timestamptz</code> no Supabase, mas o app lia e gravava o valor como texto cru, sem converter fuso horário — na prática tratava o instante UTC como se já fosse horário de Brasília. Isso vinha compensando um erro histórico nos dados (gravados com o número certo de Brasília, mas marcados incorretamente como UTC), então não dava pra perceber o problema até o banco ser corrigido para guardar o instante real em UTC — a partir daí, o app passou a exibir tudo 3h à frente.</p>
+  <ul>
+    <li><strong>Novo:</strong> duas funções de conversão (<code>utcParaBrasiliaLocalStr</code> / <code>brasiliaLocalStrParaUtcIso</code>) isolam a conversão de fuso (Brasil não tem mais horário de verão, então o offset é sempre fixo, -03:00) exatamente nos 4 pontos em que o app cruza a fronteira com essas duas colunas <code>timestamptz</code> — leitura e escrita de <code>banca_eventos.data_evento</code>, leitura e escrita de <code>banca_cache_partidas.data_evento</code>. Em todo o resto do app (formulário, leitor de bilhete por IA, checagem de resultados), o valor continua sendo tratado como string local simples ("AAAA-MM-DDTHH:MM"), sem mudanças.</li>
+  </ul>
+
   <h2 id="v1-32-1">v1.32.1</h2>
   <p class="versao-data">03/09/2026</p>
   <h3>Correção: limite "10 requisições/minuto" da API-Football estourando mesmo com o espaçamento</h3>

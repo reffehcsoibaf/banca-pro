@@ -949,7 +949,7 @@
     </div>
 </header>
 
-<!-- ========== RESUMO GLOBAL (todas as telas) ========== -->
+<!-- ========== RESUMO GLOBAL (só nas abas Lista e Filtros) ========== -->
 <div id="resumoGlobal" role="region" aria-label="Resumo do filtro atual" style="display:none; background:var(--bg); padding:0 16px 0; position:sticky; top:60px; z-index:350; border-bottom:1px solid var(--border-light); box-shadow:0 2px 8px rgba(30,58,95,.08);">
     <div style="max-width:1700px; margin:auto; padding:10px 0 4px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
@@ -1559,7 +1559,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.32.2 · 04/09/2026
+  Banca Pro · v1.33.0 · 05/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1647,10 +1647,12 @@ function alterarBuscaLigaHorarioAutomatica(ativa) {
 
 // ---- Preferência: recolher/expandir o painel de resumo (totais) fixo no
 // topo. Fica salva neste dispositivo/navegador, igual à paginação e à
-// análise automática. Padrão: expandido.
+// análise automática. Padrão: recolhido.
 const CHAVE_RESUMO_RECOLHIDO = 'bancapro_resumoRecolhido';
 function lerResumoRecolhidoSalvo() {
-    return localStorage.getItem(CHAVE_RESUMO_RECOLHIDO) === 'true';
+    const salvo = localStorage.getItem(CHAVE_RESUMO_RECOLHIDO);
+    // Padrão: recolhido. Só fica expandido se o usuário já tiver escolhido isso antes.
+    return salvo === null ? true : salvo === 'true';
 }
 let resumoGlobalRecolhido = lerResumoRecolhidoSalvo();
 function aplicarEstadoResumoGlobal() {
@@ -2025,6 +2027,10 @@ const ROTULO_ABA_BANCA = {
     cadastro: 'Cadastro', filtros: 'Filtros', lista: 'Lista de Apostas',
     saldos: 'Saldos', config: 'Configurações'
 };
+// Abas em que o painel fixo "Resumo do Filtro" pode aparecer (Cadastro, Saldos
+// e Configurações nunca mostram esse painel, mesmo com dados carregados).
+const ABAS_COM_RESUMO_GLOBAL = ['lista', 'filtros'];
+let abaAtualBanca = 'cadastro';
 
 function irPara(secao, btn) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -2039,8 +2045,24 @@ function irPara(secao, btn) {
         btn.setAttribute('aria-selected', 'true');
         btn.tabIndex = 0;
     }
+    abaAtualBanca = secao;
+    aplicarVisibilidadeResumoGlobal();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     anunciar('Aba ' + (ROTULO_ABA_BANCA[secao] || secao) + ' selecionada.');
+}
+
+// Mostra/esconde o painel fixo "Resumo do Filtro" conforme a aba ativa —
+// só existe nas abas Lista e Filtros (ver ABAS_COM_RESUMO_GLOBAL). Nas
+// demais abas fica sempre escondido, mesmo que haja dados carregados.
+function aplicarVisibilidadeResumoGlobal() {
+    const wrap = document.getElementById('resumoGlobal');
+    if (!wrap) return;
+    const podeAparecer = ABAS_COM_RESUMO_GLOBAL.includes(abaAtualBanca);
+    if (!podeAparecer) {
+        wrap.style.display = 'none';
+    } else if (apostasFiltradasAtuais && apostasFiltradasAtuais.length) {
+        wrap.style.display = 'block';
+    }
 }
 
 // ---- Atalho global Alt+1..5 para trocar de aba de qualquer lugar da tela ----
@@ -5634,9 +5656,9 @@ function renderResumo(dados) {
         `<div class="summary-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><h3>% Acerto</h3><div class="value">${formatarDecimal(acertoF)}%</div></div>`
     ].join('');
 
-    // Painel global fixo no topo (todas as telas)
+    // Painel global fixo no topo — só nas abas Lista e Filtros (ver ABAS_COM_RESUMO_GLOBAL)
     if (globalGrid)  globalGrid.innerHTML  = html;
-    if (globalWrap)  globalWrap.style.display = 'block';
+    if (globalWrap)  globalWrap.style.display = ABAS_COM_RESUMO_GLOBAL.includes(abaAtualBanca) ? 'block' : 'none';
     aplicarEstadoResumoGlobal();
 }
 

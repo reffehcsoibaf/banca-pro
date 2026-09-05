@@ -4,6 +4,21 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.33.0 — 05/09/2026
+
+### Painel "Resumo do Filtro": agora só nas abas Lista e Filtros, e recolhido por padrão
+
+O painel fixo de totais no topo (Entradas, Ganhas, Perdidas, Stake, Lucro, ROI etc.)
+aparecia em todas as abas sempre que havia dados carregados, e nascia expandido
+por padrão para quem nunca tinha mexido nele.
+
+- **Visibilidade:** o painel agora só aparece nas abas **Lista** e **Filtros** —
+  nas abas Cadastro, Saldos e Configurações ele fica sempre escondido, mesmo
+  com dados carregados.
+- **Estado padrão:** passa a nascer **recolhido**. Quem já tinha usado o botão
+  ▲/▼ antes mantém a própria escolha salva; a mudança de padrão só afeta quem
+  nunca tinha mexido nisso.
+
 ## v1.32.2 — 04/09/2026
 
 ### Correção: horário da partida (Data/Hora da Partida) exibido/gravado 3h errado
