@@ -1559,7 +1559,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.32.1 · 03/09/2026
+  Banca Pro · v1.32.2 · 04/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -2277,6 +2277,25 @@ function apostaParaLinha(a) {
         cash_out_valor: a.cashOutValor || null
     };
 }
+// ---- Conversão UTC <-> horário de Brasília (fixo -03:00, Brasil não tem mais horário de verão) ----
+// O restante do app trata "dataEvento" como string local ("AAAA-MM-DDTHH:MM", horário de
+// Brasília, mesmo formato do <input type="datetime-local">). Só na fronteira com o Supabase
+// (colunas timestamptz: banca_eventos.data_evento e banca_cache_partidas.data_evento) é que
+// precisa converter para/de UTC de verdade — senão o valor grava/lê 3h errado.
+function utcParaBrasiliaLocalStr(isoUtc) {
+    if (!isoUtc) return '';
+    const d = new Date(isoUtc);
+    if (isNaN(d.getTime())) return '';
+    const brasilia = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+    const pad = n => String(n).padStart(2, '0');
+    return `${brasilia.getUTCFullYear()}-${pad(brasilia.getUTCMonth() + 1)}-${pad(brasilia.getUTCDate())}T${pad(brasilia.getUTCHours())}:${pad(brasilia.getUTCMinutes())}`;
+}
+function brasiliaLocalStrParaUtcIso(localStr) {
+    if (!localStr) return null;
+    // localStr no formato "AAAA-MM-DDTHH:MM" (ou com segundos) representando horário de Brasília
+    const semOffset = localStr.length === 16 ? localStr + ':00' : localStr;
+    return semOffset + '-03:00';
+}
 function linhaParaAposta(row) {
     return {
         id: row.id,
@@ -2310,7 +2329,7 @@ function eventoParaLinha(e, apostaId) {
         mercado: e.mercado,
         selecao: e.selecao,
         odd: e.odd,
-        data_evento: e.dataEvento || null
+        data_evento: brasiliaLocalStrParaUtcIso(e.dataEvento)
     };
 }
 function linhaParaEvento(row) {
@@ -2323,7 +2342,7 @@ function linhaParaEvento(row) {
         mercado: row.mercado,
         selecao: row.selecao,
         odd: Number(row.odd),
-        dataEvento: row.data_evento ? String(row.data_evento).slice(0, 16) : ''
+        dataEvento: utcParaBrasiliaLocalStr(row.data_evento)
     };
 }
 
@@ -3670,7 +3689,7 @@ async function consultarCachePartida(esporte, evento) {
         if (error || !data) return null;
         return {
             liga: data.liga || null,
-            data_evento: data.data_evento ? String(data.data_evento).slice(0, 16) : null
+            data_evento: data.data_evento ? utcParaBrasiliaLocalStr(data.data_evento) : null
         };
     } catch (e) {
         return null;
@@ -3690,7 +3709,7 @@ async function salvarCachePartida(esporte, evento, liga, dataEvento, origem) {
             evento_chave: k.chave,
             evento_exibicao: String(evento).trim(),
             liga: liga || null,
-            data_evento: dataEvento || null,
+            data_evento: brasiliaLocalStrParaUtcIso(dataEvento),
             origem: origem || null,
             criado_em: new Date().toISOString(),
             expira_em: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()

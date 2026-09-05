@@ -4,6 +4,27 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.32.2 — 04/09/2026
+
+### Correção: horário da partida (Data/Hora da Partida) exibido/gravado 3h errado
+
+A coluna `banca_eventos.data_evento` (e também `banca_cache_partidas.data_evento`) é
+`timestamptz` no Supabase, mas o app lia e gravava o valor como texto cru, sem converter
+fuso horário — na prática tratava o instante UTC como se já fosse horário de Brasília.
+Isso vinha compensando um erro histórico nos dados (gravados com o número certo de
+Brasília, mas marcados incorretamente como UTC), então não dava pra perceber o
+problema até o banco ser corrigido para guardar o instante real em UTC — a partir daí,
+o app passou a exibir tudo 3h à frente.
+
+- **Novo:** duas funções de conversão (`utcParaBrasiliaLocalStr` /
+  `brasiliaLocalStrParaUtcIso`) isolam a conversão de fuso (Brasil não tem mais horário
+  de verão, então o offset é sempre fixo, -03:00) exatamente nos 4 pontos em que o app
+  cruza a fronteira com essas duas colunas `timestamptz` — leitura e escrita de
+  `banca_eventos.data_evento`, leitura e escrita de `banca_cache_partidas.data_evento`.
+  Em todo o resto do app (formulário, leitor de bilhete por IA, checagem de
+  resultados), o valor continua sendo tratado como string local simples
+  ("AAAA-MM-DDTHH:MM"), sem mudanças.
+
 ## v1.32.1 — 03/09/2026
 
 ### Correção: limite "10 requisições/minuto" da API-Football estourando mesmo com o espaçamento
