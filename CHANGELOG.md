@@ -4,6 +4,16 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.34.0 — 05/09/2026
+
+### Preenchimento automático de Liga/Horário: nova camada de correções aprendidas + fim das falhas silenciosas
+
+O preenchimento automático de Liga e Horário (cache local → busca na web) estava resolvendo bem menos confrontos do que deveria, de forma silenciosa. Duas causas identificadas e corrigidas:
+
+- **Corrigido — busca na web quase nunca chegava a usar a Anthropic:** a rota de Liga tentava primeiro o Gemini e só caía para a Anthropic (a única com busca restrita a sofascore.com/365scores.com) quando o Gemini dava erro técnico. Só que quando o Gemini simplesmente não confirmava o confronto, isso não era um erro — era uma resposta 200 "não encontrado", e ficava por isso mesmo, sem a Anthropic ser tentada. Agora, nesse caso específico, a Anthropic também é tentada antes de desistir (a preferência "Somente Gemini", quando escolhida em Configurações, continua sendo respeitada sem fallback).
+- **Novo — camada de correções de Liga já aprendidas:** o cache de confrontos só ajuda quando os mesmos dois times já jogaram entre si antes (dentro de 48h) — não ajuda no caso mais comum, um time conhecido contra um adversário novo. A memória de correções de Liga (a mesma usada para orientar a leitura do bilhete, guardada por time) agora também é consultada como uma camada própria, entre o cache e a busca na web, sem gastar nenhuma chamada de IA. Só aplica quando o resultado é inequívoco — se o time tiver mais de uma liga aprendida (liga nacional e copa, por exemplo), não arrisca escolher, e deixa a busca na web resolver.
+- **Corrigido — falha silenciosa:** quando a busca automática rodava e genuinamente não confirmava nada, o app não avisava nada (nem toast, nem leitor de tela) — dava a impressão de que nada tinha sido tentado. Agora sempre anuncia o resultado, incluindo quando não encontrou nada.
+
 ## v1.33.0 — 05/09/2026
 
 ### Painel "Resumo do Filtro": agora só nas abas Lista e Filtros, e recolhido por padrão

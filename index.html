@@ -1559,7 +1559,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.33.0 · 05/09/2026
+  Banca Pro · v1.34.0 · 05/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -3741,6 +3741,72 @@ async function salvarCachePartida(esporte, evento, liga, dataEvento, origem) {
     }
 }
 
+/* ==================== CORREÇÕES APRENDIDAS DE LIGA COMO CAMADA AUTOMÁTICA (por time) ====================
+   O cache acima (banca_cache_partidas) só ajuda quando o MESMO confronto (os
+   dois mesmos times) já apareceu antes — não ajuda num confronto novo (time
+   conhecido contra um adversário inédito), que é justamente o caso mais comum
+   no primeiro bilhete do dia de cada time. Só que a memória de correções de
+   Liga (banca_correcoes_ia, ver bloco "Correções aprendidas da IA" acima) já
+   guarda essas ligas POR TIME (não por confronto) havia tempos — só nunca
+   tinha sido consultada aqui como uma camada própria, só era enviada como
+   texto de apoio para a IA na leitura do bilhete. Reaproveitá-la aqui não
+   gasta nenhuma chamada de IA.
+   Cuidado necessário: um mesmo time pode ter mais de uma liga aprendida (liga
+   nacional E copa, por exemplo — ver diffCorrecoesIA/salvar(), que guarda as
+   duas sem sobrescrever uma pela outra). Por isso só aplica quando o
+   resultado é INEQUÍVOCO: junta as ligas aprendidas (ainda válidas, ver
+   correcaoEstaValida) de AMBOS os times do confronto e só aplica se sobrar
+   exatamente UMA liga distinta entre elas; havendo ambiguidade, não arrisca
+   escolher — deixa a etapa seguinte (busca real na web) resolver. */
+
+// Ligas aprendidas (ainda válidas) para um time específico, num esporte.
+function _correcoesLigaDoTime(esporte, nomeTime) {
+    const alvo = chaveNormalizada(removerAcentos(nomeTime || ''));
+    if (!alvo) return [];
+    return correcoesIA.filter(c =>
+        c.campo === 'liga' &&
+        c.esporte === esporte &&
+        correcaoEstaValida(c) &&
+        chaveNormalizada(removerAcentos(c.contexto || '')) === alvo
+    );
+}
+
+async function _aplicarCorrecaoAprendidaLiga(div) {
+    const inputEvento = div.querySelector('.evento');
+    const evento = inputEvento ? inputEvento.value.trim() : '';
+    if (!evento) return { status: 'sem-evento' };
+
+    const esporteAtual = valorEfetivoComOutro(div.querySelector('.esporteEvento'), 'esporteEventoOutro');
+    const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+    if (ligaAtual) return { status: 'ja-preenchido' };
+    if (!esporteAtual) return { status: 'sem-esporte' };
+
+    const times = String(evento).split(' - ').map(t => t.trim()).filter(Boolean);
+    if (times.length < 2) return { status: 'formato-invalido' };
+
+    const candidatas = [];
+    for (const time of times) candidatas.push(..._correcoesLigaDoTime(esporteAtual, time));
+    if (!candidatas.length) return { status: 'nao-encontrado' };
+
+    const ligasDistintas = [...new Set(candidatas.map(c => chaveNormalizada(c.valorCorreto)))];
+    if (ligasDistintas.length !== 1) return { status: 'ambiguo' };
+
+    const ligaAprendida = candidatas[0].valorCorreto;
+    const selLig = div.querySelector('.ligaEvento');
+    const r = buscarOuPrepararValor(ligasDoEsporte(esporteAtual).map(ligaNomeExibicao), ligaAprendida);
+    selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporteAtual), ligaNomeExibicao, '— Liga —');
+    if (r.duplicado) {
+        selLig.value = r.valor;
+        toggleCampoOutro(selLig, 'ligaEventoOutro');
+    } else {
+        selLig.value = OUTRO_VALOR;
+        toggleCampoOutro(selLig, 'ligaEventoOutro');
+        const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
+        if (inputOutro) inputOutro.value = r.valor;
+    }
+    return { status: 'encontrado', liga: r.valor };
+}
+
 // Percorre os eventos já preenchidos no formulário e salva no cache todo
 // confronto que já tenha Liga E Data/Hora da Partida completas — vindas do
 // próprio bilhete, de anotação manual, do cache reaproveitado agora mesmo
@@ -3817,13 +3883,18 @@ async function _aplicarCachePartida(div) {
       acima) — não gasta chamada de IA, só reaproveita o que já foi
       confirmado antes (do próprio bilhete, de anotação manual, ou de uma
       busca anterior).
-   2) Para o que sobrar sem liga e/ou data-hora depois do cache: busca real
-      na web (_buscarLigaCore, mesma função do botão manual "🔎 Buscar
-      Liga/Horário", com pesquisa de verdade via Sofascore/365scores) —
-      último recurso, um evento de cada vez.
+   2) CORREÇÕES APRENDIDAS DE LIGA por time (_aplicarCorrecaoAprendidaLiga,
+      ver bloco acima) — cobre o caso mais comum de falha do cache: um time
+      já conhecido, mas contra um adversário novo. Só aplica quando é
+      inequívoco (uma única liga aprendida entre os dois times); não gasta
+      chamada de IA. Não preenche Data/Hora (a correção só guarda Liga).
+   3) Para o que sobrar sem liga e/ou data-hora depois das duas etapas acima:
+      busca real na web (_buscarLigaCore, mesma função do botão manual "🔎
+      Buscar Liga/Horário", com pesquisa de verdade via Sofascore/365scores)
+      — último recurso, um evento de cada vez.
    Considera elegível todo evento com o nome do Evento preenchido E (Liga OU
    Data/Hora da Partida ainda vazias); eventos já completos não são
-   sobrescritos em nenhuma das duas etapas. */
+   sobrescritos em nenhuma das três etapas. */
 async function buscarLigaHorarioAutomatico(dados) {
     const divs = Array.from(document.querySelectorAll('.event'));
     const elegiveis = divs.filter(function (div) {
@@ -3849,19 +3920,38 @@ async function buscarLigaHorarioAutomatico(dados) {
         if (!ligaAtual || !dataEventoAtual) aindaIncompletos.push(div);
     }
 
-    // Etapa 2: só para quem o cache não resolveu — busca real na web,
-    // um evento de cada vez (mesma chamada do botão manual).
-    let encontradosBusca = 0, errosBusca = 0;
+    // Etapa 2: correções aprendidas por time, só para quem ainda falta Liga
+    // (não mexe em quem já tem Liga do cache — só entra se ligaAtual vazia).
+    let encontradosAprendizado = 0;
     for (const div of aindaIncompletos) {
+        const ligaAntes = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+        if (ligaAntes) continue;
+        const r = await _aplicarCorrecaoAprendidaLiga(div);
+        if (r.status === 'encontrado') encontradosAprendizado++;
+    }
+
+    // Etapa 3: só para quem ainda falta Liga e/ou Data/Hora depois das duas
+    // etapas acima — busca real na web, um evento de cada vez (mesma chamada
+    // do botão manual).
+    const aindaFaltando = aindaIncompletos.filter(function (div) {
+        const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
+        const campoDataEvento = div.querySelector('.dataEventoEvento');
+        const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
+        return !ligaAtual || !dataEventoAtual;
+    });
+    let encontradosBusca = 0, errosBusca = 0, naoEncontradosBusca = 0;
+    for (const div of aindaFaltando) {
         const r = await _buscarLigaCore(div);
         if (r.status === 'encontrado') encontradosBusca++;
         else if (r.status === 'erro') errosBusca++;
+        else if (r.status === 'nao-encontrado') naoEncontradosBusca++;
     }
 
-    // _aplicarCachePartida e _buscarLigaCore aplicam os valores encontrados
-    // diretamente nos campos do formulário, não no objeto "dados" original —
-    // sincroniza de volta aqui, lendo o valor final de cada campo, para o
-    // Painel de Conferência refletir o resultado.
+    // _aplicarCachePartida, _aplicarCorrecaoAprendidaLiga e _buscarLigaCore
+    // aplicam os valores encontrados diretamente nos campos do formulário,
+    // não no objeto "dados" original — sincroniza de volta aqui, lendo o
+    // valor final de cada campo, para o Painel de Conferência refletir o
+    // resultado.
     elegiveis.forEach((div) => {
         const idx = divs.indexOf(div);
         if (idx === -1 || !dados.eventos || !dados.eventos[idx]) return;
@@ -3873,14 +3963,22 @@ async function buscarLigaHorarioAutomatico(dados) {
         if (campoDataEvento && campoDataEvento.value) dados.eventos[idx].dataEvento = campoDataEvento.value;
     });
 
-    const total = encontradosCache + encontradosBusca;
+    // Antes, quando a busca na web rodava e genuinamente não achava nada
+    // (status 'nao-encontrado', que não é um erro técnico), nenhum aviso era
+    // dado — ficava em silêncio total, parecendo que nada tinha acontecido.
+    // Agora sempre anuncia algo quando havia eventos elegíveis, mesmo sem
+    // nenhum resultado.
+    const total = encontradosCache + encontradosAprendizado + encontradosBusca;
     if (total > 0) {
         const fontes = [];
         if (encontradosCache > 0) fontes.push(`${encontradosCache} de bilhetes recentes (cache)`);
+        if (encontradosAprendizado > 0) fontes.push(`${encontradosAprendizado} de correções já aprendidas`);
         if (encontradosBusca > 0) fontes.push(`${encontradosBusca} por busca na web`);
         anunciarExtracao(`Liga e/ou horário preenchidos automaticamente em ${total} evento${total > 1 ? 's' : ''}: ${fontes.join(', ')}.`);
     } else if (errosBusca > 0) {
         anunciarExtracao(`Não foi possível confirmar liga/horário automaticamente (${errosBusca} erro${errosBusca > 1 ? 's' : ''} na busca na web). Use o botão "🔎 Buscar Liga/Horário" se quiser tentar de novo.`);
+    } else if (naoEncontradosBusca > 0) {
+        anunciarExtracao(`Não foi possível confirmar automaticamente a liga e/ou o horário de ${naoEncontradosBusca} evento${naoEncontradosBusca > 1 ? 's' : ''} — a busca não encontrou o confronto com confiança suficiente. Preencha manualmente ou use o botão "🔎 Buscar Liga/Horário".`);
     }
 }
 

@@ -114,6 +114,16 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-34-0">v1.34.0</h2>
+  <p class="versao-data">05/09/2026</p>
+  <h3>Preenchimento automático de Liga/Horário: nova camada de correções aprendidas + fim das falhas silenciosas</h3>
+  <p>O preenchimento automático de Liga e Horário (cache local → busca na web) estava resolvendo bem menos confrontos do que deveria, de forma silenciosa. Duas causas identificadas e corrigidas:</p>
+  <ul>
+    <li><strong>Corrigido — busca na web quase nunca chegava a usar a Anthropic:</strong> a rota de Liga tentava primeiro o Gemini e só caía para a Anthropic (a única com busca restrita a sofascore.com/365scores.com) quando o Gemini dava erro técnico. Só que quando o Gemini simplesmente não confirmava o confronto, isso não era um erro — era uma resposta 200 "não encontrado", e ficava por isso mesmo, sem a Anthropic ser tentada. Agora, nesse caso específico, a Anthropic também é tentada antes de desistir (a preferência "Somente Gemini", quando escolhida em Configurações, continua sendo respeitada sem fallback).</li>
+    <li><strong>Novo — camada de correções de Liga já aprendidas:</strong> o cache de confrontos só ajuda quando os mesmos dois times já jogaram entre si antes (dentro de 48h) — não ajuda no caso mais comum, um time conhecido contra um adversário novo. A memória de correções de Liga (a mesma usada para orientar a leitura do bilhete, guardada por time) agora também é consultada como uma camada própria, entre o cache e a busca na web, sem gastar nenhuma chamada de IA. Só aplica quando o resultado é inequívoco — se o time tiver mais de uma liga aprendida (liga nacional e copa, por exemplo), não arrisca escolher, e deixa a busca na web resolver.</li>
+    <li><strong>Corrigido — falha silenciosa:</strong> quando a busca automática rodava e genuinamente não confirmava nada, o app não avisava nada (nem toast, nem leitor de tela) — dava a impressão de que nada tinha sido tentado. Agora sempre anuncia o resultado, incluindo quando não encontrou nada.</li>
+  </ul>
+
   <h2 id="v1-33-0">v1.33.0</h2>
   <p class="versao-data">05/09/2026</p>
   <h3>Painel "Resumo do Filtro": agora só nas abas Lista e Filtros, e recolhido por padrão</h3>

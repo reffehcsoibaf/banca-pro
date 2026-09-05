@@ -725,6 +725,10 @@ async function handleFetch(request, env, ctx) {
     // Só entra aqui se a preferência não for "Somente Anthropic".
     const tentarGemini = provedorPreferido !== 'anthropic';
     let erroGeminiDetalhe = null;
+    // Guarda a resposta "não encontrado" do Gemini na rota de Liga, para o caso de a
+    // Anthropic (tentada em seguida, ver abaixo) falhar de verdade — devolver essa
+    // resposta graciosa do Gemini ainda é melhor do que um erro cru para o usuário.
+    let respostaGeminiSemLiga = null;
     if (tentarGemini) {
       if (env.GEMINI_API_KEY) {
         try {
@@ -738,8 +742,21 @@ async function handleFetch(request, env, ctx) {
             textoCorrecoes,
             schemaTipo,
           });
-          ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
-          return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
+          // Na rota de Liga (schemaTipo 'buscar-liga'), o Gemini pode responder
+          // 200 OK sem ter confirmado nada (não é um erro técnico, é uma busca que
+          // não achou o confronto) — antes, isso era tratado como sucesso e a
+          // Anthropic (única com busca restrita a sofascore.com/365scores.com,
+          // ver lerComAnthropic) nunca chegava a ser tentada. Agora, só nesse
+          // caso específico, e só quando o fallback está permitido (preferência
+          // não é "Somente Gemini"), tenta a Anthropic antes de desistir.
+          const semLigaNemHorario = schemaTipo === 'buscar-liga' && !extraido.encontrado && !extraido.dataHoraEncontrada;
+          if (semLigaNemHorario && provedorPreferido !== 'gemini') {
+            respostaGeminiSemLiga = extraido;
+            console.log('[fallback] Gemini não confirmou liga/horário (sem erro técnico), tentando Anthropic antes de desistir.');
+          } else {
+            ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
+            return new Response(JSON.stringify({ ...extraido, _provedor: 'gemini' }), { status: 200, headers });
+          }
         } catch (erroGemini) {
           // Guarda o erro real (truncado) para devolver ao usuário se a Anthropic
           // também falhar — assim dá para diagnosticar sem precisar de `wrangler tail`.
@@ -792,6 +809,15 @@ async function handleFetch(request, env, ctx) {
       ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
       return new Response(JSON.stringify({ ...extraido, _provedor: 'anthropic' }), { status: 200, headers });
     } catch (erroAnthropic) {
+      // Se chegamos aqui vindos de uma escalada por "Gemini não achou liga/horário"
+      // (não um erro técnico), e a Anthropic falhou de verdade agora, a resposta
+      // graciosa do Gemini (educadamente "não encontrado") ainda é mais útil ao
+      // usuário do que um erro cru — devolve ela em vez de falhar a chamada toda.
+      if (respostaGeminiSemLiga) {
+        ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
+        console.log('[fallback] Anthropic também falhou após escalada de liga; devolvendo resposta graciosa do Gemini:', String(erroAnthropic.message || erroAnthropic).slice(0, 300));
+        return new Response(JSON.stringify({ ...respostaGeminiSemLiga, _provedor: 'gemini' }), { status: 200, headers });
+      }
       return new Response(
         JSON.stringify({
           error: 'Erro ao processar (Gemini e Anthropic falharam, ou Anthropic era o único provedor tentado): ' + erroAnthropic.message +
