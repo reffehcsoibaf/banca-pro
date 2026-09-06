@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.35.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.36.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -396,7 +396,7 @@
         <tr><td class="field-name">Casa <span class="req">*</span></td><td>Radio button</td><td>Casa de apostas onde a entrada foi feita.</td></tr>
         <tr><td class="field-name">Identificador <span class="req">*</span></td><td>Texto</td><td>Código único da aposta. Pode ser o código da casa ou qualquer referência sua.</td></tr>
         <tr><td class="field-name">Data e Hora <span class="req">*</span></td><td>Texto <code>dd/mm/aaaa hh:mm</code></td><td>Preenchida automaticamente com a data/hora atual ao abrir o formulário. Editável livremente.</td></tr>
-        <tr><td class="field-name">Tipster <span class="req">*</span></td><td>Caixa combinada</td><td>Quem indicou a aposta. Use seu próprio nome para entradas próprias.</td></tr>
+        <tr><td class="field-name">Tipster <span class="req">*</span></td><td>Caixa combinada</td><td>Quem indicou a aposta. Use seu próprio nome para entradas próprias. Abaixo do campo, o app mostra a <a href="#config-tipster-odd-minima">odd mínima recomendada</a> para o tipster escolhido, quando já há histórico suficiente.</td></tr>
         <tr><td class="field-name">Tipo <span class="req">*</span></td><td>Caixa combinada</td><td>Momento da aposta: <em>Pré Live</em> (antes do jogo) ou <em>Ao Vivo</em>.</td></tr>
         <tr><td class="field-name">Status <span class="req">*</span></td><td>Radio button</td><td><em>Aberto</em> (aguardando resultado), <em>Ganhou</em>, <em>Perdeu</em>, <em>Ganho Parcial</em>, <em>Perda Parcial</em>, <em>Cash Out</em> ou <em>Anulada</em>.</td></tr>
         <tr><td class="field-name">Stake <span class="req">*</span></td><td>Número</td><td>Valor total em reais apostado nesta entrada, incluindo qualquer parte financiada por freebet (ver campo abaixo).</td></tr>
@@ -947,7 +947,20 @@
 
     <h3>Gerenciar listas de opções</h3>
     <p>Casa, Tipster, Tipo, Esporte, Liga e Mercado têm listas personalizáveis. Alterações são salvas imediatamente na nuvem e refletem em todos os formulários e filtros.</p>
-    <p>Para os campos simples (Casa, Tipster, Tipo, Esporte), cada lista exibe os valores como chips clicáveis. Use o campo de texto + botão <span class="btn-demo success">Adicionar</span> para incluir um novo valor, e o ícone <strong>×</strong> dentro de cada chip para remover.</p>
+    <p>Para os campos simples (Casa, Tipo, Esporte), cada lista exibe os valores como chips clicáveis. Use o campo de texto + botão <span class="btn-demo success">Adicionar</span> para incluir um novo valor, e o ícone <strong>×</strong> dentro de cada chip para remover.</p>
+
+    <h4 id="config-tipster-odd-minima">Odd mínima recomendada por Tipster</h4>
+    <p>A lista de Tipster, além do nome, mostra três colunas de desempenho calculadas a partir do seu histórico de apostas:</p>
+    <ul>
+      <li><strong>Resolvidas:</strong> quantas apostas daquele tipster já têm resultado (Ganhou, Perdeu, Ganho Parcial ou Perda Parcial). Cash Out, Anulada e Aberto não entram nessa conta.</li>
+      <li><strong>Taxa de Acerto:</strong> Ganhou e Ganho Parcial contam como acerto; Perdeu e Perda Parcial contam como erro.</li>
+      <li><strong>Odd Mínima Recomendada:</strong> 100 ÷ taxa de acerto (%) — é a odd de equilíbrio matemático. Abaixo dela, mesmo mantendo a mesma taxa de acerto histórica, o resultado tende a ser prejuízo no longo prazo; acima dela, há margem de lucro.</li>
+    </ul>
+    <p>A odd mínima só aparece depois de pelo menos 30 apostas resolvidas para aquele tipster — abaixo disso, a coluna mostra "insuficiente", porque a amostra ainda é pequena demais para confiar no número. O mesmo cálculo aparece também na tela de Cadastro, logo abaixo do campo Tipster, atualizado automaticamente conforme você troca de tipster.</p>
+    <div class="callout tip">
+      <div class="callout-title">💡 Isso é um alerta, não um bloqueio</div>
+      O app nunca impede o lançamento de uma aposta com odd abaixo da recomendada — o número é só uma referência para sua própria decisão na hora de registrar o bilhete.
+    </div>
 
     <h3 id="config-ligas-mercados">Ligas e Mercados por esporte</h3>
     <p>Liga e Mercado são vinculados a um esporte específico — a lista exibida no formulário de Cadastro muda automaticamente conforme o esporte selecionado em cada evento. Nas Configurações, escolha o esporte no seletor e então adicione ou remova ligas/mercados para aquele esporte.</p>

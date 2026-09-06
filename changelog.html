@@ -114,6 +114,17 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-36-0">v1.36.0</h2>
+  <p class="versao-data">06/09/2026</p>
+  <h3>Novo: Odd Mínima Recomendada por Tipster</h3>
+  <p>O app agora calcula, para cada tipster, a odd mínima recomendada com base no histórico real de apostas — a odd de equilíbrio matemático (100 ÷ taxa de acerto), abaixo da qual o resultado tende a ser prejuízo no longo prazo mesmo mantendo a mesma taxa de acerto.</p>
+  <ul>
+    <li><strong>Cálculo:</strong> Ganhou e Ganho Parcial contam como acerto; Perdeu e Perda Parcial contam como erro; Cash Out, Anulada e Aberto ficam fora da conta (não refletem se a aposta bateria ou não).</li>
+    <li><strong>Amostra mínima:</strong> só é exibida com pelo menos 30 apostas resolvidas por tipster — abaixo disso, o app mostra que o histórico ainda é pequeno demais em vez de arriscar um número pouco confiável.</li>
+    <li><strong>Onde aparece:</strong> na tela de Cadastro, logo abaixo do campo Tipster, atualizado automaticamente ao trocar de tipster; e em Configurações → Gerenciar Listas → Tipster, numa tabela com Resolvidas, Taxa de Acerto e Odd Mínima Recomendada para todos os tipsters de uma vez.</li>
+    <li><strong>Apenas indicativo:</strong> não bloqueia nem exige confirmação extra para salvar uma aposta com odd abaixo do recomendado — é só uma referência visual para decisão na hora do lançamento.</li>
+  </ul>
+
   <h2 id="v1-35-0">v1.35.0</h2>
   <p class="versao-data">05/09/2026</p>
   <h3>Preenchimento automático de Liga/Horário: nova camada de correções aprendidas, aceitação de palpite com confiança e fim das falhas silenciosas</h3>

@@ -4,6 +4,17 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.36.0 — 06/09/2026
+
+### Novo: Odd Mínima Recomendada por Tipster
+
+O app agora calcula, para cada tipster, a odd mínima recomendada com base no histórico real de apostas — a odd de equilíbrio matemático (100 ÷ taxa de acerto), abaixo da qual o resultado tende a ser prejuízo no longo prazo mesmo mantendo a mesma taxa de acerto.
+
+- **Cálculo:** Ganhou e Ganho Parcial contam como acerto; Perdeu e Perda Parcial contam como erro; Cash Out, Anulada e Aberto ficam fora da conta (não refletem se a aposta bateria ou não).
+- **Amostra mínima:** só é exibida com pelo menos 30 apostas resolvidas por tipster — abaixo disso, o app mostra que o histórico ainda é pequeno demais em vez de arriscar um número pouco confiável.
+- **Onde aparece:** (1) na tela de Cadastro, logo abaixo do campo Tipster, atualizado automaticamente ao trocar de tipster; (2) em Configurações → Gerenciar Listas → Tipster, numa tabela com as colunas Resolvidas, Taxa de Acerto e Odd Mínima Recomendada para todos os tipsters de uma vez.
+- **Apenas indicativo:** não bloqueia nem exige confirmação extra para salvar uma aposta com odd abaixo do recomendado — é só uma referência visual para decisão na hora do lançamento.
+
 ## v1.35.0 — 05/09/2026
 
 ### Preenchimento automático de Liga/Horário: nova camada de correções aprendidas, aceitação de palpite com confiança e fim das falhas silenciosas

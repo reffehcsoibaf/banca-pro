@@ -1032,8 +1032,9 @@
                 </div>
                 <div>
                     <label for="tipster">Tipster</label>
-                    <select id="tipster" onchange="toggleCampoOutro(this,'tipsterOutro')"></select>
-                    <input type="text" class="tipsterOutro" placeholder="Digite o nome do tipster..." style="display:none;margin-top:4px;" aria-label="Digite o nome do tipster (uso avulso, não será salvo na lista)">
+                    <select id="tipster" onchange="toggleCampoOutro(this,'tipsterOutro'); atualizarOddMinimaTipster();"></select>
+                    <input type="text" class="tipsterOutro" oninput="atualizarOddMinimaTipster()" placeholder="Digite o nome do tipster..." style="display:none;margin-top:4px;" aria-label="Digite o nome do tipster (uso avulso, não será salvo na lista)">
+                    <div id="tipsterOddMinima" aria-live="polite" style="margin-top:4px;font-size:12px;color:var(--text-secondary);"></div>
                     <div class="inline" style="margin-top:4px;">
                         <button class="btn-sm btn-success" onclick="addOption('tipster')" aria-label="Adicionar tipster">+ Tipster</button>
                     </div>
@@ -1307,9 +1308,12 @@
 
             <div class="config-categoria">
                 <h3>👤 Tipster</h3>
+                <p style="font-family:var(--font-ui);font-size:12px;color:var(--text-secondary);margin-top:-4px;">
+                    Resolvidas, Taxa de Acerto e Odd Mínima Recomendada consideram Ganhou/Ganho Parcial como acerto e Perdeu/Perda Parcial como erro; Cash Out e apostas Anuladas não entram na conta, e apostas Abertas também ficam de fora. A odd mínima (100 ÷ taxa de acerto) só aparece com pelo menos <span id="tipsterMinResolvidasLabel"></span> apostas resolvidas — abaixo disso, o histórico ainda é pequeno demais para confiar no número.
+                </p>
                 <div class="table-wrap">
-                    <table role="grid" aria-label="Tipsters cadastrados">
-                        <thead><tr><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                    <table role="grid" aria-label="Tipsters cadastrados, com desempenho histórico e odd mínima recomendada">
+                        <thead><tr><th scope="col">Nome</th><th scope="col">Resolvidas</th><th scope="col">Taxa de Acerto</th><th scope="col">Odd Mínima Recomendada</th><th scope="col">Ações</th></tr></thead>
                         <tbody id="chips-tipster"></tbody>
                     </table>
                 </div>
@@ -1559,7 +1563,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.35.0 · 05/09/2026
+  Banca Pro · v1.36.0 · 06/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -5442,6 +5446,7 @@ function editar(idx) {
     document.querySelectorAll('#rg-status input[type="radio"]').forEach(r => { r.checked = (r.value === a.status); });
     // Restaurar selects: tipster e tipo (tipster entra em modo "Outro" se o valor salvo não estiver mais na lista)
     aplicarValorComOutro(document.getElementById("tipster"), 'tipsterOutro', a.tipster);
+    atualizarOddMinimaTipster();
     document.getElementById("tipo").value = a.tipo;
     document.getElementById("identificador").value = a.identificador;
     document.getElementById("dataHora").value = (a.dataHora || "").slice(0,16);
@@ -5609,6 +5614,7 @@ function limparFormulario() {
     });
     const tipsterOutro = document.querySelector('.tipsterOutro');
     if (tipsterOutro) { tipsterOutro.style.display = 'none'; tipsterOutro.value = ''; }
+    atualizarOddMinimaTipster();
     document.getElementById("eventos").innerHTML = "";
     editIndex = null;
     document.getElementById("btnSalvar").innerHTML = "💾 Salvar Aposta";
@@ -6153,6 +6159,92 @@ async function excluirTransacao(idx) {
 /* ==================== CONFIGURAÇÕES (gerenciar listas) ==================== */
 const CAMPOS_CONFIG = ['casa','tipster','tipo','esporte','liga','mercado'];
 
+// ---- Odd mínima recomendada por tipster ----
+// Odd mínima = 100 ÷ taxa de acerto (%) — é a odd de equilíbrio: abaixo dela,
+// o tipster perde dinheiro no longo prazo mesmo acertando na taxa histórica;
+// acima dela, há margem de lucro. Ganho Parcial conta como acerto e Perda
+// Parcial como erro; Cash Out e Anulada não entram (não refletem se a aposta
+// bateria ou não) e Aberto obviamente também fica de fora. Só é calculada com
+// uma amostra mínima de apostas resolvidas, para não recomendar uma odd com
+// base em 1 ou 2 resultados.
+const ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS = 30;
+
+function calcularOddMinimaTipster(nomeTipster) {
+    if (!nomeTipster) return null;
+    let acertos = 0, resolvidas = 0;
+    for (const a of apostas) {
+        if (a.tipster !== nomeTipster) continue;
+        if (a.status === 'Ganhou' || a.status === 'Ganho Parcial') { acertos++; resolvidas++; }
+        else if (a.status === 'Perdeu' || a.status === 'Perda Parcial') { resolvidas++; }
+        // Cash Out, Anulada, Aberto: não entram na conta
+    }
+    if (resolvidas < ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS) return { resolvidas, acertos, taxaAcerto: null, oddMinima: null };
+    const taxaAcerto = acertos / resolvidas;
+    const oddMinima = taxaAcerto > 0 ? (1 / taxaAcerto) : null;
+    return { resolvidas, acertos, taxaAcerto, oddMinima };
+}
+
+// Atualiza o indicador de odd mínima na tela de Cadastro, conforme o tipster
+// selecionado (ou digitado, no modo "Outro"). Chamado ao trocar o tipster, ao
+// editar uma aposta existente e ao limpar o formulário.
+function atualizarOddMinimaTipster() {
+    const el = document.getElementById('tipsterOddMinima');
+    if (!el) return;
+    const sel = document.getElementById('tipster');
+    const outro = document.querySelector('.tipsterOutro');
+    let nome = sel ? sel.value : '';
+    if (nome === OUTRO_VALOR) nome = outro ? outro.value.trim() : '';
+    if (!nome || nome === OUTRO_VALOR) { el.textContent = ''; return; }
+    const stats = calcularOddMinimaTipster(nome);
+    if (!stats || stats.resolvidas < ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS) {
+        el.textContent = `Ainda sem odd mínima recomendada para ${nome} (${stats ? stats.resolvidas : 0} de ${ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS} apostas resolvidas necessárias).`;
+        return;
+    }
+    if (stats.oddMinima === null) {
+        el.textContent = `${nome}: 0% de acerto nas ${stats.resolvidas} apostas resolvidas — nenhuma odd é recomendada.`;
+        return;
+    }
+    el.textContent = `Odd mínima recomendada para ${nome}: ${stats.oddMinima.toFixed(2)} (taxa de acerto: ${(stats.taxaAcerto*100).toFixed(1)}% em ${stats.resolvidas} apostas resolvidas)`;
+}
+
+// Renderiza a tabela de Tipsters em Configurações, incluindo as colunas de
+// desempenho (Resolvidas, Taxa de Acerto, Odd Mínima Recomendada), calculadas
+// a partir do array 'apostas' já carregado — sem chamada extra ao banco.
+function renderTipsterConfig() {
+    const container = document.getElementById('chips-tipster');
+    const labelMin = document.getElementById('tipsterMinResolvidasLabel');
+    if (labelMin) labelMin.textContent = String(ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS);
+    if (!container) return;
+    const valores = defaults.tipster || [];
+    if (valores.length === 0) {
+        container.innerHTML = `<tr><td colspan="5" style="color:var(--text-secondary);">Nenhum valor cadastrado ainda</td></tr>`;
+        return;
+    }
+    container.innerHTML = valores.map((v, i) => {
+        const stats = calcularOddMinimaTipster(v);
+        const resolvidas = stats ? stats.resolvidas : 0;
+        let colTaxa, colOdd;
+        if (!stats || stats.resolvidas < ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS) {
+            colTaxa = `<span style="color:var(--text-secondary);">—</span>`;
+            colOdd = `<span style="color:var(--text-secondary);">insuficiente</span>`;
+        } else {
+            colTaxa = `${(stats.taxaAcerto*100).toFixed(1)}%`;
+            colOdd = stats.oddMinima !== null ? stats.oddMinima.toFixed(2) : '—';
+        }
+        return `
+        <tr>
+            <td>${escapeHtml(v)}</td>
+            <td>${resolvidas}</td>
+            <td>${colTaxa}</td>
+            <td>${colOdd}</td>
+            <td>
+                <button type="button" class="btn-xs btn-primary" onclick="editarOpcaoConfig('tipster', ${i})" aria-label="Editar ${escapeHtml(v)}">✏️</button>
+                <button type="button" class="btn-xs btn-danger" onclick="removerOpcaoConfig('tipster', ${i})" aria-label="Remover ${escapeHtml(v)}">🗑️</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
 // Lista as correções aprendidas em Configurações, mais recentes primeiro, com
 // botão de exclusão individual — mesmo padrão visual dos chips das outras listas.
 function renderCorrecoesIA() {
@@ -6205,9 +6297,10 @@ function renderConfiguracoes() {
 
     renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
     renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');
+    renderTipsterConfig();
 
     CAMPOS_CONFIG.forEach(campo => {
-        if (campo === 'liga' || campo === 'mercado') return; // já tratados acima
+        if (campo === 'liga' || campo === 'mercado' || campo === 'tipster') return; // já tratados acima
         const container = document.getElementById('chips-' + campo);
         if (!container) return;
         const valores = defaults[campo] || [];
