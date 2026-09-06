@@ -430,21 +430,21 @@ ${SCHEMA_ANALISE}`;
 
 const SCHEMA_BUSCAR_LIGA = `
 {
-  "encontrado": "boolean — true somente se a busca na web confirmou com boa confiança em qual liga/competição esse confronto aconteceu ou está programado para acontecer",
+  "encontrado": "boolean — true sempre que a busca na web trouxer QUALQUER candidato plausível para a liga/competição desse confronto, mesmo que não seja 100% certo. Só use false quando a busca genuinamente não achar nada relacionado a esse confronto (nomes de time não encontrados em nenhum contexto esportivo, ou informação claramente insuficiente para até um palpite razoável)",
   "liga": "string — nome da liga no formato 'País - Divisão' (ex: 'Brasil - Série A', 'Inglaterra - Premier League'); torneios internacionais mantêm o nome padrão sem prefixo de país (ex: 'Champions League', 'Copa Libertadores'). String vazia se encontrado=false",
-  "esporte": "string — o esporte do confronto (ex: 'Futebol', 'Basquete', 'Tênis'), confirmado pela busca. Preencha sempre que a busca identificar o confronto com confiança, mesmo que o esporte já tenha vindo preenchido na entrada (nesse caso, apenas confirme o mesmo valor). String vazia se não conseguir identificar",
-  "dataHoraEncontrada": "boolean — true somente se a busca confirmou a data (no mínimo) do confronto com confiança razoável. Independente do resultado de 'encontrado'/'liga' — dá pra confirmar a data sem confirmar a liga, e vice-versa",
+  "esporte": "string — o esporte do confronto (ex: 'Futebol', 'Basquete', 'Tênis'), confirmado pela busca. Preencha sempre que a busca identificar o confronto, mesmo com confiança moderada, mesmo que o esporte já tenha vindo preenchido na entrada (nesse caso, apenas confirme o mesmo valor). String vazia se não conseguir identificar nem um palpite razoável",
+  "dataHoraEncontrada": "boolean — true sempre que a busca trouxer QUALQUER indicação plausível de data (no mínimo) do confronto, mesmo que não seja 100% certa. Independente do resultado de 'encontrado'/'liga' — dá pra confirmar a data sem confirmar a liga, e vice-versa",
   "dataHora": "string — data e hora do confronto no formato 'AAAA-MM-DDTHH:MM', SEMPRE convertida para horário de Brasília (America/Sao_Paulo), mesmo que o jogo seja em outro país/fuso. String vazia se dataHoraEncontrada=false",
-  "confianca": "number de 0 a 1 — o quanto você confia no resultado da LIGA (leve em conta ambiguidade de nomes de time repetidos em vários países)",
-  "confiancaDataHora": "number de 0 a 1 — o quanto você confia especificamente na DATA/HORA encontrada (pode ser diferente da confiança da liga: às vezes a data é fácil de confirmar mas o horário exato de bola rolando não, ou vice-versa)",
-  "observacao": "string curta — se encontrado=true, cite brevemente a base (ex: 'confirmado via tabela do campeonato atual'). Se encontrado=false, explique objetivamente por que (ex: 'não encontrei esse confronto específico nas competições em andamento')"
+  "confianca": "number de 0 a 1 — O CAMPO MAIS IMPORTANTE DESTA RESPOSTA. É aqui, não em 'encontrado', que a incerteza deve ser expressa: confiança alta (0.8+) para achado bem confirmado por múltiplas fontes; confiança média (0.4-0.7) para um palpite razoável baseado em pistas parciais (ex: só um time bateu com clareza, ou a busca achou o confronto mas não o campeonato exato); confiança baixa (abaixo de 0.4) só quando 'encontrado' ainda assim for true por haver algum candidato, mas muito frágil. O aplicativo já sinaliza visualmente para revisão manual qualquer valor com confiança abaixo de 0.6 — por isso um palpite honesto com confiança condizente é sempre preferível a 'encontrado: false' quando existe QUALQUER pista aproveitável",
+  "confiancaDataHora": "number de 0 a 1 — mesma lógica de 'confianca' acima, mas especificamente para a DATA/HORA encontrada (pode divergir da confiança da liga: às vezes a data é fácil de confirmar mas o horário exato de bola rolando não, ou vice-versa)",
+  "observacao": "string curta — se encontrado=true, cite brevemente a base (ex: 'confirmado via tabela do campeonato atual', ou 'palpite baseado em contexto parcial, recomendo conferir'). Se encontrado=false, explique objetivamente por que não achou nem um palpite razoável"
 }`;
 
-const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, E a data/hora desse confronto, usando a ferramenta de busca na web disponível. Você vai receber o nome do evento/confronto (ex: "Time A x Time B"), o esporte quando já for conhecido (pode vir null/ausente — nesse caso você também precisa identificar o esporte) e, quando disponível, uma data de referência (data em que a aposta foi registrada), em formato JSON.
+const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, E a data/hora desse confronto, usando a ferramenta de busca na web disponível — da mesma forma direta e prestativa que você responderia se alguém te perguntasse em uma conversa comum "por qual liga foi disputada a partida entre Time A e Time B, na data tal?" ou "qual o horário da partida entre Time A e Time B?". Nessas conversas você quase sempre consegue dar uma resposta útil, mesmo quando não tem 100% de certeza — é exatamente esse comportamento que se espera aqui: pesquise, dê sua melhor resposta baseada no que a busca realmente trouxe, e reflita o nível de certeza no campo "confianca" (ou "confiancaDataHora"), em vez de recusar a resposta só porque não está 100% seguro. Você vai receber o nome do evento/confronto (ex: "Time A x Time B"), o esporte quando já for conhecido (pode vir null/ausente — nesse caso você também precisa identificar o esporte) e, quando disponível, uma data de referência (data em que a aposta foi registrada), em formato JSON.
 
 QUANDO O ESPORTE NÃO FOR INFORMADO (null/ausente):
-- Identifique o esporte a partir dos nomes dos competidores/times e do contexto encontrado na busca (ex: nomes de clube de futebol, duplas de tênis, franquias de basquete). Preencha o campo "esporte" da resposta com o que identificar.
-- Se não conseguir identificar o esporte com confiança, trate como não encontrado: "encontrado": false.
+- Identifique o esporte a partir dos nomes dos competidores/times e do contexto encontrado na busca (ex: nomes de clube de futebol, duplas de tênis, franquias de basquete). Preencha o campo "esporte" da resposta com o que identificar, mesmo que seja só um palpite razoável.
+- Só trate como não encontrado ("encontrado": false) se a busca genuinamente não trouxer nenhum contexto esportivo para esses nomes.
 - Quando o esporte JÁ vier informado, apenas confirme-o de volta no campo "esporte" da resposta (não precisa buscar isso, só ecoar).
 
 USO DA DATA DE REFERÊNCIA — MUITO IMPORTANTE:
@@ -453,20 +453,20 @@ USO DA DATA DE REFERÊNCIA — MUITO IMPORTANTE:
 - Sem "dataReferencia", assuma que o confronto é recente/atual e busque a temporada em andamento.
 
 DATA/HORA DO CONFRONTO — MUITO IMPORTANTE:
-- Além da liga, procure a data e hora programada (ou já disputada) do confronto — normalmente aparece na mesma página que confirma a liga (Sofascore e 365scores mostram isso).
-- CONVERSÃO DE FUSO É OBRIGATÓRIA: o valor de "dataHora" na resposta deve estar SEMPRE em horário de Brasília (America/Sao_Paulo, UTC-3, sem horário de verão desde 2019), independente de onde o jogo aconteça. Se a página mostrar o horário em UTC, GMT, horário local do país sede, ou qualquer outro fuso, converta para Brasília antes de responder. Se não conseguir identificar com segurança em qual fuso a página está exibindo o horário, prefira reduzir "confiancaDataHora" a arriscar uma conversão errada.
+- Além da liga, procure a data e hora programada (ou já disputada) do confronto — normalmente aparece na mesma página que confirma a liga.
+- CONVERSÃO DE FUSO É OBRIGATÓRIA: o valor de "dataHora" na resposta deve estar SEMPRE em horário de Brasília (America/Sao_Paulo, UTC-3, sem horário de verão desde 2019), independente de onde o jogo aconteça. Se a página mostrar o horário em UTC, GMT, horário local do país sede, ou qualquer outro fuso, converta para Brasília antes de responder. Se não conseguir identificar com segurança em qual fuso a página está exibindo o horário, ainda assim dê sua melhor conversão e reduza "confiancaDataHora" de acordo — não deixe de responder por causa disso.
 - O QUE IMPORTA MAIS AQUI É A DATA (o dia, em horário de Brasília), não o minuto exato — esse app usa essa informação principalmente para localizar o jogo certo em uma lista de jogos daquele dia. Se você tem certeza razoável do dia mas não do horário exato de bola rolando, ainda assim preencha "dataHora" com sua melhor estimativa de horário e reflita a incerteza apenas em "confiancaDataHora" — não deixe de preencher a data só por imprecisão no minuto.
-- Se não conseguir confirmar nem a data com confiança razoável, defina "dataHoraEncontrada": false e "dataHora": "" — nunca invente uma data/hora sem base na busca.
-- "dataHoraEncontrada" e "encontrado" (liga) são independentes: é possível confirmar a data sem confirmar a liga, ou confirmar a liga sem achar o horário exato — preencha cada um com base no que a busca realmente confirmou.
+- Só defina "dataHoraEncontrada": false quando a busca genuinamente não trouxer nenhuma pista de data, nem aproximada — um palpite fraco ainda é melhor que nada, desde que "confiancaDataHora" reflita isso.
+- "dataHoraEncontrada" e "encontrado" (liga) são independentes: é possível confirmar/estimar a data sem confirmar a liga, ou confirmar a liga sem achar o horário exato — preencha cada um com base no que a busca realmente trouxe.
 
 USO DA BUSCA NA WEB — MUITO IMPORTANTE:
 - Pesquise o confronto informado (times + data de referência, se houver) para descobrir a liga/competição/campeonato em que ele foi disputado, e a data/hora do confronto.
-- Ao formular suas buscas, dê preferência a fontes como sofascore.com e 365scores.com quando fizer sentido — costumam ter esse tipo de informação de forma organizada — mas use qualquer fonte confiável que encontrar.
-- Nomes de time podem ser ambíguos (o mesmo nome existe em várias ligas/países diferentes) — use o contexto disponível (esporte informado, data de referência, outros times mencionados) para reduzir ambiguidade, mas NUNCA garanta uma resposta apenas por familiaridade com um nome de time conhecido sem confirmar via busca.
-- Se não encontrar o confronto específico com confiança razoável (ex: nome de time comum a várias ligas, informação insuficiente, evento não encontrado, data de referência ausente e ambiguidade alta), defina "encontrado": false e "liga": "" — NUNCA invente ou "chute" uma liga só para preencher o campo. O mesmo vale para "dataHoraEncontrada"/"dataHora".
+- Use qualquer fonte confiável que encontrar (sites de estatísticas esportivas, resultados ao vivo, sites oficiais de ligas/clubes, ESPN, Wikipédia, etc.) — não se limite a um único tipo de site.
+- Nomes de time podem ser ambíguos (o mesmo nome existe em várias ligas/países diferentes) — use o contexto disponível (esporte informado, data de referência, outros times mencionados) para reduzir ambiguidade. Se restar alguma ambiguidade mesmo assim, dê sua melhor resposta com base na pista mais forte encontrada (ex: o adversário informado costuma ser decisivo) e reflita a incerteza remanescente em "confianca" — não é necessário eliminar 100% da ambiguidade para responder.
+- Só defina "encontrado": false quando a busca genuinamente não trouxer nenhum candidato plausível (ex: nomes de time não encontrados em nenhum contexto esportivo, informação claramente insuficiente demais até para um palpite). Encontrar o confronto mas ficar em dúvida entre 2-3 competições parecidas, por exemplo, ainda é "encontrado": true com "confianca" refletindo essa dúvida — não "encontrado": false.
 
 AMBIGUIDADE DE NOMES DE TIME — EXEMPLOS REAIS PARA CALIBRAR SUA BUSCA:
-- "América" existe como clube em vários lugares: América-MG e América-RN (Brasil, divisões diferentes entre si), Club América (México), América de Cali (Colômbia) — nunca assuma qual é sem confirmar pelo confronto completo (o adversário informado costuma resolver a ambiguidade).
+- "América" existe como clube em vários lugares: América-MG e América-RN (Brasil, divisões diferentes entre si), Club América (México), América de Cali (Colômbia) — o adversário informado costuma resolver a ambiguidade; se mesmo assim restar dúvida entre duas opções, escolha a mais provável dado o contexto e reduza "confianca" de acordo, em vez de recusar a resposta.
 - "Nacional" também é comum a vários países (Uruguai, Paraguai, Portugal, Colômbia) — mesmo cuidado.
 - "Independiente" pode ser o clube argentino tradicional ou outros clubes menores com nome parecido em outros países da América Latina.
 - Times com nomes de cidade genéricos (ex: "Santos", "União", "Rio Branco") se repetem entre estados/divisões dentro do próprio Brasil — combine com o adversário e, se disponível, a data de referência, antes de decidir a liga.
@@ -484,13 +484,15 @@ REGRAS DE FORMATO:
   - França: "França - Ligue 1", "França - Ligue 2".
   - Portugal: "Portugal - Primeira Liga", "Portugal - Liga Portugal 2".
   - Argentina: "Argentina - Liga Profesional", "Argentina - Primera Nacional".
+  - EUA: "EUA - MLS" (futebol masculino), "EUA - NWSL" (futebol feminino).
 - "dataHora" deve seguir exatamente o formato "AAAA-MM-DDTHH:MM" (ex: "2026-08-25T21:30"), sempre em horário de Brasília.
 - Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases — mesmo tendo usado a ferramenta de busca antes, a resposta final deve ser só o JSON.
 
 EXEMPLOS DE SAÍDA ESPERADA:
-- Confronto e data/hora identificados com confiança, esporte já informado na entrada: {"encontrado": true, "liga": "Brasil - Série A", "esporte": "Futebol", "dataHoraEncontrada": true, "dataHora": "2026-08-25T21:30", "confianca": 0.95, "confiancaDataHora": 0.9, "observacao": "confirmado via tabela do campeonato atual"}
+- Confronto e data/hora identificados com confiança alta, esporte já informado na entrada: {"encontrado": true, "liga": "Brasil - Série A", "esporte": "Futebol", "dataHoraEncontrada": true, "dataHora": "2026-08-25T21:30", "confianca": 0.95, "confiancaDataHora": 0.9, "observacao": "confirmado via tabela do campeonato atual"}
 - Liga identificada, mas horário exato incerto (só o dia confirmado): {"encontrado": true, "liga": "Inglaterra - Premier League", "esporte": "Futebol", "dataHoraEncontrada": true, "dataHora": "2026-08-30T13:00", "confianca": 0.9, "confiancaDataHora": 0.55, "observacao": "dia confirmado; horário de bola rolando aproximado, não encontrei confirmação exata do minuto"}
-- Confronto não identificado com confiança suficiente, nem liga nem data: {"encontrado": false, "liga": "", "esporte": "", "dataHoraEncontrada": false, "dataHora": "", "confianca": 0, "confiancaDataHora": 0}
+- Confronto encontrado, mas com dúvida real entre duas competições parecidas (palpite razoável, não certeza): {"encontrado": true, "liga": "EUA - MLS", "esporte": "Futebol", "dataHoraEncontrada": true, "dataHora": "2026-09-06T21:00", "confianca": 0.5, "confiancaDataHora": 0.6, "observacao": "encontrei o confronto na temporada da MLS em andamento, mas não confirmei com total certeza contra outras competições dos mesmos clubes — vale conferir"}
+- Confronto genuinamente não identificado, nem um palpite razoável possível: {"encontrado": false, "liga": "", "esporte": "", "dataHoraEncontrada": false, "dataHora": "", "confianca": 0, "confiancaDataHora": 0, "observacao": "não encontrei nenhum contexto esportivo para esses nomes"}
 
 Formato de saída:
 ${SCHEMA_BUSCAR_LIGA}`;
@@ -745,8 +747,8 @@ async function handleFetch(request, env, ctx) {
           // Na rota de Liga (schemaTipo 'buscar-liga'), o Gemini pode responder
           // 200 OK sem ter confirmado nada (não é um erro técnico, é uma busca que
           // não achou o confronto) — antes, isso era tratado como sucesso e a
-          // Anthropic (única com busca restrita a sofascore.com/365scores.com,
-          // ver lerComAnthropic) nunca chegava a ser tentada. Agora, só nesse
+          // Anthropic (única com busca restrita a um conjunto de sites
+          // confiáveis de estatística esportiva, ver lerComAnthropic) nunca chegava a ser tentada. Agora, só nesse
           // caso específico, e só quando o fallback está permitido (preferência
           // não é "Somente Gemini"), tenta a Anthropic antes de desistir.
           const semLigaNemHorario = schemaTipo === 'buscar-liga' && !extraido.encontrado && !extraido.dataHoraEncontrada;
@@ -1017,7 +1019,11 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     // pública do Gemini usada no provedor primário NÃO suporta isso (só exclusão
     // de domínio) — por isso essa restrição só existe aqui, no fallback.
     if (schemaTipo === 'buscar-liga') {
-      ferramentaBusca.allowed_domains = ['sofascore.com', '365scores.com'];
+      // Ampliado além de sofascore/365scores (v1.35.0) — restringir a só 2
+      // sites reduzia demais a chance de achar confrontos menos populares
+      // (ligas menores, competições femininas, MLS, etc.) que podem não
+      // estar bem indexados nesses dois especificamente.
+      ferramentaBusca.allowed_domains = ['sofascore.com', '365scores.com', 'flashscore.com', 'espn.com', 'besoccer.com'];
     }
     corpoRequisicao.tools = [ferramentaBusca];
   }

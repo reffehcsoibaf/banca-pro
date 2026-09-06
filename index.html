@@ -1559,7 +1559,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.34.0 · 05/09/2026
+  Banca Pro · v1.35.0 · 05/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -3907,12 +3907,24 @@ async function buscarLigaHorarioAutomatico(dados) {
     });
     if (elegiveis.length === 0) return;
 
+    try {
+
     // Etapa 1: cache local, para todos os eventos elegíveis.
+    // Cada evento é isolado em try/catch: uma falha inesperada num evento
+    // (ex.: erro de rede pontual) nunca deve travar os eventos seguintes nem
+    // impedir o aviso final de aparecer — antes desta blindagem, um erro não
+    // previsto em QUALQUER etapa/evento interrompia a função inteira em
+    // silêncio total, inclusive para os outros eventos do mesmo bilhete que
+    // nem tinham relação com o erro.
     let encontradosCache = 0;
     const aindaIncompletos = [];
     for (const div of elegiveis) {
-        const r = await _aplicarCachePartida(div);
-        if (r.status === 'encontrado') encontradosCache++;
+        try {
+            const r = await _aplicarCachePartida(div);
+            if (r.status === 'encontrado') encontradosCache++;
+        } catch (e) {
+            console.log('[busca-liga-automatica] etapa 1 (cache) falhou para um evento, seguindo para os próximos:', e && e.message);
+        }
 
         const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
         const campoDataEvento = div.querySelector('.dataEventoEvento');
@@ -3926,25 +3938,39 @@ async function buscarLigaHorarioAutomatico(dados) {
     for (const div of aindaIncompletos) {
         const ligaAntes = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
         if (ligaAntes) continue;
-        const r = await _aplicarCorrecaoAprendidaLiga(div);
-        if (r.status === 'encontrado') encontradosAprendizado++;
+        try {
+            const r = await _aplicarCorrecaoAprendidaLiga(div);
+            if (r.status === 'encontrado') encontradosAprendizado++;
+        } catch (e) {
+            console.log('[busca-liga-automatica] etapa 2 (correções aprendidas) falhou para um evento, seguindo para os próximos:', e && e.message);
+        }
     }
 
     // Etapa 3: só para quem ainda falta Liga e/ou Data/Hora depois das duas
     // etapas acima — busca real na web, um evento de cada vez (mesma chamada
-    // do botão manual).
+    // do botão manual). Uma falha inesperada aqui (fora do "status: erro" já
+    // tratado dentro de _buscarLigaCore) conta como erro em vez de travar os
+    // eventos seguintes.
     const aindaFaltando = aindaIncompletos.filter(function (div) {
         const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
         const campoDataEvento = div.querySelector('.dataEventoEvento');
         const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
         return !ligaAtual || !dataEventoAtual;
     });
-    let encontradosBusca = 0, errosBusca = 0, naoEncontradosBusca = 0;
+    let encontradosBusca = 0, errosBusca = 0, naoEncontradosBusca = 0, baixaConfiancaBusca = 0;
     for (const div of aindaFaltando) {
-        const r = await _buscarLigaCore(div);
-        if (r.status === 'encontrado') encontradosBusca++;
-        else if (r.status === 'erro') errosBusca++;
-        else if (r.status === 'nao-encontrado') naoEncontradosBusca++;
+        try {
+            const r = await _buscarLigaCore(div);
+            if (r.status === 'encontrado') {
+                encontradosBusca++;
+                if (r.baixaConfianca || r.baixaConfiancaData) baixaConfiancaBusca++;
+            }
+            else if (r.status === 'erro') errosBusca++;
+            else if (r.status === 'nao-encontrado') naoEncontradosBusca++;
+        } catch (e) {
+            errosBusca++;
+            console.log('[busca-liga-automatica] etapa 3 (busca na web) falhou de forma inesperada para um evento, seguindo para os próximos:', e && e.message);
+        }
     }
 
     // _aplicarCachePartida, _aplicarCorrecaoAprendidaLiga e _buscarLigaCore
@@ -3974,11 +4000,22 @@ async function buscarLigaHorarioAutomatico(dados) {
         if (encontradosCache > 0) fontes.push(`${encontradosCache} de bilhetes recentes (cache)`);
         if (encontradosAprendizado > 0) fontes.push(`${encontradosAprendizado} de correções já aprendidas`);
         if (encontradosBusca > 0) fontes.push(`${encontradosBusca} por busca na web`);
-        anunciarExtracao(`Liga e/ou horário preenchidos automaticamente em ${total} evento${total > 1 ? 's' : ''}: ${fontes.join(', ')}.`);
+        let mensagem = `Liga e/ou horário preenchidos automaticamente em ${total} evento${total > 1 ? 's' : ''}: ${fontes.join(', ')}.`;
+        if (baixaConfiancaBusca > 0) mensagem += ` ${baixaConfiancaBusca} preenchido${baixaConfiancaBusca > 1 ? 's' : ''} por busca na web com confiança baixa — sinalizado${baixaConfiancaBusca > 1 ? 's' : ''} com ⚠️ para revisão.`;
+        anunciarExtracao(mensagem);
     } else if (errosBusca > 0) {
         anunciarExtracao(`Não foi possível confirmar liga/horário automaticamente (${errosBusca} erro${errosBusca > 1 ? 's' : ''} na busca na web). Use o botão "🔎 Buscar Liga/Horário" se quiser tentar de novo.`);
     } else if (naoEncontradosBusca > 0) {
         anunciarExtracao(`Não foi possível confirmar automaticamente a liga e/ou o horário de ${naoEncontradosBusca} evento${naoEncontradosBusca > 1 ? 's' : ''} — a busca não encontrou o confronto com confiança suficiente. Preencha manualmente ou use o botão "🔎 Buscar Liga/Horário".`);
+    }
+
+    } catch (erroGeral) {
+        // Rede de segurança final: qualquer erro não previsto nas três etapas
+        // acima (algo além do que os try/catch específicos de cada etapa já
+        // cobrem) cai aqui — em vez de travar em silêncio total, sempre avisa
+        // que algo deu errado e sugere o caminho manual.
+        console.log('[busca-liga-automatica] erro inesperado na busca automática de liga/horário:', erroGeral && erroGeral.message);
+        anunciarExtracao('Não foi possível concluir o preenchimento automático de liga/horário devido a um erro inesperado. Preencha manualmente ou use o botão "🔎 Buscar Liga/Horário".');
     }
 }
 
