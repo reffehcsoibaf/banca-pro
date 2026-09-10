@@ -4585,6 +4585,95 @@ function fecharPainelConferencia() {
 }
 
 
+// Regra única de cálculo de Retornado/Lucro para cada status — usada no formulário,
+// ao salvar e ao trocar o status rapidamente na tabela. Mantém todo o app consistente.
+function calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor, valorFreebet) {
+    bonus = bonus || 0;
+    valorFreebet = valorFreebet || 0;
+    if (valorFreebet > stake) valorFreebet = stake; // nunca pode exceder o stake
+    if (valorFreebet < 0) valorFreebet = 0;
+    let retornado = 0;
+    if (status === "Ganhou") {
+        // A parte do freebet nunca é devolvida pela casa (SNR — Stake Not Returned),
+        // só o lucro líquido sobre ela. A parte em dinheiro real segue a fórmula normal.
+        retornado = (stake * oddTotal) - valorFreebet + bonus;
+    } else if (status === "Perdeu") {
+        retornado = 0;
+    } else if (status === "Ganho Parcial") {
+        // Meio ganho: a metade paga à odd cheia perde a devolução do freebet nela contido;
+        // a metade devolvida também não devolve a parte que era freebet.
+        retornado = (stake / 2) * oddTotal + (stake / 2) - valorFreebet + bonus;
+    } else if (status === "Perda Parcial") {
+        // Meia perda: só a metade devolvida existe, e só a parte real dela é dinheiro de verdade
+        // (metade do freebet usado também não é devolvida nessa metade).
+        retornado = (stake / 2) - (valorFreebet / 2);
+    } else if (status === "Anulada") {
+        // Void: devolução integral do stake, mas só a parte que era dinheiro real —
+        // anular um freebet não gera devolução em dinheiro real dessa parte.
+        retornado = stake - valorFreebet;
+    } else if (status === "Cash Out") {
+        // Valor informado manualmente pelo usuário — já é o valor real recebido,
+        // independente da mistura de freebet.
+        retornado = parseFloat2(cashOutValor);
+    } else {
+        // Aberto (ou qualquer status desconhecido): sem retorno calculado ainda
+        retornado = 0;
+    }
+    // Lucro é sempre o retornado menos o que de fato saiu do seu bolso (stake - freebet usado).
+    // Vale para qualquer status e qualquer mistura de freebet, incluindo 0% (normal) e 100% (freebet total).
+    const stakeReal = stake - valorFreebet;
+    const lucro = (status === "Aberto") ? 0 : (retornado - stakeReal);
+    return { retornado, lucro };
+}
+
+// Status que liberam o campo de bônus/observação livremente, mas só "Cash Out" exige um valor manual de retorno
+function statusUsaCashOutManual(status) { return status === "Cash Out"; }
+
+function atualizarVisibilidadeCampoCashOut() {
+    const status = getRadioValue('rg-status');
+    const campo = document.getElementById('campoCashOut');
+    if (!campo) return;
+    const mostrar = statusUsaCashOutManual(status);
+    campo.style.display = mostrar ? 'block' : 'none';
+    campo.setAttribute('aria-hidden', mostrar ? 'false' : 'true');
+}
+
+function calcular() {
+    atualizarVisibilidadeCampoCashOut();
+    const stake = parseFloat2(document.getElementById("stake").value);
+    const status = getRadioValue('rg-status');
+    const bonus = parseFloat2(document.getElementById("bonus").value);
+    const cashOutValor = document.getElementById("cashOutValor") ? document.getElementById("cashOutValor").value : 0;
+    const apostaGratis = document.getElementById("apostaGratis") ? document.getElementById("apostaGratis").checked : false;
+    const valorFreebet = apostaGratis && document.getElementById("valorFreebet") ? parseFloat2(document.getElementById("valorFreebet").value) : 0;
+    const odds = document.querySelectorAll(".odd");
+    let oddTotal = 1, temOdd = false;
+    odds.forEach(el => { const o = parseFloat2(el.value); if (o > 0) { oddTotal *= o; temOdd = true; } });
+    if (!temOdd) oddTotal = 0;
+    const { retornado, lucro } = calcularRetornoLucro(status, stake, oddTotal, bonus, cashOutValor, valorFreebet);
+    const unidades = stake > 0 ? lucro / stake : 0;
+    const roi = stake > 0 ? (lucro / stake) * 100 : 0;
+    document.getElementById("oddTotal").value = formatarOdd(oddTotal);
+    document.getElementById("recebido").value = formatarMoeda(retornado);
+    document.getElementById("lucro").value = formatarMoeda(lucro);
+    document.getElementById("unidades").value = formatarDecimal(unidades);
+    document.getElementById("roi").value = formatarDecimal(roi) + "%";
+}
+
+function toggleApostaGratis() {
+    const marcado = document.getElementById("apostaGratis").checked;
+    const bloco = document.getElementById("blocoValorFreebet");
+    bloco.style.display = marcado ? "block" : "none";
+    if (marcado) {
+        // Padrão: assume 100% freebet (o caso mais comum) — editável pra financiamento misto
+        const stake = parseFloat2(document.getElementById("stake").value);
+        const campoFreebet = document.getElementById("valorFreebet");
+        if (!campoFreebet.value || parseFloat2(campoFreebet.value) === 0) {
+            campoFreebet.value = stake > 0 ? stake.toFixed(2).replace('.', ',') : '';
+        }
+    }
+}
+
 /* ==================== SALVAR ==================== */
 async function salvar() {
     const stake = parseFloat2(document.getElementById("stake").value);
