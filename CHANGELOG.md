@@ -4,6 +4,19 @@ Todas as mudanças relevantes do app ficam registradas aqui, da mais recente par
 O número de versão aparece no rodapé do próprio app, então é sempre possível conferir qual versão
 está publicada e comparar com o que está descrito aqui.
 
+## v1.37.0 — 09/09/2026
+
+### Remoção de funcionalidades pouco usadas e novo atalho para colar bilhete
+
+Revisão de funcionalidades que, na prática de uso diário, não trouxeram a praticidade esperada ou deixaram de ser necessárias:
+
+- **Removido — Checar Apostas (API-Football + IA):** o botão de checagem automática de resultado/estatísticas (Lista e Cadastro) raramente encontrava o resultado das partidas e, quando encontrava, às vezes marcava errado. Removido por completo, incluindo a rota `/api/checar-apostas` no Worker.
+- **Removido — Recarregar Aplicativo:** botão em Configurações usado com pouquíssima frequência. O gesto de puxar a tela para baixo (pull-to-refresh) continua disponível normalmente.
+- **Simplificado — Preenchimento automático de Liga/Horário:** agora usa exclusivamente o cache local de confrontos recentes (até 48h). As duas camadas antigas — busca real na web (Sofascore/365scores/Flashscore/ESPN/BeSoccer) e correções de liga aprendidas pela IA — foram removidas, junto com o botão manual "Buscar Liga e Data/Hora" e a rota `/api/buscar-liga` no Worker. O aprendizado de correções por IA continua ativo normalmente para mercado (e para os demais campos da leitura do bilhete) — só essa camada específica de liga no preenchimento automático saiu.
+- **Removido — Auditar Cálculos de Todas as Apostas:** usado só uma vez desde que existe. O botão "Recalcular Precisão Decimal", ao lado, continua disponível normalmente.
+- **Removido — Exportar Tudo (Excel), Importar Excel e Limpar Todos os Dados:** as movimentações de backup e apagamento em massa agora são feitas direto no banco de dados (Supabase). O botão "Exportar Filtro", na aba Filtros, continua disponível para exportar apenas as apostas visíveis no momento.
+- **Novo — atalho Alt+C para colar bilhete:** reaproveitando a tecla liberada pela saída do "Checar Apostas", Alt+C agora abre o modal "Preencher por Texto" para colar o texto de um bilhete, de qualquer aba do app.
+
 ## v1.36.0 — 06/09/2026
 
 ### Novo: Odd Mínima Recomendada por Tipster

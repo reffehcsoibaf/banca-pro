@@ -114,6 +114,19 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-37-0">v1.37.0</h2>
+  <p class="versao-data">09/09/2026</p>
+  <h3>Remoção de funcionalidades pouco usadas e novo atalho para colar bilhete</h3>
+  <p>Revisão de funcionalidades que, na prática de uso diário, não trouxeram a praticidade esperada ou deixaram de ser necessárias:</p>
+  <ul>
+    <li><strong>Removido — Checar Apostas (API-Football + IA):</strong> o botão de checagem automática de resultado/estatísticas (Lista e Cadastro) raramente encontrava o resultado das partidas e, quando encontrava, às vezes marcava errado. Removido por completo, incluindo a rota <code>/api/checar-apostas</code> no Worker.</li>
+    <li><strong>Removido — Recarregar Aplicativo:</strong> botão em Configurações usado com pouquíssima frequência. O gesto de puxar a tela para baixo (pull-to-refresh) continua disponível normalmente.</li>
+    <li><strong>Simplificado — Preenchimento automático de Liga/Horário:</strong> agora usa exclusivamente o cache local de confrontos recentes (até 48h). As duas camadas antigas — busca real na web (Sofascore/365scores/Flashscore/ESPN/BeSoccer) e correções de liga aprendidas pela IA — foram removidas, junto com o botão manual "Buscar Liga e Data/Hora" e a rota <code>/api/buscar-liga</code> no Worker. O aprendizado de correções por IA continua ativo normalmente para mercado (e para os demais campos da leitura do bilhete) — só essa camada específica de liga no preenchimento automático saiu.</li>
+    <li><strong>Removido — Auditar Cálculos de Todas as Apostas:</strong> usado só uma vez desde que existe. O botão "Recalcular Precisão Decimal", ao lado, continua disponível normalmente.</li>
+    <li><strong>Removido — Exportar Tudo (Excel), Importar Excel e Limpar Todos os Dados:</strong> as movimentações de backup e apagamento em massa agora são feitas direto no banco de dados (Supabase). O botão "Exportar Filtro", na aba Filtros, continua disponível para exportar apenas as apostas visíveis no momento.</li>
+    <li><strong>Novo — atalho Alt+C para colar bilhete:</strong> reaproveitando a tecla liberada pela saída do "Checar Apostas", Alt+C agora abre o modal "Preencher por Texto" para colar o texto de um bilhete, de qualquer aba do app.</li>
+  </ul>
+
   <h2 id="v1-36-0">v1.36.0</h2>
   <p class="versao-data">06/09/2026</p>
   <h3>Novo: Odd Mínima Recomendada por Tipster</h3>

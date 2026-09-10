@@ -198,7 +198,7 @@
 <nav class="sidebar" id="sidebar" aria-label="Navegação do guia">
   <div class="sidebar-header">
     <a href="#topo" class="sidebar-logo"><span>🏦</span> Banca Pro</a>
-    <div class="sidebar-subtitle">Guia de Uso — v1.36.0</div>
+    <div class="sidebar-subtitle">Guia de Uso — v1.37.0</div>
   </div>
   <div class="sidebar-search">
     <input type="search" id="searchInput" placeholder="Buscar no guia…" aria-label="Buscar no guia" autocomplete="off">
@@ -230,7 +230,6 @@
     <a href="#data-hora" class="nav-link nav-link-sub">Data e Hora</a>
     <a href="#eventos" class="nav-link">Eventos</a>
     <a href="#multiplos-eventos" class="nav-link nav-link-sub">Múltiplos eventos</a>
-    <a href="#buscar-liga-ia" class="nav-link nav-link-sub">Buscar Liga e Data/Hora (IA)</a>
     <a href="#preencher-por-foto" class="nav-link">Preencher por Foto (IA)</a>
     <a href="#correcoes-aprendidas" class="nav-link">Correções Aprendidas (IA)</a>
     <a href="#analisar-aposta" class="nav-link">Analisar Aposta (IA)</a>
@@ -243,7 +242,6 @@
     <a href="#resumo-filtro" class="nav-link">Resumo Estatístico</a>
     <a href="#lista-apostas" class="nav-link">Lista de Apostas</a>
     <a href="#acoes" class="nav-link nav-link-sub">Ações disponíveis</a>
-    <a href="#checar-resultados-estatisticas" class="nav-link nav-link-sub">Checagem automática (API-Football)</a>
     <a href="#filtros" class="nav-link">Filtros</a>
   </div>
 
@@ -259,11 +257,7 @@
     <a href="#configuracoes" class="nav-link">Gerenciar Dados e Listas</a>
     <a href="#config-provedor-ia" class="nav-link nav-link-sub">Provedor de IA</a>
     <a href="#config-preferencias-lista" class="nav-link nav-link-sub">Preferências da Lista</a>
-    <a href="#config-recarregar-app" class="nav-link nav-link-sub">Recarregar Aplicativo</a>
-    <a href="#config-manutencao-calculos" class="nav-link nav-link-sub">Auditoria e Precisão Decimal</a>
-    <a href="#exportar" class="nav-link nav-link-sub">Exportar Excel</a>
-    <a href="#importar" class="nav-link nav-link-sub">Importar Excel</a>
-    <a href="#limpar-dados" class="nav-link nav-link-sub">Limpar Dados</a>
+    <a href="#config-manutencao-calculos" class="nav-link nav-link-sub">Precisão Decimal</a>
     <a href="#config-ligas-mercados" class="nav-link nav-link-sub">Ligas e Mercados por esporte</a>
     <a href="#config-orfaos" class="nav-link nav-link-sub">Itens órfãos</a>
   </div>
@@ -348,7 +342,7 @@
       <div class="col-card"><h4>💰 Saldos</h4>Saldo calculado por casa de aposta, formulário para lançar depósitos/retiradas, e o histórico desses lançamentos.</div>
     </div>
     <div class="cols-2" style="margin-top:1rem;">
-      <div class="col-card"><h4>⚙️ Configurações</h4>Gerenciamento das listas de opções (Tipster, Esporte, Liga, Mercado etc.) e as operações globais de exportar, importar e limpar dados.</div>
+      <div class="col-card"><h4>⚙️ Configurações</h4>Gerenciamento das listas de opções (Tipster, Esporte, Liga, Mercado etc.), preferências do app e manutenção de cálculos.</div>
     </div>
   </section>
 
@@ -378,7 +372,7 @@
   <!-- CABEÇALHO -->
   <section id="cabecalho" class="wiki-section" aria-labelledby="h-cabecalho">
     <h2 id="h-cabecalho">⚙️ Botões do Cabeçalho</h2>
-    <p>O cabeçalho fixo no topo da tela contém apenas o botão de saída e o link para este guia. As operações de exportar, importar e limpar dados foram movidas para a aba <strong>Configurações</strong>.</p>
+    <p>O cabeçalho fixo no topo da tela contém apenas o botão de saída e o link para este guia.</p>
 
     <h3 id="sair-cabecalho">🚪 Sair</h3>
     <p>Encerra a sessão e volta para a tela de login. Uma confirmação é exigida antes de sair. Os dados continuam salvos na nuvem — ao entrar novamente, tudo está exatamente como você deixou.</p>
@@ -438,7 +432,7 @@
         <tr><td class="field-name">Esporte <span class="req">*</span></td><td>Caixa combinada</td><td>Modalidade esportiva (Futebol, Basquete, Tênis, Vôlei…).</td></tr>
         <tr><td class="field-name">Liga <span class="req">*</span></td><td>Caixa combinada</td><td>Competição ou torneio. Lista vazia por padrão — adicione conforme usa.</td></tr>
         <tr><td class="field-name">Evento <span class="req">*</span></td><td>Texto</td><td>Nome do jogo ou partida.</td></tr>
-        <tr><td class="field-name">Data / Hora da Partida</td><td>Data e hora</td><td>Opcional. Data/hora real da <strong>partida</strong> — diferente da Data/Hora da aposta (que é a data de registro do bilhete). Preenchida automaticamente pela IA ao ler um bilhete, digitável à mão, ou buscada com <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> quando a casa não mostra isso no bilhete (caso da Betano). Usada pela checagem automática "🔎 Checar Apostas" para localizar o jogo certo.</td></tr>
+        <tr><td class="field-name">Data / Hora da Partida</td><td>Data e hora</td><td>Opcional. Data/hora real da <strong>partida</strong> — diferente da Data/Hora da aposta (que é a data de registro do bilhete). Preenchida automaticamente pela IA ao ler um bilhete, digitável à mão, ou preenchida sozinha a partir do cache local quando o mesmo confronto já apareceu num bilhete recente (ver <a href="#cache-liga-horario">Preenchimento automático de Liga/Horário</a>).</td></tr>
         <tr><td class="field-name">Mercado <span class="req">*</span></td><td>Caixas de verificação</td><td>Tipo de mercado apostado. Permite marcar mais de um simultaneamente.</td></tr>
         <tr><td class="field-name">Seleção <span class="req">*</span></td><td>Texto livre</td><td>O que foi apostado dentro do mercado (ex: Casa, Mais de 2.5, Sim).</td></tr>
         <tr><td class="field-name">ODD <span class="req">*</span></td><td>Número</td><td>ODD deste evento específico.</td></tr>
@@ -446,7 +440,7 @@
     </table>
     <div class="callout warn">
       <div class="callout-title">🌎 Sempre horário de Brasília, mesmo em jogo internacional</div>
-      A Data / Hora da Partida é sempre em horário de Brasília (America/São_Paulo), mesmo que a partida seja em outro país — as checagens automáticas buscam o jogo nesse fuso, e o campo não faz nenhuma conversão sozinho quando digitado à mão. Quando é a IA que preenche (leitura de bilhete ou "🔍 Buscar Liga e Data/Hora"), isso já vem certo.
+      A Data / Hora da Partida é sempre em horário de Brasília (America/São_Paulo), mesmo que a partida seja em outro país. Quando é a IA que preenche (leitura de bilhete) ou o cache local que reaproveita, isso já vem certo.
     </div>
 
     <h3 id="multiplos-eventos">Múltiplos eventos (Acumuladores)</h3>
@@ -459,23 +453,6 @@
     <div class="callout tip">
       <div class="callout-title">💡 Navegação por leitor de tela</div>
       Cada evento tem um cabeçalho de nível 3 ("Evento 1", "Evento 2"…). Use o atalho de navegação por cabeçalhos do seu leitor de tela para pular entre eventos.
-    </div>
-
-    <h3 id="buscar-liga-ia">🔍 Buscar Liga e Data/Hora (IA)</h3>
-    <p>Útil ao preencher manualmente uma aposta antiga, ou quando a casa não mostra a liga e/ou o horário da partida no bilhete (é o caso da Betano, que não traz a data/hora do jogo): em vez de procurar por conta própria, a IA pode pesquisar isso na web — os dois campos numa busca só.</p>
-    <ol class="steps">
-      <li><span class="step-num">1</span>Escolha o <strong>Esporte</strong> do evento (opcional — a IA também tenta identificar sozinha, se possível).</li>
-      <li><span class="step-num">2</span>Preencha o campo <strong>Evento</strong> com o nome do confronto (ex: "Time A x Time B").</li>
-      <li><span class="step-num">3</span>Clique em <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> (botão único, roda em todos os eventos elegíveis da aposta de uma vez).</li>
-      <li><span class="step-num">4</span>A IA preenche o que encontrar com confiança: Liga (se ainda vazia) e/ou Data / Hora da Partida (se ainda vazia) — cada campo é independente, pode encontrar um sem o outro. Confira o resultado antes de salvar.</li>
-    </ol>
-    <div class="callout tip">
-      <div class="callout-title">💡 Nunca sobrescreve o que já está preenchido</div>
-      O botão só entra em campos vazios — Liga ou Data/Hora que você já preencheu (manualmente ou numa busca anterior) nunca são substituídos. Um evento com os dois campos já preenchidos é pulado, sem gastar chamada de IA.
-    </div>
-    <div class="callout tip">
-      <div class="callout-title">💡 Quando a IA não encontra</div>
-      Se a busca não confirmar a liga e/ou a data/hora com confiança suficiente (nome de time comum a várias ligas, informação insuficiente), o(s) campo(s) correspondente(s) ficam como estavam e um aviso explica o motivo — a IA nunca preenche um valor "chutado". Quando confirma o dia mas não o minuto exato do jogo, ainda preenche a Data/Hora com uma estimativa, mas marca o campo com aviso de baixa confiança — vale conferir, embora o dia certo (o que mais importa para as checagens automáticas) costuma estar correto.
     </div>
   </section>
 
@@ -535,27 +512,20 @@
     <p>O preenchimento da Liga também varia conforme a casa, e isso afeta o nível de confiança reportado:</p>
     <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
       <li><strong>Superbet</strong> costuma exibir a liga/campeonato escrita diretamente no bilhete — quando isso acontece, o campo é preenchido com alta confiança, sem destaque.</li>
-      <li><strong>Betano</strong> frequentemente não exibe a liga, só os nomes dos times. Nesse caso, o campo fica vazio ao final da leitura do bilhete — a IA que lê a imagem/texto não tenta mais "chutar" a liga de memória. Logo em seguida, entra o preenchimento automático descrito abaixo (cache local e, se preciso, busca real na web), que resolve isso de forma bem mais confiável do que uma dedução por conhecimento próprio.</li>
+      <li><strong>Betano</strong> frequentemente não exibe a liga, só os nomes dos times. Nesse caso, o campo fica vazio ao final da leitura do bilhete — a IA que lê a imagem/texto não tenta mais "chutar" a liga de memória. Logo em seguida, entra o preenchimento automático descrito abaixo (cache local), que resolve isso quando o mesmo confronto já apareceu num bilhete recente.</li>
     </ul>
 
-    <h3 id="cache-liga-horario">🗄️ Preenchimento automático de Liga/Horário (cache local → busca na web)</h3>
-    <p>Além da extração descrita acima, o app tenta preencher sozinho a Liga e a Data/Hora da Partida de eventos que a leitura do bilhete não conseguiu identificar (comum na Betano). Isso acontece em duas etapas, sempre nessa ordem — a segunda só é usada no que sobrar da primeira:</p>
-    <ol style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
-      <li><strong>Cache local (até 48h):</strong> se você já tiver outro bilhete recente do MESMO confronto (mesmo esporte e mesmos times, em qualquer ordem) com Liga e/ou Data/Hora preenchidas, esses valores são copiados automaticamente para o novo bilhete, sem nenhuma chamada de IA.</li>
-      <li><strong>Busca real na web:</strong> para o que ainda ficar sem Liga ou Data/Hora depois do cache, o app faz a mesma busca do botão manual <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> (pesquisa de verdade via Sofascore/365scores), um evento de cada vez.</li>
-    </ol>
+    <h3 id="cache-liga-horario">🗄️ Preenchimento automático de Liga/Horário (cache local)</h3>
+    <p>Além da extração descrita acima, o app tenta preencher sozinho a Liga e a Data/Hora da Partida de eventos que a leitura do bilhete não conseguiu identificar (comum na Betano), reaproveitando o cache local: se você já tiver outro bilhete recente do MESMO confronto (mesmo esporte e mesmos times, em qualquer ordem, dentro de até 48h) com Liga e/ou Data/Hora preenchidas, esses valores são copiados automaticamente para o novo bilhete — sem nenhuma chamada de IA e sem busca na web.</p>
     <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
-      <li>As duas etapas só entram em campos vazios — Liga ou Data/Hora já preenchidas (pelo próprio bilhete ou por você) nunca são sobrescritas.</li>
-      <li>Pode ser desligado por completo em <a href="#configuracoes">Configurações → 🔎 Liga e Horário da Partida (automático)</a>; o botão manual continua funcionando normalmente, independente dessa preferência, caso queira acionar a busca na web sozinho depois.</li>
-      <li>Toda vez que um evento sai com Liga e Data/Hora completas — pelo próprio bilhete, pela anotação manual descrita a seguir, ou por uma dessas duas etapas automáticas — esses dados ficam guardados por 48h a partir de então, para beneficiar automaticamente o próximo bilhete do mesmo jogo.</li>
+      <li>Só entra em campos vazios — Liga ou Data/Hora já preenchidas (pelo próprio bilhete ou por você) nunca são sobrescritas.</li>
+      <li>Se o confronto ainda não estiver no cache (primeiro bilhete daquele jogo), os campos ficam vazios para preenchimento manual.</li>
+      <li>Pode ser desligado por completo em <a href="#configuracoes">Configurações → 🔎 Liga e Horário da Partida (automático)</a>.</li>
+      <li>Toda vez que um evento sai com Liga e Data/Hora completas — pelo próprio bilhete, pela anotação manual descrita a seguir, ou pelo próprio cache — esses dados ficam guardados por 48h a partir de então, para beneficiar automaticamente o próximo bilhete do mesmo jogo.</li>
     </ul>
-    <div class="callout info">
-      <div class="callout-title">ℹ️ Só o botão manual isolado não alimenta o cache</div>
-      O que é lido diretamente do bilhete, a anotação manual (abaixo), o cache reaproveitado e a busca na web feita AUTOMATICAMENTE (etapa 2 acima) — todos alimentam o cache normalmente. A única exceção é acionar o botão <span class="btn-demo outline">🔍 Buscar Liga e Data/Hora</span> por conta própria, fora do momento de importar um bilhete novo: esse resultado fica isolado do cache, de propósito, para não alterar o funcionamento desse botão.
-    </div>
 
     <h3 id="anotacao-manual-liga-horario">✏️ Informar Liga/Horário manualmente ao colar texto</h3>
-    <p>Ao usar <strong>📋 Preencher por Texto</strong>, se você já sabe a liga e/ou o horário do jogo que o bilhete não traz — por exemplo, porque conferiu isso na própria casa de apostas no momento de apostar — pode digitar essa informação junto ao texto colado, e a leitura reconhece automaticamente, sem precisar de nenhuma busca depois:</p>
+    <p>Ao usar <strong>📋 Preencher por Texto</strong>, se você já sabe a liga e/ou o horário do jogo que o bilhete não traz — por exemplo, porque conferiu isso na própria casa de apostas no momento de apostar — pode digitar essa informação junto ao texto colado, e a leitura reconhece automaticamente:</p>
     <ul style="font-family:var(--font-ui);font-size:14px;padding-left:1.5rem;line-height:2.4">
       <li>Digite a <strong>liga</strong> numa linha logo ACIMA do nome do confronto (ex: "Brasil - Série A").</li>
       <li>Digite a <strong>data e/ou horário</strong> do jogo numa linha logo ABAIXO do confronto (ex: "02/09 20:00").</li>
@@ -744,36 +714,6 @@
     <h2 id="h-lista">📋 Lista de Apostas</h2>
     <p>A tabela exibe as colunas: Data, Casa, ID, Tipster, Tipo, Eventos, ODD, Status, Stake, Lucro e Ações.</p>
     <p>As datas são exibidas no formato <strong>dd/mm/aaaa hh:mm</strong>. Dentro da coluna <strong>Eventos</strong>, quando a Data / Hora da Partida está preenchida, ela aparece ao lado do nome do confronto (formato <strong>dd/mm hh:mm</strong>, sem ano) — sem essa informação, o evento é exibido normalmente, sem o horário. Apostas com um único evento não mostram numeração ("1.") na frente — a numeração só aparece quando há dois ou mais eventos (acumuladores), para diferenciar cada perna da aposta. A coluna ROI não é exibida na tabela (a informação aposta por aposta não agrega muito); o ROI geral continua no resumo estatístico e no cadastro/edição de cada aposta.</p>
-
-    <h3 id="checar-resultados-estatisticas">🔎 Checagem automática (API-Football + IA)</h3>
-    <p>O botão <span class="btn-demo outline">🔎 Checar Apostas</span> (atalho <kbd>Alt</kbd>+<kbd>C</kbd>, na aba Lista) consulta a <strong>API-Football</strong> e, quando necessário, uma <strong>IA</strong> para sugerir o resultado das apostas em aberto de <strong>Futebol</strong> — placar e estatísticas de uma vez só, cobrindo a grande maioria dos mercados. Nada é aplicado sozinho: um painel de revisão mostra a sugestão por evento, e você confirma manualmente com "✅ Aplicar" (ou "Ignorar").</p>
-    <ol class="steps">
-      <li><span class="step-num">1</span>Clique em "🔎 Checar Apostas" (ou <kbd>Alt</kbd>+<kbd>C</kbd>) — abre um seletor com checkbox por aposta em aberto, mostrando os eventos com a Data/Hora de cada partida (é essa informação, não ID/Casa, que ajuda a decidir se já vale a pena checar).</li>
-      <li><span class="step-num">2</span>As apostas cujas partidas já passaram de <strong>2 horas</strong> do horário registrado já vêm marcadas por padrão (tempo em que a maioria dos jogos já terminou) — ajuste como quiser, ou use "Marcar todas"/"Desmarcar todas".</li>
-      <li><span class="step-num">3</span>Clique em "🔎 Enviar Consulta" — jogos repetidos entre as apostas marcadas são consultados só uma vez na API-Football.</li>
-      <li><span class="step-num">4</span>Revise as sugestões no painel e confirme uma a uma com "✅ Aplicar".</li>
-    </ol>
-    <p>Dentro do Cadastro, ao editar uma aposta já salva, o botão "🔎 Checar Aposta" faz a mesma checagem para uma única aposta, sem passar pelo seletor.</p>
-    <div class="callout tip">
-      <div class="callout-title">💡 Como a checagem resolve cada mercado</div>
-      Pra cada partida, o app busca o placar (final e intervalo) e as estatísticas completas na API-Football, e tenta resolver em cascata: primeiro por lógica local a partir do placar (mais rápido), depois por lógica local a partir das estatísticas, e só se nenhuma das duas conseguir, uma IA julga o resultado usando os mesmos dados brutos já buscados (sem pesquisar nada na web). Isso cobre bem mais mercados que antes — inclusive combinados, como "Resultado Final &amp; Total de Gols" ou "Ganhar qualquer um dos Tempos".
-    </div>
-    <div class="callout tip">
-      <div class="callout-title">💡 Partidas repetidas no mesmo lote</div>
-      Se várias apostas marcadas caem no mesmo jogo (comum quando você aposta em mais de um mercado da mesma partida), a consulta à API-Football daquele jogo é feita só uma vez, e o resultado é reaproveitado para validar cada mercado — o painel de revisão mostra quantas partidas distintas foram realmente consultadas.
-    </div>
-    <div class="callout warn">
-      <div class="callout-title">⚠️ Cartões: confira a regra de contagem da casa</div>
-      A contagem de cartões pode variar entre casas de apostas (ex.: o 2º amarelo, que também vira vermelho, pode ou não contar em dobro). Toda sugestão para o mercado Cartões vem com um aviso pedindo pra conferir a regra da casa antes de aplicar.
-    </div>
-    <div class="callout info">
-      <div class="callout-title">ℹ️ Requisitos e limitações</div>
-      Precisa da Data / Hora da Partida preenchida no evento (veja seção <a href="#eventos">Eventos</a>) e só cobre Futebol por enquanto. Desarmes e Tiros de Meta nunca são suportados — a API-Football não tem esses dados em nenhum plano, então não existe dado bruto disponível nem para a lógica local nem para a IA julgar.
-    </div>
-    <div class="callout tip">
-      <div class="callout-title">💡 Se aparecer "limite por minuto excedido"</div>
-      O plano gratuito da API-Football permite 10 requisições por minuto na conta toda (não por checagem). Desde a v1.32.1, o app coordena isso entre checagens diferentes (não só dentro de uma mesma consulta), então é bem mais raro acontecer — mas se acontecer mesmo assim, é só tentar de novo depois de cerca de 1 minuto; o próprio app já espaça as chamadas automaticamente. Enquanto uma checagem está em andamento, o botão "🔎 Enviar Consulta" fica desabilitado, e uma segunda checagem não pode começar até a primeira terminar.
-    </div>
     <div class="callout tip">
       <div class="callout-title">🟢 Filtro rápido: Somente Abertas</div>
       O botão "🟢 Somente Abertas" (atalho <kbd>Alt</kbd>+<kbd>A</kbd>) no topo da Lista liga direto o filtro de Status = Aberto sem precisar ir até a aba Filtros — aperte de novo para voltar a mostrar todas. O atalho <kbd>Alt</kbd>+<kbd>L</kbd> limpa todos os filtros de uma vez, de qualquer aba, sem tirar o foco de onde você está. Qualquer outro filtro já ativo (Casa, Tipster, Liga, datas etc.) é mantido pelo Alt+A. Veja mais em <a href="#atalhos">Atalhos de Teclado</a>.
@@ -913,37 +853,8 @@
     <h3 id="config-preferencias-lista">📋 Preferências da Lista</h3>
     <p>Define quantas apostas aparecem por página na aba Lista: 10, 25, 50, 100, 200 ou Todas. Um número menor deixa a navegação mais rápida em bases grandes; a opção "Todas" mostra a lista inteira filtrada em uma página só, sem paginação (pode deixar a navegação mais lenta em bases muito grandes). Essa preferência fica salva apenas neste dispositivo/navegador — não é sincronizada com a nuvem nem com outros aparelhos.</p>
 
-    <h3 id="config-recarregar-app">🔄 Recarregar Aplicativo</h3>
-    <p>Botão que força uma atualização completa da página, equivalente ao F5 do navegador. É especialmente útil quando o Banca Pro é adicionado à tela inicial do celular (modo "app"), já que nesse modo não existe barra de endereço nem tecla F5 disponível para atualizar manualmente.</p>
-    <p>Como alternativa ao botão, também é possível puxar a tela para baixo estando no topo de qualquer aba (rolagem zerada) — um indicador aparece confirmando o gesto, e soltar a tela dispara a atualização.</p>
-
-    <h3 id="config-manutencao-calculos">🔍 Auditoria e Precisão Decimal</h3>
-    <p>Dois recursos para quando os valores de retorno/lucro ou o saldo por casa parecerem estranhos ou desatualizados:</p>
-    <p><strong>🔍 Auditoria de Cálculos</strong> — recalcula o retorno e o lucro de cada aposta salva usando a fórmula atual e compara com o que está gravado no banco, apontando divergências (por exemplo, apostas salvas com uma versão antiga da fórmula, antes de Ganho Parcial, Perda Parcial ou Cash Out existirem, ou editadas manualmente). É <strong>só leitura</strong>: não altera nenhum dado, apenas mostra o resultado logo abaixo do botão.</p>
+    <h3 id="config-manutencao-calculos">🎯 Precisão Decimal</h3>
     <p><strong>🎯 Recalcular Precisão Decimal</strong> — regrava odd total, retornado, lucro, unidades e ROI de todas as apostas com precisão de até 4 casas decimais, corrigindo ruído de ponto flutuante acumulado em cálculos e importações antigas. Só regrava no banco as apostas cujo valor realmente mudou; o progresso é mostrado na tela enquanto roda.</p>
-    <div class="callout tip">
-      <div class="callout-title">💡 Quando usar</div>
-      Rode a Auditoria primeiro — ela só mostra o que está diferente, sem mexer em nada. Se a diferença for só ruído de casas decimais, o botão de Precisão Decimal corrige. Divergências maiores (fórmula antiga, edição manual) precisam ser revisadas aposta por aposta.
-    </div>
-
-    <h3 id="exportar">📊 Exportar Excel</h3>
-    <p>Gera um arquivo <code>.xlsx</code> com <strong>todas</strong> as apostas cadastradas (aba <em>Apostas</em>) e todos os lançamentos de saldo (aba <em>Transações</em>). O nome do arquivo inclui data e hora no formato <code>aaaa-mm-dd_hh-mm-ss</code>. Use regularmente como backup.</p>
-    <p>Há também o botão <span class="btn-demo success">📥 Exportar Filtro</span> na seção Filtros, que exporta apenas as apostas visíveis no momento (sem a aba de Transações).</p>
-
-    <h3 id="importar">📥 Importar Excel</h3>
-    <p>Carrega apostas a partir de um arquivo <code>.xlsx</code> exportado pelo próprio sistema e <strong>envia tudo para a nuvem</strong>, na sua conta. A importação <strong>substitui todos os dados já salvos na nuvem</strong>. Exporte antes se quiser preservar o que está no sistema.</p>
-    <p>Ao importar, valores únicos de Casa, Tipster, Tipo, Esporte, Liga e Mercado encontrados na planilha são mesclados automaticamente nas listas existentes — ignorando diferenças de maiúsculas/minúsculas e espaços extras, para não criar duplicados. Se a planilha tiver a aba <em>Transações</em>, os lançamentos de saldo também são substituídos; caso contrário, os lançamentos existentes na nuvem são preservados.</p>
-    <div class="callout warn">
-      <div class="callout-title">⚠️ Atenção</div>
-      A importação apaga e substitui todas as apostas atuais <strong>na nuvem</strong>. Sempre exporte antes de importar um arquivo diferente.
-    </div>
-
-    <h3 id="limpar-dados">🗑️ Limpar Dados</h3>
-    <p>Apaga <strong>todas as apostas e lançamentos de saldo salvos na nuvem</strong> (na sua conta) e redefine todas as listas de opções para o estado inicial (tipsters e ligas ficam vazios). Uma confirmação é exigida antes de executar. O sistema retorna para a tela de Cadastro limpa.</p>
-    <div class="callout warn">
-      <div class="callout-title">⚠️ Ação irreversível</div>
-      Não há desfazer após limpar os dados. Se necessário, exporte antes para ter um backup.
-    </div>
 
     <h3>Gerenciar listas de opções</h3>
     <p>Casa, Tipster, Tipo, Esporte, Liga e Mercado têm listas personalizáveis. Alterações são salvas imediatamente na nuvem e refletem em todos os formulários e filtros.</p>
@@ -1066,7 +977,7 @@
         <tr><td><kbd>Alt</kbd> + <kbd>5</kbd></td><td>Vai direto para a aba Configurações.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>S</kbd></td><td>Salva a aposta em edição no formulário de Cadastro (mesmo botão "💾 Salvar Aposta"; se você estiver editando uma aposta existente, funciona como "Atualizar Aposta"). Só funciona com a aba Cadastro ativa — em qualquer outra aba, um aviso pede para ir até lá primeiro (Alt+1).</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>A</kbd></td><td>Filtro rápido "Somente Abertas": liga (ou desliga, se apertado de novo) o filtro de Status = Aberto direto na lista, sem precisar ir até a aba Filtros. Funciona de qualquer aba — já leva você para a Lista com o resultado. Mantém qualquer outro filtro já ativo (Casa, Tipster, Liga, datas etc.), mexendo só no Status.</td></tr>
-        <tr><td><kbd>Alt</kbd> + <kbd>C</kbd></td><td>Abre o seletor de "🔎 Checar Apostas" (checagem automática de resultado/estatísticas via API-Football e IA). Só funciona com a aba Lista ativa — em qualquer outra aba, um aviso pede para ir até lá primeiro (Alt+2).</td></tr>
+        <tr><td><kbd>Alt</kbd> + <kbd>C</kbd></td><td>Abre o modal "📋 Preencher por Texto" para colar o texto de um bilhete e criar uma nova aposta. Funciona de qualquer aba.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>L</kbd></td><td>Limpa todos os filtros ativos (Casa, Tipster, Tipo, Esporte, Liga, Mercado, Status, datas e busca livre), voltando a mostrar todas as apostas — mesmo efeito do botão "✕ Limpar Filtros" na aba Filtros. Funciona de qualquer aba, sem trocar de aba nem tirar o foco de onde você está — a lista já fica atualizada por baixo, pronta para quando você for até a aba Lista.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>G</kbd></td><td>Marca a "aposta em foco" (veja explicação abaixo) como Ganhou.</td></tr>
         <tr><td><kbd>Alt</kbd> + <kbd>P</kbd></td><td>Marca a "aposta em foco" como Perdida.</td></tr>
