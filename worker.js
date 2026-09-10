@@ -926,6 +926,7 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     }
   }
   return resultado;
+}
 
 // ==================== AUXILIAR ====================
 function parsearJSON(texto) {
