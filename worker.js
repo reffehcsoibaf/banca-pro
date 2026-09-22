@@ -3,8 +3,9 @@
 //   1. imagemBase64 + mediaType  → lê uma foto/print do bilhete
 //   2. textoBilhete              → lê texto colado copiado da casa
 //
-// ESTRATÉGIA DE PROVEDOR: tenta Gemini primeiro (grátis), e só usa a
-// Anthropic (paga) se o Gemini falhar (erro, rate limit, resposta inválida).
+// ESTRATÉGIA DE PROVEDOR: tenta Gemini primeiro (grátis); se falhar, tenta o
+// Cloudflare Workers AI (grátis, com limite diário); e só usa a Anthropic
+// (paga) se os dois falharem (erro, rate limit, resposta inválida).
 //
 // As chaves de API NUNCA ficam no navegador — vivem só aqui, no servidor,
 // lidas das variáveis de ambiente GEMINI_API_KEY e ANTHROPIC_API_KEY
@@ -89,9 +90,9 @@ Regra especial — STATUS (não confundir opção de Cashout com status Cash Out
 - Da mesma forma, valores como "Valor do Cashout" e "Lucro" exibidos junto ao botão são apenas uma simulação do que seria pago SE o usuário optasse por sacar agora — não indicam o resultado real da aposta.
 
 Regra especial — LIGA:
-- Se a liga estiver escrita explicitamente no bilhete (como na Superbet), copie-a exatamente e use confiancaLiga alta (0.85-1.0) — mesmo que o nome escrito seja um nome comercial de patrocínio.
-- Se a liga NÃO estiver escrita no bilhete (comum na Betano, que normalmente só mostra os nomes dos times): SEMPRE tente inferir pelo seu conhecimento dos times, do país e da data do jogo, antes de considerar null. Só deixe liga como null se genuinamente não reconhecer os times o suficiente para arriscar nem o país. Use confiancaLiga baixa (0.3-0.5) nesses casos de inferência, já que não é leitura direta do bilhete.
-- Ao inferir (ou seja, quando o bilhete não escreveu a liga), use SEMPRE o nome oficial/internacional da divisão nacional, no formato "País - Divisão" — NUNCA o nome comercial/de patrocínio da temporada (esses mudam a cada contrato e não devem ser usados como referência). Exemplos do formato esperado:
+- Se a liga estiver escrita explicitamente no bilhete (como na Superbet), copie-a exatamente (normalizando o nome conforme a lista abaixo, se for um nome comercial de patrocínio) e use confiancaLiga alta (0.85-1.0).
+- Se a liga NÃO estiver escrita no bilhete (comum na Betano, que normalmente só mostra os nomes dos times): deixe "liga" como null e confiancaLiga 0 — NÃO tente adivinhar pelos times, pelo país ou por qualquer conhecimento próprio seu. Essa inferência é feita por outra etapa do app, DEPOIS da leitura do bilhete, em duas camadas mais confiáveis que a memória da IA: primeiro um cache do que já foi confirmado em bilhetes recentes do mesmo confronto, e só se o cache não tiver nada, uma busca real na web. Chutar a liga aqui atrapalha essas duas etapas, porque um campo já preenchido (mesmo que "chutado" com confiança baixa) nunca é sobrescrito por elas depois.
+- Ao normalizar uma liga que já veio escrita no bilhete, use SEMPRE o nome oficial/internacional da divisão nacional, no formato "País - Divisão" — NUNCA o nome comercial/de patrocínio da temporada (esses mudam a cada contrato e não devem ser usados como referência). Exemplos do formato esperado:
   • Brasil, 1ª divisão → "Brasil - Série A" (não "Brasileirão", nem nomes de patrocinador)
   • Itália, 1ª divisão → "Itália - Série A" (não "Serie A TIM" ou variações comerciais)
   • Inglaterra, 1ª divisão → "Inglaterra - Premier League" (nome já é o oficial, sem patrocinador — não usar nomes de patrocínio que a competição já teve)
@@ -100,7 +101,7 @@ Regra especial — LIGA:
   • França, 1ª divisão → "França - Ligue 1"
   • Segundas divisões seguem o mesmo padrão: "Brasil - Série B", "Inglaterra - Championship", "Itália - Serie B", etc.
   • Copas nacionais e continentais usam o nome oficial do torneio, sem prefixo de país quando o torneio já é internacional por natureza (ex.: "Copa Libertadores", "Copa do Mundo 2026", "Champions League") — o prefixo "País - " vale só para ligas nacionais de pontos corridos/mata-mata interno.
-- Essa regra de nome oficial (sem patrocínio) vale tanto para inferência quanto como preferência geral: se o bilhete escrever um nome comercial óbvio de patrocínio (ex.: variações com nome de marca patrocinadora do campeonato), normalize para o nome oficial acima em vez de copiar literalmente — a exatidão do que está escrito no bilhete importa menos aqui do que manter a lista de ligas do Banca Pro estável ao longo das temporadas.
+- Essa regra de nome oficial (sem patrocínio) vale como preferência geral: se o bilhete escrever um nome comercial óbvio de patrocínio (ex.: variações com nome de marca patrocinadora do campeonato), normalize para o nome oficial acima em vez de copiar literalmente — a exatidão do que está escrito no bilhete importa menos aqui do que manter a lista de ligas do Banca Pro estável ao longo das temporadas.
 
 Regra especial — MAPEAMENTO DE MERCADOS:
 O sistema já tem os seguintes mercados cadastrados. Quando o bilhete mostrar um mercado, use SEMPRE o nome correspondente desta lista — não invente nomes novos nem use o nome exato do bilhete se houver um equivalente aqui.
@@ -322,7 +323,7 @@ GanhosR$0,00
 """
 → casa: Betano, identificador: "6416780725", dataHora: "2024-10-26T11:29", stake: 3.07, status: "Perdeu"
 → 5 eventos: Grêmio - Atlético-GO (mercado: "Resultado Final", selecao: "Grêmio", odd: 1.62), Palmeiras - Fortaleza (mercado: "Resultado Final", selecao: "Palmeiras", odd: 1.40), Flamengo - Juventude-RS (mercado: "Resultado Final", selecao: "Flamengo", odd: 1.38), Atlético-MG - Internacional (mercado: "Handicap", selecao: "Internacional +1", odd: 1.33), Bragantino - Botafogo-RJ (mercado: "Handicap", selecao: "Botafogo-RJ +1", odd: 1.31)
-→ liga: a Betano não mostra a liga no texto, mas TODOS esses times são times brasileiros de futebol, então infira "Brasil - Série A" para todos (nome oficial, não "Brasileirão"), com confiancaLiga 0.4 (inferência, não leitura direta do bilhete). Esse é o comportamento esperado sempre que a Betano não escrever a liga: nunca deixe liga como null só porque não achou o texto — primeiro tente inferir pelos times.
+→ liga: a Betano não mostra a liga no texto, então liga: null para os 5 eventos, com confiancaLiga 0. Não é papel desta etapa inferir a liga pelos times — isso é resolvido depois pelo cache local de confrontos recentes ou, se necessário, por uma busca real na web, ambos mais confiáveis que a memória da IA nesta chamada.
 
 EXEMPLO 2 — Superbet, criador de apostas (múltiplas condições no mesmo confronto):
 """
@@ -428,73 +429,6 @@ REGRAS GERAIS IMPORTANTES:
 Formato de saída:
 ${SCHEMA_ANALISE}`;
 
-const SCHEMA_BUSCAR_LIGA = `
-{
-  "encontrado": "boolean — true somente se a busca na web confirmou com boa confiança em qual liga/competição esse confronto aconteceu ou está programado para acontecer",
-  "liga": "string — nome da liga no formato 'País - Divisão' (ex: 'Brasil - Série A', 'Inglaterra - Premier League'); torneios internacionais mantêm o nome padrão sem prefixo de país (ex: 'Champions League', 'Copa Libertadores'). String vazia se encontrado=false",
-  "esporte": "string — o esporte do confronto (ex: 'Futebol', 'Basquete', 'Tênis'), confirmado pela busca. Preencha sempre que a busca identificar o confronto com confiança, mesmo que o esporte já tenha vindo preenchido na entrada (nesse caso, apenas confirme o mesmo valor). String vazia se não conseguir identificar",
-  "dataHoraEncontrada": "boolean — true somente se a busca confirmou a data (no mínimo) do confronto com confiança razoável. Independente do resultado de 'encontrado'/'liga' — dá pra confirmar a data sem confirmar a liga, e vice-versa",
-  "dataHora": "string — data e hora do confronto no formato 'AAAA-MM-DDTHH:MM', SEMPRE convertida para horário de Brasília (America/Sao_Paulo), mesmo que o jogo seja em outro país/fuso. String vazia se dataHoraEncontrada=false",
-  "confianca": "number de 0 a 1 — o quanto você confia no resultado da LIGA (leve em conta ambiguidade de nomes de time repetidos em vários países)",
-  "confiancaDataHora": "number de 0 a 1 — o quanto você confia especificamente na DATA/HORA encontrada (pode ser diferente da confiança da liga: às vezes a data é fácil de confirmar mas o horário exato de bola rolando não, ou vice-versa)",
-  "observacao": "string curta — se encontrado=true, cite brevemente a base (ex: 'confirmado via tabela do campeonato atual'). Se encontrado=false, explique objetivamente por que (ex: 'não encontrei esse confronto específico nas competições em andamento')"
-}`;
-
-const PROMPT_BUSCAR_LIGA = `Você é um assistente que identifica em qual liga ou competição esportiva um confronto específico foi ou será disputado, E a data/hora desse confronto, usando a ferramenta de busca na web disponível. Você vai receber o nome do evento/confronto (ex: "Time A x Time B"), o esporte quando já for conhecido (pode vir null/ausente — nesse caso você também precisa identificar o esporte) e, quando disponível, uma data de referência (data em que a aposta foi registrada), em formato JSON.
-
-QUANDO O ESPORTE NÃO FOR INFORMADO (null/ausente):
-- Identifique o esporte a partir dos nomes dos competidores/times e do contexto encontrado na busca (ex: nomes de clube de futebol, duplas de tênis, franquias de basquete). Preencha o campo "esporte" da resposta com o que identificar.
-- Se não conseguir identificar o esporte com confiança, trate como não encontrado: "encontrado": false.
-- Quando o esporte JÁ vier informado, apenas confirme-o de volta no campo "esporte" da resposta (não precisa buscar isso, só ecoar).
-
-USO DA DATA DE REFERÊNCIA — MUITO IMPORTANTE:
-- Quando "dataReferencia" vier preenchida, use-a para achar a temporada/rodada certa do confronto, não a mais recente disponível hoje. Times mudam de divisão entre temporadas (acesso/rebaixamento) — a liga de um time HOJE pode não ser a mesma de quando o confronto aconteceu.
-- A dataReferencia é a data em que a APOSTA foi registrada, não necessariamente a data do jogo — o apostador costuma registrar a aposta no mesmo dia do jogo ou com alguns dias de antecedência (raramente depois). Ou seja, procure o confronto na dataReferencia ou em dias seguintes próximos a ela; considere uma data de jogo anterior à dataReferencia só se não encontrar nada em dataReferencia ou depois.
-- Sem "dataReferencia", assuma que o confronto é recente/atual e busque a temporada em andamento.
-
-DATA/HORA DO CONFRONTO — MUITO IMPORTANTE:
-- Além da liga, procure a data e hora programada (ou já disputada) do confronto — normalmente aparece na mesma página que confirma a liga (Sofascore e 365scores mostram isso).
-- CONVERSÃO DE FUSO É OBRIGATÓRIA: o valor de "dataHora" na resposta deve estar SEMPRE em horário de Brasília (America/Sao_Paulo, UTC-3, sem horário de verão desde 2019), independente de onde o jogo aconteça. Se a página mostrar o horário em UTC, GMT, horário local do país sede, ou qualquer outro fuso, converta para Brasília antes de responder. Se não conseguir identificar com segurança em qual fuso a página está exibindo o horário, prefira reduzir "confiancaDataHora" a arriscar uma conversão errada.
-- O QUE IMPORTA MAIS AQUI É A DATA (o dia, em horário de Brasília), não o minuto exato — esse app usa essa informação principalmente para localizar o jogo certo em uma lista de jogos daquele dia. Se você tem certeza razoável do dia mas não do horário exato de bola rolando, ainda assim preencha "dataHora" com sua melhor estimativa de horário e reflita a incerteza apenas em "confiancaDataHora" — não deixe de preencher a data só por imprecisão no minuto.
-- Se não conseguir confirmar nem a data com confiança razoável, defina "dataHoraEncontrada": false e "dataHora": "" — nunca invente uma data/hora sem base na busca.
-- "dataHoraEncontrada" e "encontrado" (liga) são independentes: é possível confirmar a data sem confirmar a liga, ou confirmar a liga sem achar o horário exato — preencha cada um com base no que a busca realmente confirmou.
-
-USO DA BUSCA NA WEB — MUITO IMPORTANTE:
-- Pesquise o confronto informado (times + data de referência, se houver) para descobrir a liga/competição/campeonato em que ele foi disputado, e a data/hora do confronto.
-- Ao formular suas buscas, dê preferência a fontes como sofascore.com e 365scores.com quando fizer sentido — costumam ter esse tipo de informação de forma organizada — mas use qualquer fonte confiável que encontrar.
-- Nomes de time podem ser ambíguos (o mesmo nome existe em várias ligas/países diferentes) — use o contexto disponível (esporte informado, data de referência, outros times mencionados) para reduzir ambiguidade, mas NUNCA garanta uma resposta apenas por familiaridade com um nome de time conhecido sem confirmar via busca.
-- Se não encontrar o confronto específico com confiança razoável (ex: nome de time comum a várias ligas, informação insuficiente, evento não encontrado, data de referência ausente e ambiguidade alta), defina "encontrado": false e "liga": "" — NUNCA invente ou "chute" uma liga só para preencher o campo. O mesmo vale para "dataHoraEncontrada"/"dataHora".
-
-AMBIGUIDADE DE NOMES DE TIME — EXEMPLOS REAIS PARA CALIBRAR SUA BUSCA:
-- "América" existe como clube em vários lugares: América-MG e América-RN (Brasil, divisões diferentes entre si), Club América (México), América de Cali (Colômbia) — nunca assuma qual é sem confirmar pelo confronto completo (o adversário informado costuma resolver a ambiguidade).
-- "Nacional" também é comum a vários países (Uruguai, Paraguai, Portugal, Colômbia) — mesmo cuidado.
-- "Independiente" pode ser o clube argentino tradicional ou outros clubes menores com nome parecido em outros países da América Latina.
-- Times com nomes de cidade genéricos (ex: "Santos", "União", "Rio Branco") se repetem entre estados/divisões dentro do próprio Brasil — combine com o adversário e, se disponível, a data de referência, antes de decidir a liga.
-- Regra geral: quanto mais genérico o nome do time, maior o cuidado — prefira buscar pelo confronto completo ("Time A x Time B") em vez de cada time isoladamente, já que o par de times reduz a ambiguidade muito mais rápido que um nome sozinho.
-
-REGRAS DE FORMATO:
-- A liga deve seguir o padrão "País - Divisão", EXCETO torneios internacionais/continentais, que mantêm o nome padrão sem prefixo de país (ex: "Champions League", "Copa Libertadores", "Copa do Mundo", "Europa League", "Sul-Americana").
-- Nunca use nome comercial de patrocínio da liga (ex: use "Inglaterra - Championship", não "Sky Bet Championship"; use "Brasil - Série A", não "Brasileirão Betano" ou variações com marca de patrocinador), a menos que seja o nome oficial sem alternativa.
-- Referência de nomenclatura por país (use o nome oficial da divisão, sem patrocínio, seguindo esse padrão para países não listados aqui também):
-  - Brasil: "Brasil - Série A", "Brasil - Série B", "Brasil - Série C", "Brasil - Série D", além de estaduais (ex: "Brasil - Campeonato Paulista").
-  - Inglaterra: "Inglaterra - Premier League", "Inglaterra - Championship", "Inglaterra - League One", "Inglaterra - League Two".
-  - Espanha: "Espanha - La Liga", "Espanha - Segunda División".
-  - Itália: "Itália - Serie A", "Itália - Serie B".
-  - Alemanha: "Alemanha - Bundesliga", "Alemanha - 2. Bundesliga".
-  - França: "França - Ligue 1", "França - Ligue 2".
-  - Portugal: "Portugal - Primeira Liga", "Portugal - Liga Portugal 2".
-  - Argentina: "Argentina - Liga Profesional", "Argentina - Primera Nacional".
-- "dataHora" deve seguir exatamente o formato "AAAA-MM-DDTHH:MM" (ex: "2026-08-25T21:30"), sempre em horário de Brasília.
-- Responda APENAS com o JSON puro, sem texto antes ou depois, sem markdown, sem crases — mesmo tendo usado a ferramenta de busca antes, a resposta final deve ser só o JSON.
-
-EXEMPLOS DE SAÍDA ESPERADA:
-- Confronto e data/hora identificados com confiança, esporte já informado na entrada: {"encontrado": true, "liga": "Brasil - Série A", "esporte": "Futebol", "dataHoraEncontrada": true, "dataHora": "2026-08-25T21:30", "confianca": 0.95, "confiancaDataHora": 0.9, "observacao": "confirmado via tabela do campeonato atual"}
-- Liga identificada, mas horário exato incerto (só o dia confirmado): {"encontrado": true, "liga": "Inglaterra - Premier League", "esporte": "Futebol", "dataHoraEncontrada": true, "dataHora": "2026-08-30T13:00", "confianca": 0.9, "confiancaDataHora": 0.55, "observacao": "dia confirmado; horário de bola rolando aproximado, não encontrei confirmação exata do minuto"}
-- Confronto não identificado com confiança suficiente, nem liga nem data: {"encontrado": false, "liga": "", "esporte": "", "dataHoraEncontrada": false, "dataHora": "", "confianca": 0, "confiancaDataHora": 0}
-
-Formato de saída:
-${SCHEMA_BUSCAR_LIGA}`;
-
 // ---- Checagem de acesso à IA: valida o token do usuário e confere ai_enabled ----
 // Retorna { ok: true } ou { ok: false, status, message }
 async function checarAcessoIA(request, env) {
@@ -535,9 +469,7 @@ async function checarAcessoIA(request, env) {
 // (leitura de bilhete vs análise de estatísticas/risco). Melhor esforço:
 // nunca deve quebrar a resposta já obtida para o usuário.
 async function registrarUsoIA(accessToken, env, tipo) {
-  const categoria = tipo === 'estatisticas' ? 'estatisticas'
-    : tipo === 'liga' ? 'liga'
-    : 'bilhete';
+  const categoria = tipo === 'estatisticas' ? 'estatisticas' : 'bilhete';
   try {
     await fetch(env.SUPABASE_URL + '/rest/v1/rpc/banca_increment_ai_calls', {
       method: 'POST',
@@ -582,7 +514,7 @@ async function handleFetch(request, env, ctx) {
 
     // Só tratamos aqui as rotas da API. Qualquer outra URL (o próprio site,
     // imagens, etc.) é devolvida pelos arquivos estáticos normalmente.
-    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta', '/api/buscar-liga', '/api/checar-apostas'];
+    const ROTAS_API = ['/api/ler-bilhete', '/api/analisar-aposta'];
     if (!ROTAS_API.includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
@@ -620,26 +552,14 @@ async function handleFetch(request, env, ctx) {
     try { payload = await request.json(); }
     catch (e) { return new Response(JSON.stringify({ error: 'Corpo da requisição inválido.' }), { status: 400, headers }); }
 
-    // ---- Rota unificada de checagem de apostas (placar + estatísticas + IA) ----
-    // Combina API-Football (placar e estatísticas) com um julgamento por IA
-    // como último passo da cascata (ver handleCheckApostas) — por isso, ao
-    // contrário das rotas abaixo, não usa o pipeline comBusca/tipoUso/schemaTipo
-    // (a chamada de IA, quando acontece, é feita internamente por
-    // julgarMercadoComIA, sem busca na web).
-    if (url.pathname === '/api/checar-apostas') {
-      return await handleCheckApostas(payload, env, headers);
-    }
-
     let imagemBase64, mediaType, textoBilhete, systemInstrucoes, textoCorrecoes;
-    // Busca real na web só nas rotas que precisam de dado atualizado/externo.
-    const comBusca = url.pathname === '/api/analisar-aposta' || url.pathname === '/api/buscar-liga';
-    const tipoUso = url.pathname === '/api/analisar-aposta' ? 'estatisticas'
-      : url.pathname === '/api/buscar-liga' ? 'liga'
-      : 'bilhete';
+    // Busca real na web só na rota que precisa de dado atualizado/externo.
+    const comBusca = url.pathname === '/api/analisar-aposta';
+    const tipoUso = url.pathname === '/api/analisar-aposta' ? 'estatisticas' : 'bilhete';
 
     // ---- Preferência de provedor de IA (Configurações → 🤖 Provedor de IA) ----
-    // O app envia essa preferência por chamada, já que cada uma das três rotas
-    // (bilhete, estatísticas, liga) pode ter um provedor configurado separadamente.
+    // O app envia essa preferência por chamada, já que cada uma das duas rotas
+    // (bilhete, estatísticas) pode ter um provedor configurado separadamente.
     // 'ambas' (padrão) mantém o comportamento original: Gemini primeiro, com
     // fallback automático para Anthropic se falhar. 'gemini' ou 'anthropic' força
     // o uso exclusivo daquele provedor, sem fallback para o outro.
@@ -648,9 +568,7 @@ async function handleFetch(request, env, ctx) {
     if (!PROVEDORES_VALIDOS.includes(provedorPreferido)) provedorPreferido = 'ambas';
     // Controla qual schema usar ao sanitizar uma resposta que caiu no modo sem
     // busca (ver sanearRespostaSemBusca) — cada rota tem um formato de retorno diferente.
-    const schemaTipo = url.pathname === '/api/buscar-liga' ? 'buscar-liga'
-      : url.pathname === '/api/analisar-aposta' ? 'analise'
-      : null;
+    const schemaTipo = url.pathname === '/api/analisar-aposta' ? 'analise' : null;
 
     if (url.pathname === '/api/analisar-aposta') {
       // ---- Rota de análise de risco (não extrai dados, recebe dados já preenchidos) ----
@@ -660,16 +578,6 @@ async function handleFetch(request, env, ctx) {
       }
       systemInstrucoes = PROMPT_ANALISE_APOSTA;
       textoBilhete = JSON.stringify(aposta); // reaproveita o caminho de "texto" das funções de provedor abaixo
-    } else if (url.pathname === '/api/buscar-liga') {
-      // ---- Rota de busca de liga por IA (usada no preenchimento manual de apostas antigas) ----
-      // "esporte" agora é opcional: quando ausente, a IA também tenta identificar o esporte
-      // a partir dos nomes dos competidores e da data de referência.
-      const { esporte, evento, dataReferencia } = payload || {};
-      if (!evento) {
-        return new Response(JSON.stringify({ error: 'Envie "evento" para buscar a liga.' }), { status: 400, headers });
-      }
-      systemInstrucoes = PROMPT_BUSCAR_LIGA;
-      textoBilhete = JSON.stringify({ esporte: esporte || null, evento, dataReferencia: dataReferencia || null });
     } else {
       // ---- Rota original: leitor de bilhete por foto ou texto ----
       ({ imagemBase64, mediaType, textoBilhete } = payload || {});
@@ -754,7 +662,7 @@ async function handleFetch(request, env, ctx) {
               { status: 502, headers }
             );
           }
-          console.log('[fallback] Gemini falhou, tentando Anthropic:', erroGeminiDetalhe);
+          console.log('[fallback] Gemini falhou, tentando Workers AI:', erroGeminiDetalhe);
         }
       } else {
         erroGeminiDetalhe = 'GEMINI_API_KEY não configurada neste Worker.';
@@ -764,17 +672,47 @@ async function handleFetch(request, env, ctx) {
             { status: 500, headers }
           );
         }
-        console.log('[fallback] GEMINI_API_KEY não configurada, indo direto para Anthropic.');
+        console.log('[fallback] GEMINI_API_KEY não configurada, indo direto para Workers AI.');
       }
     }
 
-    // ---- 2ª TENTATIVA: ANTHROPIC ----
+    // ---- 2ª TENTATIVA: CLOUDFLARE WORKERS AI (grátis, reserva) ----
+    // Só no modo "ambas" (padrão): fica entre o Gemini e a Anthropic para
+    // evitar gastar crédito pago quando o Gemini falha. Na Análise de Aposta
+    // ele não tem busca na web, então roda no mesmo modo "sem busca" que o
+    // Gemini usa como plano B (sem estatística inventada).
+    let erroWorkersAIDetalhe = null;
+    if (provedorPreferido === 'ambas') {
+      try {
+        const extraido = await lerComWorkersAI({
+          env,
+          systemInstrucoes,
+          textoBilhete,
+          imagemBase64,
+          mediaType,
+          comBusca,
+          textoCorrecoes,
+          schemaTipo,
+        });
+        ctx.waitUntil(registrarUsoIA(accessToken, env, tipoUso));
+        return new Response(JSON.stringify({ ...extraido, _provedor: 'workers-ai' }), { status: 200, headers });
+      } catch (erroWorkersAI) {
+        erroWorkersAIDetalhe = String(erroWorkersAI.message || erroWorkersAI).slice(0, 500);
+        console.log('[fallback] Workers AI falhou, tentando Anthropic:', erroWorkersAIDetalhe);
+      }
+    }
+
+    // ---- 3ª TENTATIVA: ANTHROPIC ----
     // Entra aqui automaticamente no fallback (preferência "ambas"), ou diretamente
     // quando a preferência é "Somente Anthropic" (tentarGemini = false, sem passar pelo Gemini).
+    const detalhesAnteriores =
+      (erroGeminiDetalhe ? ' | Detalhe do Gemini: ' + erroGeminiDetalhe : '') +
+      (erroWorkersAIDetalhe ? ' | Detalhe do Workers AI: ' + erroWorkersAIDetalhe : '');
+
     if (!env.ANTHROPIC_API_KEY) {
       const mensagem = provedorPreferido === 'anthropic'
         ? 'O provedor de IA está definido como "Somente Anthropic", mas a ANTHROPIC_API_KEY não está configurada neste Worker.'
-        : 'Nem GEMINI_API_KEY nem ANTHROPIC_API_KEY estão configuradas no Cloudflare.';
+        : 'Gemini e Workers AI falharam, e a ANTHROPIC_API_KEY não está configurada no Cloudflare.' + detalhesAnteriores;
       return new Response(JSON.stringify({ error: mensagem }), { status: 500, headers });
     }
 
@@ -794,8 +732,8 @@ async function handleFetch(request, env, ctx) {
     } catch (erroAnthropic) {
       return new Response(
         JSON.stringify({
-          error: 'Erro ao processar (Gemini e Anthropic falharam, ou Anthropic era o único provedor tentado): ' + erroAnthropic.message +
-            (erroGeminiDetalhe ? ' | Detalhe do Gemini: ' + erroGeminiDetalhe : ''),
+          error: 'Erro ao processar (Gemini, Workers AI e Anthropic falharam, ou Anthropic era o único provedor tentado): ' + erroAnthropic.message +
+            detalhesAnteriores,
         }),
         { status: 502, headers }
       );
@@ -840,9 +778,7 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
     // Reforça aqui, mas o código abaixo (sanearRespostaSemBusca) é quem garante
     // isso de fato, não confiando só na obediência do modelo à instrução.
     const avisoSemBusca = {
-      text: schemaTipo === 'buscar-liga'
-        ? 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "liga" ou "dataHora" com qualquer valor baseado em memória própria — defina "encontrado": false, "liga": "", "dataHoraEncontrada": false, "dataHora": "" e em "observacao" escreva apenas algo como "Busca na web indisponível nesta chamada".'
-        : 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "probabilidadeEstimada" com qualquer número ou descrever estatísticas específicas (médias, resultados recentes) em "baseEstimativa" — para TODOS os eventos, defina "dadosEncontrados": false, "probabilidadeEstimada": null, e em "baseEstimativa" escreva apenas algo como "Busca de estatísticas indisponível nesta análise". Continue preenchendo normalmente "nivelRisco", "resumo" e "alertas" com base só nos dados da aposta fornecidos e na probabilidade implícita da odd.',
+      text: 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "probabilidadeEstimada" com qualquer número ou descrever estatísticas específicas (médias, resultados recentes) em "baseEstimativa" — para TODOS os eventos, defina "dadosEncontrados": false, "probabilidadeEstimada": null, e em "baseEstimativa" escreva apenas algo como "Busca de estatísticas indisponível nesta análise". Continue preenchendo normalmente "nivelRisco", "resumo" e "alertas" com base só nos dados da aposta fornecidos e na probabilidade implícita da odd.',
     };
     const resultadoSemBusca = await tentarModelosGemini({
       apiKey,
@@ -864,16 +800,6 @@ async function lerComGemini({ apiKey, systemInstrucoes, textoBilhete, imagemBase
 function sanearRespostaSemBusca(resultado, schemaTipo) {
   if (!resultado || typeof resultado !== 'object') return resultado;
   resultado._buscaIndisponivel = true;
-  if (schemaTipo === 'buscar-liga') {
-    resultado.encontrado = false;
-    resultado.liga = '';
-    resultado.confianca = 0;
-    resultado.dataHoraEncontrada = false;
-    resultado.dataHora = '';
-    resultado.confiancaDataHora = 0;
-    resultado.observacao = 'Busca na web indisponível nesta chamada — não foi possível confirmar a liga nem a data/hora.';
-    return resultado;
-  }
   if (Array.isArray(resultado.analisesEventos)) {
     resultado.analisesEventos = resultado.analisesEventos.map((ev) => ({
       ...ev,
@@ -958,6 +884,130 @@ async function tentarModelosGemini({ apiKey, systemInstrucoes, partesConteudo, u
   throw ultimoErro || new Error(`Nenhum modelo Gemini candidato respondeu (busca=${usarBusca}).`);
 }
 
+// ==================== PROVEDOR: CLOUDFLARE WORKERS AI ====================
+// Reserva GRATUITA entre o Gemini e a Anthropic. Roda na própria Cloudflare,
+// sem chave de API: usa o binding "AI" declarado no wrangler.jsonc.
+//
+// Custo: a Cloudflare dá 10.000 "neurons" por dia de graça. No plano
+// gratuito de Workers, quando esse limite acaba, a chamada apenas dá erro
+// (e aí o app segue para a Anthropic) — nunca gera cobrança surpresa.
+//
+// Os modelos abertos são mais fracos que Gemini/Claude para documentos
+// complexos, por isso ficam como reserva, não como provedor principal.
+// Lista em ordem de preferência: se um modelo for aposentado ou falhar,
+// o próximo assume automaticamente.
+const MODELOS_WORKERS_AI_CANDIDATOS = [
+  '@cf/google/gemma-4-26b-a4b-it',           // o mais barato em neurons, lê imagem
+  '@cf/meta/llama-4-scout-17b-16e-instruct', // reserva, também lê imagem
+];
+
+// partes: lista de { tipo: 'texto', texto } ou { tipo: 'imagem', mimeType, base64 }.
+// Devolve o texto bruto da resposta (quem chama faz o parse do JSON).
+async function executarWorkersAI(env, { sistema, partes, maxTokens }) {
+  if (!env.AI || typeof env.AI.run !== 'function') {
+    throw new Error('Binding "AI" (Workers AI) não configurado neste Worker — confira o "ai" no wrangler.jsonc.');
+  }
+
+  const conteudo = partes.map((p) => (
+    p.tipo === 'imagem'
+      ? { type: 'image_url', image_url: { url: `data:${p.mimeType};base64,${p.base64}` } }
+      : { type: 'text', text: p.texto }
+  ));
+
+  let ultimoErro = null;
+  for (const modelo of MODELOS_WORKERS_AI_CANDIDATOS) {
+    try {
+      const entrada = {
+        messages: [
+          { role: 'system', content: sistema },
+          { role: 'user', content: conteudo },
+        ],
+        max_tokens: maxTokens || 4096,
+        temperature: 0,
+        response_format: { type: 'json_object' },
+      };
+      // Gemma 4 é um modelo de "raciocínio": desligar o pensamento economiza
+      // neurons e evita texto extra antes do JSON.
+      if (modelo.includes('gemma')) entrada.chat_template_kwargs = { enable_thinking: false };
+
+      const resposta = await env.AI.run(modelo, entrada);
+      const texto = extrairTextoWorkersAI(resposta);
+      if (!texto) throw new Error('resposta vazia.');
+      console.log(`[workers-ai] Resposta obtida com "${modelo}".`);
+      return texto;
+    } catch (e) {
+      ultimoErro = new Error(`Workers AI (${modelo}): ${String(e && e.message || e).slice(0, 400)}`);
+      console.log('[workers-ai] ' + ultimoErro.message + ' — tentando o próximo candidato.');
+    }
+  }
+  throw ultimoErro || new Error('Nenhum modelo do Workers AI respondeu.');
+}
+
+// Os modelos do Workers AI devolvem em dois formatos diferentes:
+// { response: '...' } (Llama) ou { choices: [{ message: { content } }] } (Gemma).
+function extrairTextoWorkersAI(resposta) {
+  if (!resposta) return '';
+  if (typeof resposta.response === 'string') return resposta.response.trim();
+  if (resposta.response && typeof resposta.response === 'object') return JSON.stringify(resposta.response);
+  const conteudo = resposta?.choices?.[0]?.message?.content;
+  if (typeof conteudo === 'string') return conteudo.trim();
+  if (Array.isArray(conteudo)) return conteudo.map((c) => c.text || '').join('').trim();
+  return '';
+}
+
+// Os modelos do Workers AI não leem PDF diretamente. O toMarkdown() da
+// própria Cloudflare converte o PDF em texto antes. Funciona com PDF
+// "digital" (texto selecionável); PDF escaneado (só imagem) sai sem texto,
+// e nesse caso a leitura falha de propósito para cair na Anthropic.
+async function pdfParaTextoWorkersAI(env, base64, nomeArquivo) {
+  if (!env.AI || typeof env.AI.toMarkdown !== 'function') {
+    throw new Error('Binding "AI" (Workers AI) não configurado neste Worker.');
+  }
+  const binario = atob(base64);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+
+  const resultado = await env.AI.toMarkdown({
+    name: nomeArquivo || 'documento.pdf',
+    blob: new Blob([bytes], { type: 'application/pdf' }),
+  });
+  const item = Array.isArray(resultado) ? resultado[0] : resultado;
+  if (!item || item.format === 'error') {
+    throw new Error('Workers AI não conseguiu converter o PDF: ' + (item && item.error || 'sem retorno'));
+  }
+  const texto = String(item.data || '').trim();
+  if (texto.length < 40) {
+    throw new Error('PDF sem texto legível (provavelmente escaneado) — Workers AI não lê PDF de imagem.');
+  }
+  return texto.slice(0, 60000);
+}
+
+// Leitura do bilhete (ou análise sem busca) pelo Workers AI.
+async function lerComWorkersAI({ env, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes, schemaTipo }) {
+  const partes = [];
+  // Sem busca na web aqui: na Análise de Aposta, reaproveita o mesmo aviso
+  // "proibido inventar estatística" do modo sem busca do Gemini.
+  if (comBusca) {
+    partes.push({
+      tipo: 'texto',
+      texto: 'ATENÇÃO: a ferramenta de busca na web NÃO está disponível nesta chamada — você não pesquisou nada agora, mesmo que "lembre" de informações gerais sobre os times. É TERMINANTEMENTE PROIBIDO preencher "probabilidadeEstimada" com qualquer número ou descrever estatísticas específicas (médias, resultados recentes) em "baseEstimativa" — para TODOS os eventos, defina "dadosEncontrados": false, "probabilidadeEstimada": null, e em "baseEstimativa" escreva apenas algo como "Busca de estatísticas indisponível nesta análise". Continue preenchendo normalmente "nivelRisco", "resumo" e "alertas" com base só nos dados da aposta fornecidos e na probabilidade implícita da odd.',
+    });
+  }
+  if (textoCorrecoes) partes.push({ tipo: 'texto', texto: textoCorrecoes });
+  if (textoBilhete) {
+    partes.push({ tipo: 'texto', texto: textoBilhete });
+  } else {
+    partes.push({ tipo: 'imagem', mimeType: mediaType, base64: imagemBase64 });
+    partes.push({ tipo: 'texto', texto: 'Extraia os dados deste bilhete conforme as instruções.' });
+  }
+
+  const texto = await executarWorkersAI(env, { sistema: systemInstrucoes, partes, maxTokens: comBusca ? 4096 : 3072 });
+  const resultado = parsearJSON(texto);
+  // Mesma garantia do modo sem busca do Gemini: nenhuma estatística
+  // "alucinada" chega ao usuário como se fosse pesquisa real.
+  return comBusca ? sanearRespostaSemBusca(resultado, schemaTipo) : resultado;
+}
+
 // ==================== PROVEDOR: ANTHROPIC ====================
 async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemBase64, mediaType, comBusca, textoCorrecoes, schemaTipo }) {
   const blocoConteudo = textoBilhete
@@ -981,18 +1031,10 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     ],
     messages: [{ role: 'user', content: conteudoMensagem }],
   };
-  // Ferramenta de busca na web da própria Anthropic: usada na rota de Analisar
-  // Aposta (estatísticas) e na rota de Buscar Liga.
+  // Ferramenta de busca na web da própria Anthropic: usada como fallback na
+  // rota de Analisar Aposta (estatísticas).
   if (comBusca) {
     const ferramentaBusca = { type: 'web_search_20250305', name: 'web_search', max_uses: 5 };
-    // Só na Busca de Liga: restringe de verdade a fontes conhecidas por terem essa
-    // informação organizada (sofascore.com, 365scores.com). A API da Anthropic
-    // suporta essa restrição de domínio de forma real (allowed_domains); a API
-    // pública do Gemini usada no provedor primário NÃO suporta isso (só exclusão
-    // de domínio) — por isso essa restrição só existe aqui, no fallback.
-    if (schemaTipo === 'buscar-liga') {
-      ferramentaBusca.allowed_domains = ['sofascore.com', '365scores.com'];
-    }
     corpoRequisicao.tools = [ferramentaBusca];
   }
 
@@ -1039,664 +1081,6 @@ async function lerComAnthropic({ apiKey, systemInstrucoes, textoBilhete, imagemB
     }
   }
   return resultado;
-}
-
-// ==================== RESOLUÇÃO LOCAL DE MERCADOS DE PLACAR ====================
-// Usada dentro da cascata de handleCheckApostas (ver comentário logo antes
-// dessa função, mais abaixo) como 1º passo — a resolução mais rápida e
-// barata, direto do placar final + intervalo, sem custo de IA. Cobre os
-// mercados mais comuns: Resultado, Resultado Final, Empate, Empate Anula,
-// Chance Dupla, Gols, Handicap, Handicap Asiático, Faixa de Gols.
-//
-// Não existe lista fixa de "mercados suportados" bloqueando tudo o que
-// estiver fora dela — resolverMercadoFutebol() resolve localmente os
-// mercados que sabe (função pura); qualquer coisa que ela não reconheça
-// (mercado combinado, variação de texto, mercado que precisa de estatística)
-// cai para o próximo passo da cascata em handleCheckApostas.
-
-function normalizarTexto(s) {
-  return (s || '')
-    .toString()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
-    .toLowerCase()
-    .trim();
-}
-
-// Tenta achar, num texto (ex.: a seleção do bilhete), qual dos dois times do
-// confronto está sendo referenciado — usando palavras significativas do nome
-// (ignora palavras curtas tipo "de", "do", "fc" para reduzir falso positivo).
-function identificarTimeNoTexto(texto, nomeTimeA, nomeTimeB) {
-  const norm = normalizarTexto(texto);
-  const palavrasSignificativas = (nome) => normalizarTexto(nome).split(/\s+/).filter(p => p.length >= 4);
-  const bateComTime = (nome) => {
-    const palavras = palavrasSignificativas(nome);
-    if (!palavras.length) return norm.includes(normalizarTexto(nome)) && normalizarTexto(nome).length >= 3;
-    return palavras.some(p => norm.includes(p));
-  };
-  const temA = bateComTime(nomeTimeA);
-  const temB = bateComTime(nomeTimeB);
-  if (temA && !temB) return 'A';
-  if (temB && !temA) return 'B';
-  return null;
-}
-
-// Casa dois nomes de time (o do nosso "evento" salvo vs. os da API-Football)
-// usando o mesmo critério de palavras significativas, nos dois sentidos.
-function nomesTimesBatem(nomeSalvo, nomeApi) {
-  const a = normalizarTexto(nomeSalvo);
-  const b = normalizarTexto(nomeApi);
-  if (!a || !b) return false;
-  if (a === b) return true;
-  const palavrasA = a.split(/\s+/).filter(p => p.length >= 4);
-  const palavrasB = b.split(/\s+/).filter(p => p.length >= 4);
-  if (palavrasA.some(p => b.includes(p))) return true;
-  if (palavrasB.some(p => a.includes(p))) return true;
-  return false;
-}
-
-// Resolve uma linha numérica (handicap ou total) que pode ser inteira, de
-// meio (.5) ou de quarto (.25/.75). Linhas de quarto são divididas em duas
-// linhas vizinhas e os dois resultados combinados (ex.: Ganhou + Anulada =
-// Ganho Parcial) — é o mesmo raciocínio usado por casas de apostas para
-// handicap asiático e totais de quarto de linha.
-function resolverLinhaNumerica(diferenca, linha) {
-  const linhaEm4 = Math.round(linha * 4);
-  const restoAbs = Math.abs(linhaEm4) % 4;
-
-  if (restoAbs === 0) { // linha inteira — pode empurrar (push)
-    const ajustado = diferenca + linha;
-    if (ajustado > 0) return 'Ganhou';
-    if (ajustado === 0) return 'Anulada';
-    return 'Perdeu';
-  }
-  if (restoAbs === 2) { // linha de meio — nunca empurra
-    return (diferenca + linha) > 0 ? 'Ganhou' : 'Perdeu';
-  }
-  // linha de quarto — divide nas duas linhas vizinhas (uma inteira/meio de cada lado)
-  const linha1 = (linhaEm4 - 1) / 4;
-  const linha2 = (linhaEm4 + 1) / 4;
-  const r1 = resolverLinhaNumerica(diferenca, linha1);
-  const r2 = resolverLinhaNumerica(diferenca, linha2);
-  const pontos = { Ganhou: 1, Anulada: 0, Perdeu: -1 };
-  const soma = pontos[r1] + pontos[r2];
-  if (soma === 2) return 'Ganhou';
-  if (soma === 1) return 'Ganho Parcial';
-  if (soma === -1) return 'Perda Parcial';
-  return 'Perdeu';
-}
-
-function resolverTotal(totalGols, valorLinha, direcaoMais) {
-  return direcaoMais
-    ? resolverLinhaNumerica(totalGols, -valorLinha)
-    : resolverLinhaNumerica(-totalGols, valorLinha);
-}
-
-// Extrai o time (A/B) e o valor numérico (com sinal) de uma seleção de
-// handicap, ex.: "River Plate -1.5" → { time:'A', linha:-1.5 }.
-// Também reconhece "Casa"/"Fora" quando o nome do time não aparece.
-function parseHandicapSelecao(selecao, nomeTimeA, nomeTimeB, timeAeCasa) {
-  const match = (selecao || '').match(/([+-]?\d+(?:[.,]\d+)?)/);
-  if (!match) return { time: null, linha: null };
-  const linha = parseFloat(match[1].replace(',', '.'));
-  const antes = selecao.slice(0, match.index);
-  let time = identificarTimeNoTexto(antes, nomeTimeA, nomeTimeB);
-  if (!time) {
-    const normAntes = normalizarTexto(antes);
-    if (normAntes.includes('casa') || normAntes.includes('mandante')) time = timeAeCasa ? 'A' : 'B';
-    else if (normAntes.includes('fora') || normAntes.includes('visitante')) time = timeAeCasa ? 'B' : 'A';
-  }
-  return { time, linha };
-}
-
-// ---- Resolução por mercado — recebe o placar já identificado e devolve
-// { suportado, resultado, detalhe }. "resultado" segue os status já usados
-// no app: Ganhou, Perdeu, Ganho Parcial, Perda Parcial, Anulada. ----
-function resolverMercadoFutebol(mercado, selecao, ctx) {
-  const { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora } = ctx;
-  const mercadoNorm = normalizarTexto(mercado);
-
-  const golsTimeA = timeAeCasa ? golsCasa : golsFora;
-  const golsTimeB = timeAeCasa ? golsFora : golsCasa;
-  const diferencaAB = golsTimeA - golsTimeB; // > 0 se A venceu
-
-  switch (mercadoNorm) {
-    case 'vencedor':
-    case 'resultado':
-    case 'resultado final': {
-      const time = identificarTimeNoTexto(selecao, nomeTimeA, nomeTimeB);
-      if (!time) return { suportado: false, detalhe: `Não foi possível identificar o time apostado na seleção "${selecao}".` };
-      if (diferencaAB === 0) return { suportado: true, resultado: 'Perdeu', detalhe: 'Empate — mercado Vencedor não cobre empate.' };
-      const vencedor = diferencaAB > 0 ? 'A' : 'B';
-      return { suportado: true, resultado: vencedor === time ? 'Ganhou' : 'Perdeu' };
-    }
-    case 'empate': {
-      const invertido = normalizarTexto(selecao).includes('nao');
-      const empatou = diferencaAB === 0;
-      return { suportado: true, resultado: (empatou !== invertido) ? 'Ganhou' : 'Perdeu' };
-    }
-    case 'empate anula': {
-      const time = identificarTimeNoTexto(selecao, nomeTimeA, nomeTimeB);
-      if (!time) return { suportado: false, detalhe: `Não foi possível identificar o time apostado na seleção "${selecao}".` };
-      if (diferencaAB === 0) return { suportado: true, resultado: 'Anulada', detalhe: 'Empate — Draw No Bet devolve o stake.' };
-      const vencedor = diferencaAB > 0 ? 'A' : 'B';
-      return { suportado: true, resultado: vencedor === time ? 'Ganhou' : 'Perdeu' };
-    }
-    case 'chance dupla': {
-      const cobreA = identificarTimeNoTexto(selecao, nomeTimeA, '') === 'A';
-      const cobreB = identificarTimeNoTexto(selecao, '', nomeTimeB) === 'B';
-      const cobreEmpate = normalizarTexto(selecao).includes('empate');
-      if (!cobreA && !cobreB && !cobreEmpate) return { suportado: false, detalhe: `Não foi possível interpretar a seleção "${selecao}" como combinação de Chance Dupla.` };
-      const resultadoReal = diferencaAB === 0 ? 'empate' : (diferencaAB > 0 ? 'A' : 'B');
-      const coberto = resultadoReal === 'empate' ? cobreEmpate : (resultadoReal === 'A' ? cobreA : cobreB);
-      return { suportado: true, resultado: coberto ? 'Ganhou' : 'Perdeu' };
-    }
-    case 'ambas equipes marcam': {
-      const ambasMarcaram = golsCasa > 0 && golsFora > 0;
-      const apostaEmSim = !normalizarTexto(selecao).includes('nao');
-      return { suportado: true, resultado: (ambasMarcaram === apostaEmSim) ? 'Ganhou' : 'Perdeu' };
-    }
-    case 'gols': {
-      const m = (selecao || '').match(/(mais|menos|over|under)\s*de?\s*([\d.,]+)/i);
-      if (!m) return { suportado: false, detalhe: `Não foi possível extrair a linha de gols da seleção "${selecao}".` };
-      const direcaoMais = /mais|over/i.test(m[1]);
-      const valorLinha = parseFloat(m[2].replace(',', '.'));
-      const totalGols = golsCasa + golsFora;
-      return { suportado: true, resultado: resolverTotal(totalGols, valorLinha, direcaoMais) };
-    }
-    case 'handicap':
-    case 'handicap asiatico': {
-      const { time, linha } = parseHandicapSelecao(selecao, nomeTimeA, nomeTimeB, timeAeCasa);
-      if (!time || linha === null) return { suportado: false, detalhe: `Não foi possível interpretar time e linha na seleção "${selecao}".` };
-      const diferencaDoTime = time === 'A' ? diferencaAB : -diferencaAB;
-      return { suportado: true, resultado: resolverLinhaNumerica(diferencaDoTime, linha) };
-    }
-    case 'faixa de gols': {
-      const m = (selecao || '').match(/(\d+)\s*-\s*(\d+)/);
-      if (!m) return { suportado: false, detalhe: `Não foi possível extrair o intervalo da seleção "${selecao}".` };
-      const totalGols = golsCasa + golsFora;
-      const minimo = parseInt(m[1], 10), maximo = parseInt(m[2], 10);
-      return { suportado: true, resultado: (totalGols >= minimo && totalGols <= maximo) ? 'Ganhou' : 'Perdeu' };
-    }
-    default:
-      return { suportado: false, detalhe: `Mercado "${mercado}" não tem lógica local implementada — será enviado para julgamento por IA com o placar bruto.` };
-  }
-}
-
-// Separa "Time A - Time B" (ou "Time A x Time B", "Time A vs Time B") em duas partes.
-function separarTimesDoEvento(evento) {
-  const partes = (evento || '').split(/\s+(?:x|vs\.?|-)\s+/i);
-  if (partes.length !== 2) return null;
-  return { nomeTimeA: partes[0].trim(), nomeTimeB: partes[1].trim() };
-}
-
-// ---- Julgamento por IA (Gemini → Anthropic) — passo final da cascata de
-// resolução, só entra quando NEM a resolução local de placar
-// (resolverMercadoFutebol) NEM a de estatísticas (resolverMercadoEstatisticas)
-// reconhecem o mercado ou conseguem interpretar a seleção. Não faz busca na
-// web — só recebe os dados BRUTOS que o Worker já buscou na API-Football
-// (placar final, placar do intervalo quando disponível, e a estatística
-// completa da partida quando disponível) e pede pro modelo aplicar o
-// raciocínio sobre esses dados, sem inventar nada que não foi fornecido. ----
-async function julgarMercadoComIA(env, dados) {
-  const systemInstrucoes = `Você decide se uma aposta esportiva de futebol já finalizada foi GANHA, PERDIDA, teve GANHO PARCIAL / PERDA PARCIAL (linha de quarto de handicap ou total), ou foi ANULADA (push — linha exata empatou), usando SOMENTE os dados fornecidos pelo usuário nesta mensagem.
-
-Responda APENAS um objeto JSON, sem markdown e sem texto fora do JSON, neste formato exato:
-{"resultado": "Ganhou" | "Perdeu" | "Ganho Parcial" | "Perda Parcial" | "Anulada" | "Indeterminado", "motivo": "explicação curta, em 1 frase"}
-
-Regras:
-- Use apenas os dados fornecidos (placar final, placar do intervalo se disponível, estatísticas da partida se disponíveis, nomes dos times, mercado, seleção apostada). NÃO pesquise, NÃO use conhecimento próprio sobre o jogo, NÃO invente estatística que não foi dada — se um dado (ex.: desarmes, tiros de meta) simplesmente não aparecer nos dados fornecidos, é porque a API não tem esse dado, não porque foi omitido por engano.
-- Use "Indeterminado" quando os dados fornecidos genuinamente não bastarem para julgar esse mercado — nesse caso não tente adivinhar, e explique em "motivo" exatamente o que faltou (ex.: "precisa do placar do intervalo, que não veio disponível para esta partida").
-- "Ganho Parcial"/"Perda Parcial" só se aplicam quando a linha de handicap ou total é "de quarto" (ex.: -0.25, -0.75, 2.25, 2.75) e a aposta cobre só metade do valor.
-- "Anulada" (push) só se aplica quando a linha inteira empata exatamente com o resultado apostado.
-- Mercados com "&" no nome (ex.: "Resultado Final & Total de Gols", "Chance Dupla & Total de Gols") são mercados COMPOSTOS: TODAS as condições unidas pelo "&" precisam ser verdadeiras para "Ganhou" — se qualquer uma falhar, é "Perdeu" (aplique "Ganho Parcial"/"Anulada" apenas se uma das condições individualmente permitir isso, seguindo a regra de linha de quarto/push acima).
-- Mercado com VÍRGULA no nome (ex.: "Chutes no gol, Finalizações") também é COMPOSTO, mesma regra do "&" acima: cada nome de mercado antes de uma vírgula corresponde, NA MESMA POSIÇÃO, a uma condição na "Seleção apostada" (que também vem separada por vírgula) — TODAS precisam ser verdadeiras para "Ganhou"; se qualquer uma falhar, é "Perdeu". Resolva CADA condição separadamente usando o dado bruto correspondente daquele mercado específico antes de combinar o resultado final, e cite no "motivo" o valor bruto usado em cada uma (ex.: "Finalizações: 18+12=30, excedeu 27.5 → perdeu essa condição; não precisa checar a outra.").
-- VERIFICAÇÃO OBRIGATÓRIA ANTES DE RESPONDER (evita o erro mais comum): depois de calcular o valor real de cada condição, releia a seleção apostada e confirme a direção literalmente — "Menos de X" só GANHA se o valor real for MENOR que X (se o valor real for igual ou maior, é "Perdeu"); "Mais de X" só GANHA se o valor real for MAIOR que X (se for igual ou menor, é "Perdeu"). Nunca conclua "Ganhou" para uma condição sem antes reconferir essa comparação explicitamente.
-- Mercado "Ganhar qualquer um dos Tempos" (ou variação de texto equivalente): GANHA se o time apostado venceu o 1º tempo OU o 2º tempo (não precisa ser os dois) — use o placar do intervalo (1º tempo) e a diferença entre o placar final e o do intervalo (2º tempo) para verificar cada metade separadamente. Se o placar do intervalo não estiver disponível, esse mercado é "Indeterminado".
-- Mercado "Cartões": ao somar amarelos + vermelhos, o critério de contagem pode variar entre casas de apostas (ex.: 2º amarelo que também vira vermelho pode contar 1 ou 2 vezes dependendo da casa) — julgue com o critério mais comum (soma simples de todos os cartões amarelos e vermelhos mostrados nas estatísticas) e mencione essa ressalva no "motivo" quando o mercado for Cartões.`;
-
-  const linhasEstatisticas = (dados.statsCasa || dados.statsFora)
-    ? `\nEstatísticas da partida (mandante / visitante):\n` + Object.keys(Object.assign({}, dados.statsCasa, dados.statsFora)).map(campo =>
-        `- ${campo}: ${dados.statsCasa && dados.statsCasa[campo] != null ? dados.statsCasa[campo] : '?'} / ${dados.statsFora && dados.statsFora[campo] != null ? dados.statsFora[campo] : '?'}`
-      ).join('\n')
-    : '\nEstatísticas da partida: não disponíveis para esta partida/competição.';
-
-  const textoBilhete = `Confronto: ${dados.timeCasa} (mandante) ${dados.golsCasa} x ${dados.golsFora} ${dados.timeFora} (visitante)
-Placar do intervalo: ${(dados.golsIntervaloCasa != null && dados.golsIntervaloFora != null) ? `${dados.golsIntervaloCasa} x ${dados.golsIntervaloFora}` : 'não disponível'}${linhasEstatisticas}
-Mercado: ${dados.mercado}
-Seleção apostada: ${dados.selecao}`;
-
-  const STATUS_VALIDOS = ['Ganhou', 'Perdeu', 'Ganho Parcial', 'Perda Parcial', 'Anulada'];
-  const tentativas = [];
-  if (env.GEMINI_API_KEY) {
-    tentativas.push(() => lerComGemini({ apiKey: env.GEMINI_API_KEY, systemInstrucoes, textoBilhete, comBusca: false, schemaTipo: 'resolver-mercado' }));
-  }
-  if (env.ANTHROPIC_API_KEY) {
-    tentativas.push(() => lerComAnthropic({ apiKey: env.ANTHROPIC_API_KEY, systemInstrucoes, textoBilhete, comBusca: false, schemaTipo: 'resolver-mercado' }));
-  }
-
-  let ultimoErro = null;
-  for (const tentativa of tentativas) {
-    try {
-      const resultado = await tentativa();
-      if (resultado && typeof resultado.resultado === 'string') {
-        if (STATUS_VALIDOS.includes(resultado.resultado)) {
-          return { suportado: true, resultado: resultado.resultado, detalhe: (resultado.motivo ? resultado.motivo + ' ' : '') + '(via IA)' };
-        }
-        // "Indeterminado" ou qualquer valor fora da lista — a IA está dizendo
-        // honestamente que não dá pra julgar com o que foi fornecido.
-        return { suportado: false, detalhe: (resultado.motivo || 'A IA não conseguiu determinar o resultado com os dados disponíveis.') + ' (via IA)' };
-      }
-    } catch (e) {
-      ultimoErro = e;
-      continue;
-    }
-  }
-  return {
-    suportado: false,
-    detalhe: 'Não foi possível consultar a IA para julgar este mercado' + (ultimoErro ? `: ${String(ultimoErro.message || ultimoErro).slice(0, 200)}` : ' (nenhum provedor de IA configurado).')
-  };
-}
-
-// ==================== CONTROLE DE LIMITE DE REQUISIÇÕES DA API-FOOTBALL ====================
-// O plano gratuito da API-Football permite só 10 requisições por MINUTO (além
-// de um teto de 100 por DIA). Como handleCheckApostas pode gerar várias
-// chamadas em sequência (1 por data única + 1 por partida distinta), sem
-// espaçamento elas saem quase simultâneas e estouram o limite por minuto
-// mesmo em lotes pequenos (ex.: 5 eventos em datas/jogos diferentes já geram
-// até 10 chamadas). Este helper centraliza toda chamada à API-Football:
-//   1. Espaça as chamadas (>6s entre uma e outra) para nunca ultrapassar
-//      10/minuto, mesmo em sequência contínua.
-//   2. Se ainda assim vier 429, tenta mais UMA vez após uma espera maior —
-//      cobre o caso de o minuto anterior já estar quase estourado por outro
-//      uso do app.
-//   3. Distingue limite por MINUTO (temporário, resolve sozinho) de limite
-//      DIÁRIO esgotado (só volta amanhã) usando o cabeçalho
-//      x-ratelimit-requests-remaining que a API-Football devolve em toda
-//      resposta.
-const INTERVALO_MIN_API_FOOTBALL_MS = 6500;
-const ESPERA_RETENTATIVA_429_MS = 15000;
-
-function esperar(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// "estado" é um objeto { numChamadas: 0, cotaDiariaEsgotada: false } criado
-// uma vez no início de handleCheckApostas e passado adiante, para que o
-// espaçamento e a detecção de cota valham para TODAS as chamadas do lote
-// (tanto as de fixtures quanto as de estatísticas).
-async function chamarApiFootball(url, env, estado) {
-  if (estado.numChamadas > 0) {
-    await esperar(INTERVALO_MIN_API_FOOTBALL_MS);
-  }
-  estado.numChamadas++;
-
-  for (let tentativa = 0; tentativa < 2; tentativa++) {
-    let resp;
-    try {
-      resp = await fetch(url, { headers: { 'x-apisports-key': env.API_FOOTBALL_KEY } });
-    } catch (e) {
-      return { ok: false, erro: 'Falha de rede ao consultar API-Football: ' + e.message };
-    }
-
-    const restanteDia = resp.headers.get('x-ratelimit-requests-remaining');
-    if (restanteDia !== null && Number(restanteDia) <= 0) {
-      estado.cotaDiariaEsgotada = true;
-    }
-
-    if (resp.status === 429) {
-      if (tentativa === 0 && !estado.cotaDiariaEsgotada) {
-        // Provavelmente o limite por MINUTO (não o diário) — espera mais um
-        // pouco e tenta de novo, uma única vez.
-        await esperar(ESPERA_RETENTATIVA_429_MS);
-        continue;
-      }
-      return {
-        ok: false,
-        erro: estado.cotaDiariaEsgotada
-          ? 'Cota diária da API-Football esgotada (plano gratuito: 100 requisições/dia). A checagem volta a funcionar depois da meia-noite em Londres (21h em Brasília).'
-          : 'API-Football: limite de requisições por minuto excedido, mesmo após nova tentativa. Tente checar novamente em 1 minuto.'
-      };
-    }
-
-    if (!resp.ok) {
-      const texto = await resp.text();
-      return { ok: false, erro: `API-Football retornou ${resp.status}: ${texto.slice(0, 200)}` };
-    }
-
-    const dados = await resp.json();
-    if (dados.errors && Object.keys(dados.errors).length) {
-      return { ok: false, erro: 'API-Football: ' + JSON.stringify(dados.errors) };
-    }
-    return { ok: true, dados };
-  }
-}
-
-// Busca os jogos finalizados de cada data única em "datasUnicas" — 1 chamada
-// à API-Football por dia (não por evento), já que /fixtures?date=... devolve
-// todos os jogos do mundo naquele dia. Compartilhada dentro de
-// handleCheckApostas para achar o jogo de cada evento sem gastar uma
-// requisição por evento/time.
-async function buscarFixturesPorData(datasUnicas, env, estado) {
-  const fixturesPorData = new Map();
-  for (const data of datasUnicas) {
-    const resultado = await chamarApiFootball(
-      `https://v3.football.api-sports.io/fixtures?date=${data}&timezone=America/Sao_Paulo&status=FT-AET-PEN`,
-      env, estado
-    );
-    if (!resultado.ok) {
-      fixturesPorData.set(data, { erro: resultado.erro });
-      continue;
-    }
-    fixturesPorData.set(data, { fixtures: resultado.dados.response || [] });
-  }
-  return fixturesPorData;
-}
-
-// Casa o confronto salvo (nomeTimeA x nomeTimeB) com um dos fixtures retornados
-// para aquela data, nos dois sentidos (mandante/visitante podem estar invertidos
-// em relação à ordem salva no evento).
-function encontrarFixture(infoData, nomeTimeA, nomeTimeB) {
-  if (!infoData || infoData.erro) return null;
-  return infoData.fixtures.find(f =>
-    (nomesTimesBatem(nomeTimeA, f.teams.home.name) && nomesTimesBatem(nomeTimeB, f.teams.away.name)) ||
-    (nomesTimesBatem(nomeTimeB, f.teams.home.name) && nomesTimesBatem(nomeTimeA, f.teams.away.name))
-  );
-}
-
-// ==================== RESOLUÇÃO LOCAL DE MERCADOS DE ESTATÍSTICA ====================
-// Usada dentro da cascata de handleCheckApostas (ver comentário acima da
-// função) como 2º passo, depois da resolução de placar. Cobre Finalizações,
-// Chutes no Gol, Faltas, Escanteios, Cartões, Impedimentos, Defesas — total
-// da partida, "da Equipe" e Handicap.
-//
-// Desarmes e Tiros de Meta NUNCA são resolvidos por aqui nem pelo julgamento
-// por IA — a API-Football não tem esses campos em nenhum plano (pago ou
-// gratuito), então não existe dado bruto disponível para nenhum dos dois.
-
-const MAPA_ESTATISTICA_API = {
-  'chutes no gol': 'Shots on Goal',
-  'finalizacoes': 'Total Shots',
-  'faltas': 'Fouls',
-  'escanteios': 'Corner Kicks',
-  'impedimentos': 'Offsides',
-  'defesas': 'Goalkeeper Saves',
-};
-const ESTATISTICAS_BASE_SUPORTADAS = ['cartoes', 'chutes no gol', 'finalizacoes', 'faltas', 'escanteios', 'impedimentos', 'defesas'];
-const NOME_EXIBICAO_ESTATISTICA = {
-  'cartoes': 'Cartões', 'chutes no gol': 'Chutes no Gol', 'finalizacoes': 'Finalizações',
-  'faltas': 'Faltas', 'escanteios': 'Escanteios', 'impedimentos': 'Impedimentos', 'defesas': 'Defesas',
-};
-const AVISO_CONTAGEM_CARTOES = 'Confira a regra de contagem de cartões da casa antes de aplicar — algumas casas contam o 2º amarelo (que também vira vermelho) de forma diferente.';
-
-// Lê o valor de uma estatística para um time a partir do mapa {type: value}
-// retornado pela API-Football. "Cartões" soma amarelos + vermelhos (ver aviso
-// de contagem acima). Retorna null quando a competição não registra aquela
-// estatística (não é erro — é buraco de cobertura da própria API).
-function valorEstatistica(statsTime, chaveBase) {
-  if (!statsTime) return null;
-  if (chaveBase === 'cartoes') {
-    const amarelos = statsTime['Yellow Cards'];
-    const vermelhos = statsTime['Red Cards'];
-    if (amarelos == null && vermelhos == null) return null;
-    return (Number(amarelos) || 0) + (Number(vermelhos) || 0);
-  }
-  const campoApi = MAPA_ESTATISTICA_API[chaveBase];
-  if (!campoApi) return null;
-  const v = statsTime[campoApi];
-  return (v === null || v === undefined) ? null : Number(v);
-}
-
-// Extrai time + direção ("mais"/"menos") + linha de uma seleção "da Equipe",
-// ex.: "River Plate - Mais de 4.5" → { time:'A', direcaoMais:true, valorLinha:4.5 }.
-function parseEstatisticaEquipeSelecao(selecao, nomeTimeA, nomeTimeB) {
-  const m = (selecao || '').match(/(mais|menos|over|under)\s*de?\s*([\d.,]+)/i);
-  if (!m) return { time: null, direcaoMais: null, valorLinha: null };
-  const antes = selecao.slice(0, m.index);
-  const time = identificarTimeNoTexto(antes, nomeTimeA, nomeTimeB);
-  const direcaoMais = /mais|over/i.test(m[1]);
-  const valorLinha = parseFloat(m[2].replace(',', '.'));
-  return { time, direcaoMais, valorLinha };
-}
-
-// ---- Resolução por mercado de estatística — mesmo formato de retorno de
-// resolverMercadoFutebol: { suportado, resultado, detalhe, aviso? } ----
-function resolverMercadoEstatisticas(mercado, selecao, ctx) {
-  const { nomeTimeA, nomeTimeB, timeAeCasa, statsA, statsB } = ctx;
-  const mercadoNorm = normalizarTexto(mercado);
-
-  if ((mercado || '').includes(',')) {
-    return { suportado: false, detalhe: 'Mercado combinado (múltiplas condições no mesmo evento) — revise manualmente.' };
-  }
-
-  const matchHandicap = mercadoNorm.match(/^handicap de (chutes no gol|escanteios|finalizacoes)$/);
-  if (matchHandicap) {
-    const chaveBase = matchHandicap[1];
-    const valA = valorEstatistica(statsA, chaveBase);
-    const valB = valorEstatistica(statsB, chaveBase);
-    if (valA == null || valB == null) {
-      return { suportado: false, detalhe: `Estatística "${NOME_EXIBICAO_ESTATISTICA[chaveBase]}" não disponível pela API para essa partida/competição.` };
-    }
-    const { time, linha } = parseHandicapSelecao(selecao, nomeTimeA, nomeTimeB, timeAeCasa);
-    if (!time || linha === null) {
-      return { suportado: false, detalhe: `Não foi possível interpretar time e linha na seleção "${selecao}".` };
-    }
-    const diferenca = time === 'A' ? (valA - valB) : (valB - valA);
-    return { suportado: true, resultado: resolverLinhaNumerica(diferenca, linha), detalhe: `${nomeTimeA} ${valA} x ${valB} ${nomeTimeB} (${NOME_EXIBICAO_ESTATISTICA[chaveBase]})` };
-  }
-
-  const matchEquipe = mercadoNorm.match(/^(cartoes|chutes no gol|finalizacoes|faltas|escanteios|impedimentos|defesas) da equipe$/);
-  if (matchEquipe) {
-    const chaveBase = matchEquipe[1];
-    const { time, direcaoMais, valorLinha } = parseEstatisticaEquipeSelecao(selecao, nomeTimeA, nomeTimeB);
-    if (!time || valorLinha === null) {
-      return { suportado: false, detalhe: `Não foi possível interpretar time e linha na seleção "${selecao}".` };
-    }
-    const statsTime = time === 'A' ? statsA : statsB;
-    const valor = valorEstatistica(statsTime, chaveBase);
-    if (valor == null) {
-      return { suportado: false, detalhe: `Estatística "${NOME_EXIBICAO_ESTATISTICA[chaveBase]}" não disponível pela API para essa partida/competição.` };
-    }
-    const resultado = resolverTotal(valor, valorLinha, direcaoMais);
-    const resp = { suportado: true, resultado, detalhe: `${time === 'A' ? nomeTimeA : nomeTimeB}: ${valor} ${NOME_EXIBICAO_ESTATISTICA[chaveBase].toLowerCase()}` };
-    if (chaveBase === 'cartoes') resp.aviso = AVISO_CONTAGEM_CARTOES;
-    return resp;
-  }
-
-  if (ESTATISTICAS_BASE_SUPORTADAS.includes(mercadoNorm)) {
-    const chaveBase = mercadoNorm;
-    const valA = valorEstatistica(statsA, chaveBase);
-    const valB = valorEstatistica(statsB, chaveBase);
-    if (valA == null || valB == null) {
-      return { suportado: false, detalhe: `Estatística "${NOME_EXIBICAO_ESTATISTICA[chaveBase]}" não disponível pela API para essa partida/competição.` };
-    }
-    const m = (selecao || '').match(/(mais|menos|over|under)\s*de?\s*([\d.,]+)/i);
-    if (!m) {
-      return { suportado: false, detalhe: `Não foi possível extrair a linha da seleção "${selecao}".` };
-    }
-    const direcaoMais = /mais|over/i.test(m[1]);
-    const valorLinha = parseFloat(m[2].replace(',', '.'));
-    const total = valA + valB;
-    const resultado = resolverTotal(total, valorLinha, direcaoMais);
-    const resp = { suportado: true, resultado, detalhe: `${nomeTimeA} ${valA} + ${nomeTimeB} ${valB} = ${total}` };
-    if (chaveBase === 'cartoes') resp.aviso = AVISO_CONTAGEM_CARTOES;
-    return resp;
-  }
-
-  return { suportado: false, detalhe: `Mercado "${mercado}" não suportado pela checagem de estatísticas (Desarmes e Tiros de Meta não existem na API-Football em nenhum plano).` };
-}
-
-// ==================== CHECAGEM UNIFICADA DE APOSTAS (API-FOOTBALL + IA) ====================
-// Rota: POST /api/checar-apostas
-// Entrada: { eventos: [{ idAposta, idEvento, esporte, evento, mercado, selecao, dataEvento }, ...] }
-// Um único fluxo (era dividido em /api/checar-resultados + /api/checar-estatisticas
-// até a v1.28.0) — pra cada evento válido: busca o placar (final + intervalo) E as
-// estatísticas completas da partida, então resolve em cascata:
-//   1. resolverMercadoFutebol — lógica local determinística a partir do placar
-//      (rápida, sem custo de IA, cobre os mercados mais comuns: Resultado,
-//      Resultado Final, Empate, Empate Anula, Chance Dupla, Gols, Handicap,
-//      Handicap Asiático, Faixa de Gols).
-//   2. Se não resolveu: resolverMercadoEstatisticas — mesma ideia, a partir das
-//      estatísticas (Cartões, Escanteios, Finalizações, Chutes no Gol, Faltas,
-//      Impedimentos, Defesas — total, "da Equipe" e Handicap).
-//   3. Se ainda não resolveu (mercado combinado tipo "Resultado Final & Total
-//      de Gols", variação de texto não prevista, "Ganhar qualquer um dos
-//      Tempos" etc.): julgarMercadoComIA — recebe TODOS os dados brutos já
-//      buscados (placar final, intervalo, estatística completa da partida) e
-//      julga por raciocínio, sem pesquisa na web e sem chamada extra à
-//      API-Football (os dados já foram buscados nos passos 1-2).
-// Só cai em "não suportado" de fato quando NENHUM dos três passos consegue
-// (ex.: Desarmes e Tiros de Meta, que a API-Football simplesmente não tem em
-// nenhum plano — não tem dado bruto pra nenhum dos três passos usar).
-//
-// Estratégia de cota: agrupa por DATA única pra achar os jogos (1 chamada por
-// dia, não por evento) e por PARTIDA distinta pra estatísticas (1 chamada por
-// jogo, não por evento — jogos repetidos entre apostas do mesmo lote não
-// geram chamada extra).
-//
-// NOTA: cogitamos usar /fixtures?ids=... pra buscar estatísticas de várias
-// partidas numa chamada só, mas a própria API-Football confirmou que esse
-// parâmetro não está disponível no plano gratuito ("Free plans do not have
-// access to the Ids parameter"). Por isso a estratégia continua sendo 1
-// chamada por partida distinta, com o espaçamento e a retentativa de
-// chamarApiFootball cuidando do limite de 10/minuto.
-
-async function handleCheckApostas(payload, env, headers) {
-  if (!env.API_FOOTBALL_KEY) {
-    return new Response(JSON.stringify({
-      error: 'Chave da API-Football não configurada no servidor (variável API_FOOTBALL_KEY). Adicione-a em Workers & Pages → seu Worker → Settings → Variables and Secrets.'
-    }), { status: 500, headers });
-  }
-
-  const eventos = (payload && Array.isArray(payload.eventos)) ? payload.eventos : [];
-  if (!eventos.length) {
-    return new Response(JSON.stringify({ error: 'Envie "eventos" (array) para checar.' }), { status: 400, headers });
-  }
-
-  const resultados = [];
-  const eventosValidos = [];
-  for (const ev of eventos) {
-    if (normalizarTexto(ev.esporte) !== 'futebol') {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Só Futebol é suportado pela checagem automática por enquanto.' });
-      continue;
-    }
-    if (!ev.dataEvento) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: 'Evento sem data do jogo cadastrada — preencha "Data/Hora da Partida" para habilitar a checagem.' });
-      continue;
-    }
-    if (!separarTimesDoEvento(ev.evento)) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Não foi possível separar os dois times a partir de "${ev.evento}".` });
-      continue;
-    }
-    eventosValidos.push(ev);
-  }
-
-  // Estado compartilhado de controle de limite de requisições da API-Football
-  // (espaçamento anti-rajada + detecção de cota diária esgotada) — vale para
-  // TODAS as chamadas deste lote, tanto de fixtures quanto de estatísticas.
-  const estadoApiFootball = { numChamadas: 0, cotaDiariaEsgotada: false };
-
-  // Etapa 1: localizar o fixture (jogo) de cada evento — 1 chamada por DATA única.
-  const datasUnicas = [...new Set(eventosValidos.map(ev => String(ev.dataEvento).slice(0, 10)))];
-  const fixturesPorData = await buscarFixturesPorData(datasUnicas, env, estadoApiFootball);
-
-  const fixturePorEvento = new Map(); // "idAposta::idEvento" -> fixture
-  const fixturesUnicos = new Map();   // fixture.fixture.id -> fixture (dedupe entre eventos da mesma partida)
-  for (const ev of eventosValidos) {
-    const chaveEvento = `${ev.idAposta}::${ev.idEvento}`;
-    const data = String(ev.dataEvento).slice(0, 10);
-    const infoData = fixturesPorData.get(data);
-    if (infoData && infoData.erro) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: infoData.erro });
-      continue;
-    }
-    const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
-    const fixture = encontrarFixture(infoData, nomeTimeA, nomeTimeB);
-    if (!fixture) {
-      resultados.push({ idAposta: ev.idAposta, idEvento: ev.idEvento, encontrado: false, motivo: `Confronto "${ev.evento}" não encontrado (ou ainda não finalizado) na data ${data}.` });
-      continue;
-    }
-    fixturePorEvento.set(chaveEvento, fixture);
-    fixturesUnicos.set(fixture.fixture.id, fixture);
-  }
-
-  // Etapa 2: buscar estatísticas — 1 chamada por PARTIDA distinta (não por evento).
-  // Sempre busca (mesmo pra mercados de placar), já que o julgamento por IA no
-  // passo 3 pode se beneficiar dos dois conjuntos de dados juntos.
-  const statsPorFixtureId = new Map();
-  for (const [fixtureId] of fixturesUnicos) {
-    const resultado = await chamarApiFootball(
-      `https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`,
-      env, estadoApiFootball
-    );
-    if (!resultado.ok) {
-      statsPorFixtureId.set(fixtureId, { erro: resultado.erro });
-      continue;
-    }
-    const resposta = resultado.dados.response || [];
-    if (!resposta.length) {
-      statsPorFixtureId.set(fixtureId, { erro: 'Essa competição não tem estatísticas detalhadas registradas na API-Football para esse jogo.' });
-      continue;
-    }
-    const statsPorTimeId = new Map();
-    for (const bloco of resposta) {
-      const mapa = {};
-      for (const stat of (bloco.statistics || [])) mapa[stat.type] = stat.value;
-      statsPorTimeId.set(bloco.team.id, mapa);
-    }
-    statsPorFixtureId.set(fixtureId, { statsPorTimeId });
-  }
-
-  // Etapa 3: resolver cada evento válido, em cascata (placar local → estatística local → IA).
-  for (const ev of eventosValidos) {
-    const chaveEvento = `${ev.idAposta}::${ev.idEvento}`;
-    if (!fixturePorEvento.has(chaveEvento)) continue; // já registrado como não encontrado na etapa 1
-    const fixture = fixturePorEvento.get(chaveEvento);
-    const { nomeTimeA, nomeTimeB } = separarTimesDoEvento(ev.evento);
-    const timeAeCasa = nomesTimesBatem(nomeTimeA, fixture.teams.home.name);
-    const golsCasa = fixture.goals.home;
-    const golsFora = fixture.goals.away;
-    const golsIntervaloCasa = fixture.score && fixture.score.halftime ? fixture.score.halftime.home : null;
-    const golsIntervaloFora = fixture.score && fixture.score.halftime ? fixture.score.halftime.away : null;
-    const placarTexto = `${fixture.teams.home.name} ${golsCasa}-${golsFora} ${fixture.teams.away.name}`;
-
-    const infoStats = statsPorFixtureId.get(fixture.fixture.id);
-    const statsDisponiveis = infoStats && !infoStats.erro;
-    const statsCasaRaw = statsDisponiveis ? infoStats.statsPorTimeId.get(fixture.teams.home.id) : null;
-    const statsForaRaw = statsDisponiveis ? infoStats.statsPorTimeId.get(fixture.teams.away.id) : null;
-    const statsA = timeAeCasa ? statsCasaRaw : statsForaRaw;
-    const statsB = timeAeCasa ? statsForaRaw : statsCasaRaw;
-
-    let resolucao = resolverMercadoFutebol(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, golsCasa, golsFora });
-
-    if (!resolucao.suportado && statsDisponiveis) {
-      resolucao = resolverMercadoEstatisticas(ev.mercado, ev.selecao, { nomeTimeA, nomeTimeB, timeAeCasa, statsA, statsB });
-    }
-
-    if (!resolucao.suportado) {
-      resolucao = await julgarMercadoComIA(env, {
-        timeCasa: fixture.teams.home.name,
-        timeFora: fixture.teams.away.name,
-        golsCasa,
-        golsFora,
-        golsIntervaloCasa,
-        golsIntervaloFora,
-        statsCasa: statsCasaRaw,
-        statsFora: statsForaRaw,
-        mercado: ev.mercado,
-        selecao: ev.selecao
-      });
-    }
-
-    resultados.push({
-      idAposta: ev.idAposta,
-      idEvento: ev.idEvento,
-      encontrado: true,
-      placar: placarTexto,
-      ...resolucao
-    });
-  }
-
-  return new Response(JSON.stringify({ resultados }), { status: 200, headers });
 }
 
 // ==================== AUXILIAR ====================

@@ -114,6 +114,110 @@
   <h1>Histórico de Versões</h1>
   <p class="lead">Todas as mudanças relevantes do Banca Pro, da mais recente para a mais antiga. Use a navegação por cabeçalhos do seu leitor de tela para pular entre versões — cada versão é um cabeçalho de nível 2.</p>
 
+  <h2 id="v1-38-0">v1.38.0</h2>
+  <p class="versao-data">22/09/2026</p>
+  <h3>Nova reserva gratuita de IA: Cloudflare Workers AI</h3>
+  <ul>
+    <li><strong>Leitura de bilhete e Análise de Aposta ganharam um segundo provedor gratuito.</strong> No modo padrão (agora chamado "Automático" em Configurações → 🤖 Provedor de IA), a ordem passa a ser: Gemini (grátis) → Cloudflare Workers AI (grátis, com limite diário) → Anthropic (paga). A Anthropic só é usada se os dois gratuitos falharem.</li>
+    <li><strong>Workers AI roda na própria Cloudflare, sem chave de API.</strong> Modelos: Gemma 4 como principal e Llama 4 Scout como reserva, ambos leem foto de bilhete. Quando o limite gratuito diário acaba, a chamada só dá erro e o app segue para a Anthropic — sem cobrança surpresa.</li>
+    <li><strong>Análise de Aposta pelo Workers AI</strong> roda sempre no modo "sem busca": nenhuma estatística ou probabilidade é gerada, só a análise de risco básica.</li>
+    <li>Os modos "Somente Gemini" e "Somente Anthropic" continuam iguais, sem passar pelo Workers AI.</li>
+  </ul>
+
+  <h2 id="v1-37-0">v1.37.0</h2>
+  <p class="versao-data">09/09/2026</p>
+  <h3>Remoção de funcionalidades pouco usadas e novo atalho para colar bilhete</h3>
+  <p>Revisão de funcionalidades que, na prática de uso diário, não trouxeram a praticidade esperada ou deixaram de ser necessárias:</p>
+  <ul>
+    <li><strong>Removido — Checar Apostas (API-Football + IA):</strong> o botão de checagem automática de resultado/estatísticas (Lista e Cadastro) raramente encontrava o resultado das partidas e, quando encontrava, às vezes marcava errado. Removido por completo, incluindo a rota <code>/api/checar-apostas</code> no Worker.</li>
+    <li><strong>Removido — Recarregar Aplicativo:</strong> botão em Configurações usado com pouquíssima frequência. O gesto de puxar a tela para baixo (pull-to-refresh) continua disponível normalmente.</li>
+    <li><strong>Simplificado — Preenchimento automático de Liga/Horário:</strong> agora usa exclusivamente o cache local de confrontos recentes (até 48h). As duas camadas antigas — busca real na web (Sofascore/365scores/Flashscore/ESPN/BeSoccer) e correções de liga aprendidas pela IA — foram removidas, junto com o botão manual "Buscar Liga e Data/Hora" e a rota <code>/api/buscar-liga</code> no Worker. O aprendizado de correções por IA continua ativo normalmente para mercado (e para os demais campos da leitura do bilhete) — só essa camada específica de liga no preenchimento automático saiu.</li>
+    <li><strong>Removido — Auditar Cálculos de Todas as Apostas:</strong> usado só uma vez desde que existe. O botão "Recalcular Precisão Decimal", ao lado, continua disponível normalmente.</li>
+    <li><strong>Removido — Exportar Tudo (Excel), Importar Excel e Limpar Todos os Dados:</strong> as movimentações de backup e apagamento em massa agora são feitas direto no banco de dados (Supabase). O botão "Exportar Filtro", na aba Filtros, continua disponível para exportar apenas as apostas visíveis no momento.</li>
+    <li><strong>Novo — atalho Alt+C para colar bilhete:</strong> reaproveitando a tecla liberada pela saída do "Checar Apostas", Alt+C agora abre o modal "Preencher por Texto" para colar o texto de um bilhete, de qualquer aba do app.</li>
+  </ul>
+
+  <h2 id="v1-36-0">v1.36.0</h2>
+  <p class="versao-data">06/09/2026</p>
+  <h3>Novo: Odd Mínima Recomendada por Tipster</h3>
+  <p>O app agora calcula, para cada tipster, a odd mínima recomendada com base no histórico real de apostas — a odd de equilíbrio matemático (100 ÷ taxa de acerto), abaixo da qual o resultado tende a ser prejuízo no longo prazo mesmo mantendo a mesma taxa de acerto.</p>
+  <ul>
+    <li><strong>Cálculo:</strong> Ganhou e Ganho Parcial contam como acerto; Perdeu e Perda Parcial contam como erro; Cash Out, Anulada e Aberto ficam fora da conta (não refletem se a aposta bateria ou não).</li>
+    <li><strong>Amostra mínima:</strong> só é exibida com pelo menos 30 apostas resolvidas por tipster — abaixo disso, o app mostra que o histórico ainda é pequeno demais em vez de arriscar um número pouco confiável.</li>
+    <li><strong>Onde aparece:</strong> na tela de Cadastro, logo abaixo do campo Tipster, atualizado automaticamente ao trocar de tipster; e em Configurações → Gerenciar Listas → Tipster, numa tabela com Resolvidas, Taxa de Acerto e Odd Mínima Recomendada para todos os tipsters de uma vez.</li>
+    <li><strong>Apenas indicativo:</strong> não bloqueia nem exige confirmação extra para salvar uma aposta com odd abaixo do recomendado — é só uma referência visual para decisão na hora do lançamento.</li>
+  </ul>
+
+  <h2 id="v1-35-0">v1.35.0</h2>
+  <p class="versao-data">05/09/2026</p>
+  <h3>Preenchimento automático de Liga/Horário: nova camada de correções aprendidas, aceitação de palpite com confiança e fim das falhas silenciosas</h3>
+  <p>O preenchimento automático de Liga e Horário (cache local → busca na web) estava resolvendo bem menos confrontos do que deveria, de forma silenciosa, e as respostas da IA eram mais conservadoras do que precisavam ser. Mudanças:</p>
+  <ul>
+    <li><strong>Corrigido — busca na web quase nunca chegava a usar a Anthropic:</strong> a rota de Liga tentava primeiro o Gemini e só caía para a Anthropic quando o Gemini dava erro técnico. Só que quando o Gemini simplesmente não confirmava o confronto, isso não era um erro — era uma resposta 200 "não encontrado", e ficava por isso mesmo, sem a Anthropic ser tentada. Agora, nesse caso específico, a Anthropic também é tentada antes de desistir (a preferência "Somente Gemini", quando escolhida em Configurações, continua sendo respeitada sem fallback).</li>
+    <li><strong>Novo — camada de correções de Liga já aprendidas:</strong> o cache de confrontos só ajuda quando os mesmos dois times já jogaram entre si antes (dentro de 48h) — não ajuda no caso mais comum, um time conhecido contra um adversário novo. A memória de correções de Liga (a mesma usada para orientar a leitura do bilhete, guardada por time) agora também é consultada como uma camada própria, entre o cache e a busca na web, sem gastar nenhuma chamada de IA. Só aplica quando o resultado é inequívoco — se o time tiver mais de uma liga aprendida (liga nacional e copa, por exemplo), não arrisca escolher, e deixa a busca na web resolver.</li>
+    <li><strong>Novo — a IA agora dá o melhor palpite em vez de desistir:</strong> antes, a instrução da busca de liga mandava a IA responder "não encontrado" a menos que tivesse certeza quase total — bem mais conservador do que perguntar a mesma coisa diretamente num app de IA. Agora a IA é orientada a sempre dar sua melhor resposta baseada na busca, refletindo o nível de certeza no campo de confiança (o app já sinaliza visualmente com ⚠️ qualquer preenchimento com confiança abaixo do limiar de revisão) — só recusa mesmo quando a busca genuinamente não encontra nenhuma pista aproveitável.</li>
+    <li><strong>Ampliado — mais sites na busca da Anthropic:</strong> além de Sofascore e 365scores, agora inclui Flashscore, ESPN e BeSoccer, aumentando a chance de achar confrontos de ligas menos populares (MLS, competições femininas, ligas menores).</li>
+    <li><strong>Corrigido — falha silenciosa:</strong> quando a busca automática rodava e genuinamente não confirmava nada, ou quando um erro inesperado em qualquer uma das três etapas (cache, correções aprendidas ou busca na web) acontecia, o app podia ficar em silêncio total — em um teste real (bilhete com FC Cincinnati - D.C. United, Inter Miami CF - Atlanta United FC e Fluminense - Vasco da Gama), nada foi preenchido e nenhum aviso apareceu. Agora cada etapa é isolada com tratamento de erro próprio (uma falha num evento não trava os demais), há uma rede de segurança final para qualquer erro não previsto, e o app sempre anuncia o resultado ao final, incluindo quando não encontrou nada e quando algum preenchimento veio com confiança baixa.</li>
+  </ul>
+
+  <h2 id="v1-33-0">v1.33.0</h2>
+  <p class="versao-data">05/09/2026</p>
+  <h3>Painel "Resumo do Filtro": agora só nas abas Lista e Filtros, e recolhido por padrão</h3>
+  <p>O painel fixo de totais no topo (Entradas, Ganhas, Perdidas, Stake, Lucro, ROI etc.) aparecia em todas as abas sempre que havia dados carregados, e nascia expandido por padrão para quem nunca tinha mexido nele.</p>
+  <ul>
+    <li><strong>Visibilidade:</strong> o painel agora só aparece nas abas Lista e Filtros — nas abas Cadastro, Saldos e Configurações ele fica sempre escondido, mesmo com dados carregados.</li>
+    <li><strong>Estado padrão:</strong> passa a nascer recolhido. Quem já tinha usado o botão ▲/▼ antes mantém a própria escolha salva; a mudança de padrão só afeta quem nunca tinha mexido nisso.</li>
+  </ul>
+
+  <h2 id="v1-32-2">v1.32.2</h2>
+  <p class="versao-data">04/09/2026</p>
+  <h3>Correção: horário da partida (Data/Hora da Partida) exibido/gravado 3h errado</h3>
+  <p>A coluna <code>banca_eventos.data_evento</code> (e também <code>banca_cache_partidas.data_evento</code>) é <code>timestamptz</code> no Supabase, mas o app lia e gravava o valor como texto cru, sem converter fuso horário — na prática tratava o instante UTC como se já fosse horário de Brasília. Isso vinha compensando um erro histórico nos dados (gravados com o número certo de Brasília, mas marcados incorretamente como UTC), então não dava pra perceber o problema até o banco ser corrigido para guardar o instante real em UTC — a partir daí, o app passou a exibir tudo 3h à frente.</p>
+  <ul>
+    <li><strong>Novo:</strong> duas funções de conversão (<code>utcParaBrasiliaLocalStr</code> / <code>brasiliaLocalStrParaUtcIso</code>) isolam a conversão de fuso (Brasil não tem mais horário de verão, então o offset é sempre fixo, -03:00) exatamente nos 4 pontos em que o app cruza a fronteira com essas duas colunas <code>timestamptz</code> — leitura e escrita de <code>banca_eventos.data_evento</code>, leitura e escrita de <code>banca_cache_partidas.data_evento</code>. Em todo o resto do app (formulário, leitor de bilhete por IA, checagem de resultados), o valor continua sendo tratado como string local simples ("AAAA-MM-DDTHH:MM"), sem mudanças.</li>
+  </ul>
+
+  <h2 id="v1-32-1">v1.32.1</h2>
+  <p class="versao-data">03/09/2026</p>
+  <h3>Correção: limite "10 requisições/minuto" da API-Football estourando mesmo com o espaçamento</h3>
+  <p>O espaçamento entre chamadas à API-Football (&gt;6,5s) já existia desde antes, mas só valia <strong>dentro de uma mesma checagem</strong> — cada requisição ao Worker roda isolada, sem memória compartilhada com outras. Checagens seguidas em pouco tempo (ex.: checar uma aposta, depois checar outra logo em seguida) podiam estourar o limite real de 10/minuto <strong>da conta</strong>, mesmo cada uma respeitando seu próprio espaçamento "local" — e quando isso acontecia no passo de achar o jogo (Etapa 1), dava a impressão de que nenhuma fonte alternativa era tentada, porque o football-data.org (que depende da secret <code>FOOTBALL_DATA_API_KEY</code>) e o TheSportsDB gratuito nem sempre cobrem as ligas menores acompanhadas no app.</p>
+  <ul>
+    <li><strong>Novo:</strong> o espaçamento agora é coordenado no Supabase (tabela <code>banca_api_football_slot</code> + função <code>banca_reservar_slot_api_football</code>) — cada chamada reserva atomicamente o próximo horário livre, valendo entre checagens diferentes, não só dentro de uma. Se o Supabase não responder por algum motivo, o app cai de volta pro espaçamento só-local antigo, como segurança.</li>
+    <li><strong>Novo:</strong> o botão "🔎 Enviar Consulta" fica desabilitado enquanto uma checagem já está em andamento, e uma segunda checagem simultânea (ex.: duplo toque) é bloqueada com um aviso, em vez de disparar duas sequências de chamadas em paralelo disputando a mesma cota.</li>
+    <li>As estatísticas de partida (escanteios, cartões etc.) continuam vindo só da API-Football — não existe uma fonte alternativa com esse nível de detalhe hoje integrada ao app. Quando a API-Football está indisponível, essa etapa fica sem dado (a checagem segue pro julgamento por IA usando só o placar).</li>
+  </ul>
+
+  <h2 id="v1-32-0">v1.32.0</h2>
+  <p class="versao-data">03/09/2026</p>
+  <h3>Correção: a leitura do bilhete "chutava" a liga antes do cache local ter chance de agir</h3>
+  <p>O preenchimento automático de Liga/Horário (implantado na v1.30.0) foi pensado para consultar primeiro os dados locais — bilhetes recentes do mesmo confronto — antes de qualquer inferência. Só que a própria leitura do bilhete (a IA que lê a foto/texto) continuava, num passo anterior, tentando adivinhar a liga pelo seu conhecimento dos times sempre que a Betano não escrevia isso no bilhete. Como esse "chute" já preenchia o campo (mesmo com confiança baixa), o cache local nunca tinha chance de substituí-lo por um dado mais confiável, porque a lógica só entra em campos vazios.</p>
+  <ul>
+    <li><strong>Leitura do bilhete (worker.js):</strong> a regra de LIGA foi reescrita — quando o bilhete não escreve a liga explicitamente, o campo agora sai <code>null</code> da leitura, sem tentativa de adivinhação por conhecimento próprio da IA. A leitura continua copiando e normalizando a liga normalmente quando ela <strong>está</strong> escrita no bilhete (ex.: Superbet).</li>
+    <li><strong>Preenchimento automático (index.html):</strong> agora roda em duas etapas, sempre nessa ordem, e a segunda só entra no que sobrar da primeira — exatamente o "local primeiro, inferir depois" que já era a intenção original:
+      <ol>
+        <li><strong>Cache local (48h):</strong> como antes, reaproveita Liga/Data-Hora de bilhetes recentes do mesmo confronto, sem gastar nenhuma chamada de IA.</li>
+        <li><strong>Busca real na web:</strong> para o que ainda ficar sem Liga ou Data/Hora depois do cache, o app aciona automaticamente a mesma busca do botão manual "🔎 Buscar Liga/Horário" (pesquisa de verdade via Sofascore/365scores, não mais uma "lembrança" da IA) — um evento de cada vez.</li>
+      </ol>
+    </li>
+    <li>Resultados dessa nova etapa 2 automática também alimentam o cache local, iguais aos vindos do próprio bilhete ou de anotação manual — só o botão manual acionado fora do fluxo de importação continua isolado do cache, como já era antes.</li>
+    <li>Configurações → 🔎 Liga e Horário da Partida foi renomeado e a descrição atualizada para refletir as duas etapas; o texto do toast ao ligar/desligar também foi ajustado.</li>
+  </ul>
+
+  <h2 id="v1-31-1">v1.31.1</h2>
+  <p class="versao-data">02/09/2026</p>
+  <h3>Correção: rate limit da API-Football disfarçado de HTTP 200 não era retentado</h3>
+  <p>A API-Football às vezes sinaliza limite de requisições por minuto excedido devolvendo <strong>HTTP 200</strong> com o erro dentro do corpo (<code>{"errors":{"rateLimit":"Too many requests..."}}</code>), em vez do HTTP 429 "de verdade". A retentativa automática só reconhecia o 429 — nesse formato alternativo, desistia na primeira tentativa e ainda vazava o JSON bruto da API pro painel de revisão como motivo do "não encontrado". Agora os dois formatos são tratados da mesma forma: uma retentativa automática após a espera, e a mesma mensagem amigável de limite por minuto/cota diária se persistir.</p>
+
+  <h2 id="v1-31-0">v1.31.0</h2>
+  <p class="versao-data">02/09/2026</p>
+  <h3>Checagem de Resultados agora tenta 3 fontes em cascata (API-Football → football-data.org → TheSportsDB)</h3>
+  <p>A checagem automática ("Checar Resultados") dependia só da API-Football pra localizar o jogo — quando o confronto não era achado ali (liga fora da cobertura, jogo ainda não sincronizado, etc.), o evento ficava "não encontrado" sem mais tentativas. Agora, quando a API-Football não acha o jogo numa data, a Etapa 1 tenta mais duas fontes gratuitas antes de desistir:</p>
+  <ul>
+    <li><strong>football-data.org</strong> — cobre ~12 competições grandes (Champions, principais ligas europeias, Brasileirão Série A). Requer o novo secret <code>FOOTBALL_DATA_API_KEY</code> no Worker (cadastro gratuito); se não configurado, essa fonte é pulada silenciosamente e um aviso aparece na resposta da API.</li>
+    <li><strong>TheSportsDB</strong> — cobertura bem mais ampla (Série B, Copa do Brasil, ligas menores), dados colaborativos da comunidade. Usa a chave de teste pública <code>123</code> por padrão (sem cadastro necessário); dá pra configurar uma chave própria em <code>THESPORTSDB_API_KEY</code> se precisar de mais confiabilidade.</li>
+  </ul>
+  <p>Nenhuma das duas fontes novas tem dado de ESTATÍSTICA (cartões, escanteios etc.) — só placar. Eventos resolvidos por elas pulam a etapa de estatística e, se o mercado não for de placar, vão direto pro julgamento por IA (mesmo comportamento de quando a própria API-Football não tinha estatística registrada). Cada resultado devolvido agora inclui <code>fonteResultado</code> (<code>api-football</code>, <code>football-data.org</code> ou <code>thesportsdb</code>) para rastrear qual fonte resolveu cada evento.</p>
+
   <h2 id="v1-30-0">v1.30.0</h2>
   <p class="versao-data">02/09/2026</p>
   <h3>Cache local de Liga/Data-Hora por confronto (substitui a busca automática por IA)</h3>
@@ -124,6 +228,17 @@
     <li><strong>Anotação manual ao colar texto:</strong> na opção "📋 Preencher por Texto", agora é possível digitar, junto ao texto colado, a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO dele — a leitura do bilhete reconhece esse padrão automaticamente e usa como fonte confiável.</li>
     <li><strong>O que não mudou:</strong> o botão manual "🔎 Buscar Liga/Horário" (que continua pesquisando na web com IA, via Sofascore/365scores) segue disponível exatamente como antes, sem nenhuma alteração — inclusive não grava no cache o que encontra, de propósito, para não alterar esse fluxo em nada.</li>
   </ul>
+
+  <h2 id="v1-29-6">v1.29.6</h2>
+  <p class="versao-data">02/09/2026</p>
+  <h3>Ordem dos mercados combinados agora é preservada no formulário (não só na leitura por IA)</h3>
+  <p>A v1.29.5 corrigiu a instrução da IA para nunca reordenar mercados combinados em ordem alfabética, mas o formulário manual (marcar/desmarcar checkboxes de mercado) ainda tinha o mesmo problema: a lista de checkboxes é sempre exibida em ordem alfabética (pra facilitar achar visualmente), e ao salvar, os mercados marcados eram lidos na ordem em que apareciam na tela — não na ordem em que foram marcados nem na ordem do bilhete original. Isso afetava:</p>
+  <ul>
+    <li><strong>Preenchimento manual</strong> de uma aposta com mercados combinados: marcar as caixas fora de ordem alfabética não tinha efeito — o valor salvo sempre saía em ordem alfabética.</li>
+    <li><strong>Edição de uma aposta já salva</strong>: reabrir uma aposta com mercados combinados e salvar de novo (mesmo sem tocar no campo Mercado) silenciosamente reordenava os mercados em ordem alfabética, podendo quebrar o pareamento com o campo Seleção em casos sem nome de time.</li>
+    <li><strong>Revisão/aprovação de um mercado novo</strong> sugerido pela extração por IA.</li>
+  </ul>
+  <p>Corrigido guardando a ordem real (de marcação ou já salva) em cada checkbox via <code>data-ordem-mercado</code>, e usando essa ordem — nunca a ordem alfabética da lista de opções — em todo lugar que grava ou relê os mercados marcados de um evento (extração por IA, edição, salvar, análise de aposta, e reconstrução da lista ao trocar o esporte do evento).</p>
 
   <h2 id="v1-29-5">v1.29.5</h2>
   <p class="versao-data">02/09/2026</p>

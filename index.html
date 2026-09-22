@@ -949,7 +949,7 @@
     </div>
 </header>
 
-<!-- ========== RESUMO GLOBAL (todas as telas) ========== -->
+<!-- ========== RESUMO GLOBAL (só nas abas Lista e Filtros) ========== -->
 <div id="resumoGlobal" role="region" aria-label="Resumo do filtro atual" style="display:none; background:var(--bg); padding:0 16px 0; position:sticky; top:60px; z-index:350; border-bottom:1px solid var(--border-light); box-shadow:0 2px 8px rgba(30,58,95,.08);">
     <div style="max-width:1700px; margin:auto; padding:10px 0 4px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
@@ -982,14 +982,11 @@
                     📷 Preencher por Foto
                 </button>
                 <input type="file" id="inputFotoBilhete" accept="image/*" style="display:none" onchange="processarFotoBilhete(event)" aria-hidden="true">
-                <button class="btn btn-outline" id="btnPreencherTexto" onclick="abrirModalTexto()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Preencher aposta colando o texto do bilhete">
+                <button class="btn btn-outline" id="btnPreencherTexto" onclick="abrirModalTexto()" aria-keyshortcuts="Alt+C" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Preencher aposta colando o texto do bilhete">
                     📋 Preencher por Texto
                 </button>
                 <button class="btn btn-outline" id="btnAnalisarAposta" onclick="analisarApostaAtual(false)" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Analisar risco e buscar estatísticas reais desta aposta com IA">
                     🔍 Analisar Aposta
-                </button>
-                <button class="btn btn-outline" id="btnCheckarApostaAtual" onclick="checarApostaAtual()" style="flex:0 0 auto; width:auto; padding: 0 18px; display:none;" aria-label="Checar automaticamente resultado e estatísticas desta aposta via API-Football e IA">
-                    🔎 Checar Aposta
                 </button>
             </div>
 
@@ -1032,8 +1029,9 @@
                 </div>
                 <div>
                     <label for="tipster">Tipster</label>
-                    <select id="tipster" onchange="toggleCampoOutro(this,'tipsterOutro')"></select>
-                    <input type="text" class="tipsterOutro" placeholder="Digite o nome do tipster..." style="display:none;margin-top:4px;" aria-label="Digite o nome do tipster (uso avulso, não será salvo na lista)">
+                    <select id="tipster" onchange="toggleCampoOutro(this,'tipsterOutro'); atualizarOddMinimaTipster();"></select>
+                    <input type="text" class="tipsterOutro" oninput="atualizarOddMinimaTipster()" placeholder="Digite o nome do tipster..." style="display:none;margin-top:4px;" aria-label="Digite o nome do tipster (uso avulso, não será salvo na lista)">
+                    <div id="tipsterOddMinima" aria-live="polite" style="margin-top:4px;font-size:12px;color:var(--text-secondary);"></div>
                     <div class="inline" style="margin-top:4px;">
                         <button class="btn-sm btn-success" onclick="addOption('tipster')" aria-label="Adicionar tipster">+ Tipster</button>
                     </div>
@@ -1089,9 +1087,6 @@
                 <button class="btn btn-outline" id="btnEvento" onclick="addEvento()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Adicionar evento à aposta">
                     ＋ Adicionar Evento
                 </button>
-                <button class="btn btn-outline" id="btnBuscarLigaTodos" onclick="buscarLigaTodosEventos()" style="flex:0 0 auto; width:auto; padding: 0 18px;" aria-label="Buscar automaticamente com IA a liga e a data/hora da partida de todos os eventos desta aposta que ainda estiverem sem esses campos preenchidos">
-                    🔍 Buscar Liga e Data/Hora
-                </button>
             </div>
 
             <div class="grid" style="margin-top:16px;">
@@ -1136,7 +1131,6 @@
                 <h2 style="margin:0;">📋 Apostas</h2>
                 <div class="inline" style="gap:8px;">
                     <button type="button" class="btn btn-secondary" id="btnFiltroRapidoAbertas" onclick="alternarFiltroAbertas()" aria-keyshortcuts="Alt+A" aria-pressed="false" style="max-width:220px;">🟢 Somente Abertas</button>
-                    <button type="button" class="btn btn-outline" id="btnCheckarApostas" onclick="abrirSeletorChecarApostas()" aria-keyshortcuts="Alt+C" style="max-width:220px;" aria-label="Escolher apostas em aberto de Futebol para checar automaticamente resultado e estatísticas via API-Football e IA">🔎 Checar Apostas</button>
                 </div>
             </div>
             <div class="table-wrap">
@@ -1307,9 +1301,12 @@
 
             <div class="config-categoria">
                 <h3>👤 Tipster</h3>
+                <p style="font-family:var(--font-ui);font-size:12px;color:var(--text-secondary);margin-top:-4px;">
+                    Resolvidas, Taxa de Acerto e Odd Mínima Recomendada consideram Ganhou/Ganho Parcial como acerto e Perdeu/Perda Parcial como erro; Cash Out e apostas Anuladas não entram na conta, e apostas Abertas também ficam de fora. A odd mínima (100 ÷ taxa de acerto) só aparece com pelo menos <span id="tipsterMinResolvidasLabel"></span> apostas resolvidas — abaixo disso, o histórico ainda é pequeno demais para confiar no número.
+                </p>
                 <div class="table-wrap">
-                    <table role="grid" aria-label="Tipsters cadastrados">
-                        <thead><tr><th scope="col">Nome</th><th scope="col">Ações</th></tr></thead>
+                    <table role="grid" aria-label="Tipsters cadastrados, com desempenho histórico e odd mínima recomendada">
+                        <thead><tr><th scope="col">Nome</th><th scope="col">Resolvidas</th><th scope="col">Taxa de Acerto</th><th scope="col">Odd Mínima Recomendada</th><th scope="col">Ações</th></tr></thead>
                         <tbody id="chips-tipster"></tbody>
                     </table>
                 </div>
@@ -1416,13 +1413,13 @@
         </div>
 
         <div class="card">
-            <h2>🔎 Liga e Horário da Partida (cache local)</h2>
+            <h2>🔎 Liga e Horário da Partida (automático)</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
-                Controla se a Liga e a Data/Hora da Partida de cada evento são preenchidas automaticamente assim que o formulário é preenchido por Foto/Texto, reaproveitando bilhetes recentes do MESMO confronto (mesmo esporte e mesmos times, guardados por até 48h) — útil para bilhetes que não trazem essas informações no próprio bilhete (comum na Betano), quando você já apostou nesse mesmo jogo em outro bilhete recente. Não usa IA nem busca na web — é só reaproveitamento local do que já foi lido antes. Só preenche eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias; eventos já completos não são sobrescritos. Se preferir informar você mesmo, ao colar o texto do bilhete (opção "📋 Preencher por Texto") digite a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO — a leitura reconhece isso automaticamente. O botão manual "🔎 Buscar Liga/Horário" (que pesquisa na web com IA) continua disponível a qualquer momento, independente desta opção.
+                Controla se a Liga e a Data/Hora da Partida de cada evento são preenchidas automaticamente assim que o formulário é preenchido por Foto/Texto — útil para bilhetes que não trazem essas informações no próprio bilhete (comum na Betano). A fonte é só o cache local: reaproveita bilhetes recentes do MESMO confronto (mesmo esporte e mesmos times, guardados por até 48h) — não gasta IA nem busca na web. Só preenche eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias; eventos já completos não são sobrescritos. Se o confronto ainda não estiver no cache, os campos ficam vazios para preenchimento manual. Se preferir informar você mesmo, ao colar o texto do bilhete (opção "📋 Preencher por Texto") digite a liga numa linha ACIMA do confronto e a data/horário numa linha ABAIXO — a leitura reconhece isso automaticamente.
             </p>
             <label style="display:flex; align-items:center; gap:10px; font-size:14px; text-transform:none; letter-spacing:0; color:var(--text); font-weight:500; cursor:pointer;">
                 <input type="checkbox" id="config-busca-liga-horario-automatica" onchange="alterarBuscaLigaHorarioAutomatica(this.checked)" style="width:18px; height:18px; accent-color:var(--primary-light); flex-shrink:0;">
-                Preencher Liga e Horário automaticamente com bilhetes recentes (cache) após Foto/Texto
+                Preencher Liga e Horário automaticamente após Foto/Texto (cache local)
             </label>
         </div>
 
@@ -1442,17 +1439,18 @@
         <div class="card">
             <h2>🤖 Provedor de IA</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
-                Escolha qual provedor de IA usar em cada funcionalidade. "Ambas" é o padrão e mantém o
-                comportamento normal do app: tenta o Gemini primeiro (grátis) e, se ele falhar, cai
-                automaticamente para a Anthropic. Escolher "Somente Gemini" ou "Somente Anthropic" força o
-                uso exclusivo daquele provedor — se ele falhar, a ação falha também, sem tentar o outro.
+                Escolha qual provedor de IA usar em cada funcionalidade. "Automático" é o padrão: tenta o
+                Gemini primeiro (grátis); se ele falhar, tenta o Cloudflare Workers AI (grátis, com limite
+                diário); e só usa a Anthropic (paga) se os dois falharem. Escolher "Somente Gemini" ou
+                "Somente Anthropic" força o uso exclusivo daquele provedor — se ele falhar, a ação falha
+                também, sem tentar os outros.
                 A preferência fica salva neste dispositivo/navegador.
             </p>
             <div style="display:flex; flex-direction:column; gap:14px; max-width:420px;">
                 <div>
                     <label for="config-provedor-bilhete">Leitura de bilhete (foto e texto)</label>
                     <select id="config-provedor-bilhete" onchange="alterarProvedorIA(CHAVE_PROVEDOR_BILHETE, this.value)" aria-label="Provedor de IA usado na leitura de bilhete">
-                        <option value="ambas">Ambas (Gemini com fallback para Anthropic)</option>
+                        <option value="ambas">Automático (Gemini → Workers AI → Anthropic)</option>
                         <option value="gemini">Somente Gemini</option>
                         <option value="anthropic">Somente Anthropic</option>
                     </select>
@@ -1460,15 +1458,7 @@
                 <div>
                     <label for="config-provedor-estatisticas">Análise de aposta (busca de estatísticas)</label>
                     <select id="config-provedor-estatisticas" onchange="alterarProvedorIA(CHAVE_PROVEDOR_ESTATISTICAS, this.value)" aria-label="Provedor de IA usado na busca de estatísticas da Análise de Aposta">
-                        <option value="ambas">Ambas (Gemini com fallback para Anthropic)</option>
-                        <option value="gemini">Somente Gemini</option>
-                        <option value="anthropic">Somente Anthropic</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="config-provedor-liga">Busca de liga</label>
-                    <select id="config-provedor-liga" onchange="alterarProvedorIA(CHAVE_PROVEDOR_LIGA, this.value)" aria-label="Provedor de IA usado na busca de liga">
-                        <option value="ambas">Ambas (Gemini com fallback para Anthropic)</option>
+                        <option value="ambas">Automático (Gemini → Workers AI → Anthropic)</option>
                         <option value="gemini">Somente Gemini</option>
                         <option value="anthropic">Somente Anthropic</option>
                     </select>
@@ -1495,31 +1485,6 @@
         </div>
 
         <div class="card">
-            <h2>🔄 Aplicativo</h2>
-            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
-                Se o app parecer travado, sem responder ou com dados desatualizados — especialmente quando instalado na tela inicial do celular, onde não existe barra de endereço para atualizar — use o botão abaixo. Também é possível puxar a tela para baixo estando no topo de qualquer aba.
-            </p>
-            <button class="btn btn-outline" onclick="recarregarApp()" aria-label="Recarregar o aplicativo" style="width:auto;">
-                🔄 Recarregar Aplicativo
-            </button>
-        </div>
-
-        <div class="card">
-            <h2>🔍 Auditoria de Cálculos</h2>
-            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
-                Recalcula o retorno e o lucro de cada aposta salva usando a fórmula atual e compara com os valores
-                gravados no banco. Aponta divergências — por exemplo, apostas salvas com uma versão antiga da
-                fórmula (antes de Ganho Parcial, Perda Parcial ou Cash Out existirem, ou editadas manualmente).
-                Não altera nenhum dado, apenas mostra o que encontrar.
-            </p>
-            <button class="btn btn-outline" onclick="auditarCalculos()" aria-label="Auditar cálculos de todas as apostas" style="width:auto;">
-                🔍 Auditar Cálculos
-            </button>
-            <div id="auditoriaResumo" aria-live="polite" style="margin-top:14px; font-size:13px; color:var(--text-secondary);"></div>
-            <ol id="auditoriaLista" style="margin:10px 0 0; padding-left:20px; font-size:13px;"></ol>
-        </div>
-
-        <div class="card">
             <h2>🎯 Precisão Decimal</h2>
             <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
                 Recalcula odd total, retornado, lucro, unidades e ROI de todas as apostas com precisão de até
@@ -1529,24 +1494,6 @@
             <button class="btn btn-outline" onclick="recalcularPrecisaoDecimal()" aria-label="Recalcular todos os valores das apostas com precisão decimal de até 4 casas" style="width:auto;">
                 🎯 Recalcular Precisão Decimal
             </button>
-        </div>
-
-        <div class="card">
-            <h2>💾 Dados</h2>
-            <p style="font-family:var(--font-ui);font-size:13px;color:var(--text-secondary);margin-top:-8px;">
-                Backup completo (apostas e lançamentos de saldo) e reset do sistema.
-            </p>
-            <div class="inline" style="flex-wrap:wrap; gap:10px;">
-                <button class="btn btn-primary" onclick="exportarTabelaGeralExcel()" aria-label="Exportar planilha Excel completa" style="width:auto;">
-                    📊 Exportar Tudo (Excel)
-                </button>
-                <button class="btn btn-outline" onclick="document.getElementById('importExcelFile').click()" aria-label="Importar planilha Excel" style="width:auto;">
-                    📥 Importar Excel
-                </button>
-                <button class="btn btn-outline" onclick="limparTodosDados()" aria-label="Limpar todos os dados e resetar sistema" style="width:auto; color:#ef4444; border-color:#ef4444;">
-                    🗑️ Limpar Todos os Dados
-                </button>
-            </div>
         </div>
     </section>
 
@@ -1559,7 +1506,7 @@
 
 <!-- ══ RODAPÉ: VERSÃO DO APP ══ -->
 <footer class="app-footer">
-  Banca Pro · v1.30.0 · 02/09/2026
+  Banca Pro · v1.38.0 · 22/09/2026
 </footer>
 
 </div> <!-- fecha #appConteudo -->
@@ -1642,15 +1589,17 @@ let buscaLigaHorarioAutomaticaAtiva = lerBuscaLigaHorarioAutomaticaSalva();
 function alterarBuscaLigaHorarioAutomatica(ativa) {
     buscaLigaHorarioAutomaticaAtiva = !!ativa;
     localStorage.setItem(CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA, String(buscaLigaHorarioAutomaticaAtiva));
-    showToast(buscaLigaHorarioAutomaticaAtiva ? '✅ Preenchimento automático de Liga e Horário (cache) ativado' : '✅ Preenchimento automático de Liga e Horário (cache) desativado — use o botão manual "🔎 Buscar Liga/Horário" quando quiser', 'success');
+    showToast(buscaLigaHorarioAutomaticaAtiva ? '✅ Preenchimento automático de Liga e Horário ativado (cache local)' : '✅ Preenchimento automático de Liga e Horário desativado — preencha manualmente quando quiser', 'success');
 }
 
 // ---- Preferência: recolher/expandir o painel de resumo (totais) fixo no
 // topo. Fica salva neste dispositivo/navegador, igual à paginação e à
-// análise automática. Padrão: expandido.
+// análise automática. Padrão: recolhido.
 const CHAVE_RESUMO_RECOLHIDO = 'bancapro_resumoRecolhido';
 function lerResumoRecolhidoSalvo() {
-    return localStorage.getItem(CHAVE_RESUMO_RECOLHIDO) === 'true';
+    const salvo = localStorage.getItem(CHAVE_RESUMO_RECOLHIDO);
+    // Padrão: recolhido. Só fica expandido se o usuário já tiver escolhido isso antes.
+    return salvo === null ? true : salvo === 'true';
 }
 let resumoGlobalRecolhido = lerResumoRecolhidoSalvo();
 function aplicarEstadoResumoGlobal() {
@@ -1669,30 +1618,27 @@ function alternarResumoGlobal() {
 }
 
 // ---- Provedor de IA por funcionalidade ----
-// Cada uma das três chamadas de IA do app (leitura de bilhete, busca de
-// estatísticas em "Analisar Aposta" e busca de liga) pode ter seu próprio
-// provedor preferido: "gemini", "anthropic" ou "ambas" (padrão — Gemini
-// primeiro, com fallback automático para Anthropic se o Gemini falhar, igual
-// ao comportamento original do app). Escolher "gemini" ou "anthropic" força o
+// Cada uma das duas chamadas de IA do app (leitura de bilhete e busca de
+// estatísticas em "Analisar Aposta") pode ter seu próprio provedor
+// preferido: "gemini", "anthropic" ou "ambas" (padrão, exibido como
+// "Automático" — Gemini primeiro, depois Cloudflare Workers AI, e só então
+// Anthropic se os dois gratuitos falharem). Escolher "gemini" ou "anthropic" força o
 // uso exclusivo daquele provedor, sem fallback para o outro caso falhe. Fica
 // salvo neste dispositivo/navegador, igual à paginação e à análise automática.
 const CHAVE_PROVEDOR_BILHETE = 'bancapro_provedorBilhete';
 const CHAVE_PROVEDOR_ESTATISTICAS = 'bancapro_provedorEstatisticas';
-const CHAVE_PROVEDOR_LIGA = 'bancapro_provedorLiga';
-const NOMES_PROVEDOR_IA = { gemini: 'Somente Gemini', anthropic: 'Somente Anthropic', ambas: 'Ambas (Gemini com fallback para Anthropic)' };
+const NOMES_PROVEDOR_IA = { gemini: 'Somente Gemini', anthropic: 'Somente Anthropic', ambas: 'Automático (Gemini → Workers AI → Anthropic)' };
 function lerProvedorIASalvo(chave) {
     const salvo = localStorage.getItem(chave);
     return (salvo === 'gemini' || salvo === 'anthropic') ? salvo : 'ambas';
 }
 let provedorBilhete = lerProvedorIASalvo(CHAVE_PROVEDOR_BILHETE);
 let provedorEstatisticas = lerProvedorIASalvo(CHAVE_PROVEDOR_ESTATISTICAS);
-let provedorLiga = lerProvedorIASalvo(CHAVE_PROVEDOR_LIGA);
 function alterarProvedorIA(chave, valor) {
     const valido = (valor === 'gemini' || valor === 'anthropic') ? valor : 'ambas';
     localStorage.setItem(chave, valido);
     if (chave === CHAVE_PROVEDOR_BILHETE) provedorBilhete = valido;
     else if (chave === CHAVE_PROVEDOR_ESTATISTICAS) provedorEstatisticas = valido;
-    else if (chave === CHAVE_PROVEDOR_LIGA) provedorLiga = valido;
     showToast('✅ Provedor de IA atualizado: ' + NOMES_PROVEDOR_IA[valido], 'success');
 }
 
@@ -1731,6 +1677,63 @@ function mercadosDoEsporte(esporte) {
         .filter(v => mercadoDecompor(v).esporte === esporte)
         .sort((a,b) => mercadoNomeExibicao(a).localeCompare(mercadoNomeExibicao(b)));
 }
+
+// ---- Ordem dos mercados combinados dentro de um evento ----
+// A lista de checkboxes de mercado é sempre exibida em ordem alfabética (pra ser
+// fácil de encontrar visualmente), mas quando várias condições do MESMO evento são
+// combinadas (ex.: "Gols, Escanteios"), a ordem em que elas foram marcadas/vieram do
+// bilhete original precisa ser preservada — NUNCA a ordem alfabética/DOM da lista de
+// opções. Isso é feito guardando um índice em data-ordem-mercado em cada checkbox.
+//
+// marcarMercadosNaOrdem: aplica .checked + data-ordem-mercado a partir de uma lista
+// JÁ NA ORDEM correta (ex.: vinda do bilhete, da IA, ou já salva no banco).
+function marcarMercadosNaOrdem(merDiv, nomesEmOrdem) {
+    if (!merDiv) return;
+    const porValor = new Map();
+    merDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.removeAttribute('data-ordem-mercado');
+        porValor.set(cb.value, cb);
+    });
+    (nomesEmOrdem || []).forEach((nome, i) => {
+        const cb = porValor.get(nome);
+        if (cb) { cb.checked = true; cb.setAttribute('data-ordem-mercado', String(i + 1)); }
+    });
+}
+
+// lerMercadosEmOrdem: lê os checkboxes marcados respeitando data-ordem-mercado.
+// Um checkbox marcado sem esse atributo (ex.: clicado manualmente antes de existir
+// a delegação de evento, ou algum fluxo legado) vai pro fim, na ordem em que aparece
+// no DOM — nunca antes de um mercado com ordem já conhecida.
+function lerMercadosEmOrdem(merDiv) {
+    if (!merDiv) return [];
+    return Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked'))
+        .map((cb, i) => ({
+            valor: cb.value,
+            ordem: cb.hasAttribute('data-ordem-mercado') ? parseInt(cb.getAttribute('data-ordem-mercado'), 10) : (100000 + i)
+        }))
+        .sort((a, b) => a.ordem - b.ordem)
+        .map(x => x.valor);
+}
+
+// Delegação única: sempre que o usuário marcar/desmarcar manualmente um checkbox de
+// mercado (clique direto, sem passar por marcarMercadosNaOrdem), atualiza
+// data-ordem-mercado pra refletir a ordem real do clique. Ao marcar, entra como o
+// último da lista atual; ao desmarcar, perde a posição (se marcado de novo depois,
+// volta a entrar como o mais recente).
+document.addEventListener('change', (evt) => {
+    const cb = evt.target;
+    if (!cb.matches || !cb.matches('.option-group.mercado input[type="checkbox"]')) return;
+    const merDiv = cb.closest('.option-group.mercado');
+    if (!merDiv) return;
+    if (!cb.checked) { cb.removeAttribute('data-ordem-mercado'); return; }
+    let maxOrdem = 0;
+    merDiv.querySelectorAll('input[type="checkbox"][data-ordem-mercado]').forEach(outro => {
+        const o = parseInt(outro.getAttribute('data-ordem-mercado'), 10);
+        if (!isNaN(o) && o > maxOrdem) maxOrdem = o;
+    });
+    cb.setAttribute('data-ordem-mercado', String(maxOrdem + 1));
+});
 
 /* ==================== INIT ==================== */
 let appJaIniciado = false;
@@ -1829,7 +1832,7 @@ async function aplicarVisibilidadeIA() {
         if (error) return; // em caso de erro, não esconde nada (evita falso negativo)
 
         const habilitado = !perfil || perfil.ai_enabled !== false;
-        const idsBotoesIA = ['btnPreencherFoto', 'btnPreencherTexto', 'btnAnalisarAposta', 'btnBuscarLigaTodos'];
+        const idsBotoesIA = ['btnPreencherFoto', 'btnPreencherTexto', 'btnAnalisarAposta'];
         idsBotoesIA.forEach(function (id) {
             const el = document.getElementById(id);
             if (el) el.style.display = habilitado ? '' : 'none';
@@ -1891,17 +1894,11 @@ function loadTheme() {
 }
 function toggleTheme() { /* removido — tema segue preferência do sistema */ }
 
-/* ==================== RECARREGAR APLICATIVO ====================
+/* ==================== RECARREGAR APLICATIVO (gesto) ====================
    Útil principalmente quando o app é adicionado à tela inicial do celular
    (modo "standalone"), onde não existe barra de endereço nem F5 para
-   forçar uma atualização manual. Duas formas de acionar:
-   1. Botão "🔄 Recarregar Aplicativo" em Configurações (sempre funciona,
-      inclusive por teclado/leitor de tela).
-   2. Gesto de puxar a tela para baixo estando no topo da página. */
-function recarregarApp() {
-    window.location.reload();
-}
-
+   forçar uma atualização manual. Acionado puxando a tela para baixo
+   estando no topo da página. */
 (function configurarPullToRefresh() {
     const LIMIAR_PX = 70; // distância mínima de puxão para disparar a atualização
 
@@ -1968,6 +1965,10 @@ const ROTULO_ABA_BANCA = {
     cadastro: 'Cadastro', filtros: 'Filtros', lista: 'Lista de Apostas',
     saldos: 'Saldos', config: 'Configurações'
 };
+// Abas em que o painel fixo "Resumo do Filtro" pode aparecer (Cadastro, Saldos
+// e Configurações nunca mostram esse painel, mesmo com dados carregados).
+const ABAS_COM_RESUMO_GLOBAL = ['lista', 'filtros'];
+let abaAtualBanca = 'cadastro';
 
 function irPara(secao, btn) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -1982,8 +1983,24 @@ function irPara(secao, btn) {
         btn.setAttribute('aria-selected', 'true');
         btn.tabIndex = 0;
     }
+    abaAtualBanca = secao;
+    aplicarVisibilidadeResumoGlobal();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     anunciar('Aba ' + (ROTULO_ABA_BANCA[secao] || secao) + ' selecionada.');
+}
+
+// Mostra/esconde o painel fixo "Resumo do Filtro" conforme a aba ativa —
+// só existe nas abas Lista e Filtros (ver ABAS_COM_RESUMO_GLOBAL). Nas
+// demais abas fica sempre escondido, mesmo que haja dados carregados.
+function aplicarVisibilidadeResumoGlobal() {
+    const wrap = document.getElementById('resumoGlobal');
+    if (!wrap) return;
+    const podeAparecer = ABAS_COM_RESUMO_GLOBAL.includes(abaAtualBanca);
+    if (!podeAparecer) {
+        wrap.style.display = 'none';
+    } else if (apostasFiltradasAtuais && apostasFiltradasAtuais.length) {
+        wrap.style.display = 'block';
+    }
 }
 
 // ---- Atalho global Alt+1..5 para trocar de aba de qualquer lugar da tela ----
@@ -2055,7 +2072,7 @@ function alternarFiltroAbertas() {
     }
 }
 
-// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Filtro Abertas, Limpar Filtros ----
+// ---- Atalhos globais de ação: Salvar/Atualizar, Editar, Excluir, Marcar Ganhou/Perdida, Filtro Abertas, Limpar Filtros, Colar Bilhete ----
 // Usa e.code em vez de e.key pelo mesmo motivo do bloco de troca de abas acima: em
 // teclados Apple, Option+letra produz caracteres especiais (ex.: Option+G = "©",
 // Option+L = "¬", Option+E fica pendente esperando acento) em vez da letra pura, o que
@@ -2075,14 +2092,9 @@ document.addEventListener('keydown', function(e) {
     }
 
     if (tecla === 'c') {
-        // Checar Apostas — só faz sentido na aba Lista (é lá que fica o seletor).
-        const abaListaAtiva = document.getElementById('sec-lista').classList.contains('active');
-        if (!abaListaAtiva) {
-            showToast('⚠️ Vá para a aba Lista (Alt+2) para checar apostas.', 'info');
-            return;
-        }
+        // Colar Bilhete — abre o modal de texto do bilhete a partir de qualquer aba.
         e.preventDefault();
-        abrirSeletorChecarApostas();
+        abrirModalTexto();
         return;
     }
 
@@ -2220,6 +2232,25 @@ function apostaParaLinha(a) {
         cash_out_valor: a.cashOutValor || null
     };
 }
+// ---- Conversão UTC <-> horário de Brasília (fixo -03:00, Brasil não tem mais horário de verão) ----
+// O restante do app trata "dataEvento" como string local ("AAAA-MM-DDTHH:MM", horário de
+// Brasília, mesmo formato do <input type="datetime-local">). Só na fronteira com o Supabase
+// (colunas timestamptz: banca_eventos.data_evento e banca_cache_partidas.data_evento) é que
+// precisa converter para/de UTC de verdade — senão o valor grava/lê 3h errado.
+function utcParaBrasiliaLocalStr(isoUtc) {
+    if (!isoUtc) return '';
+    const d = new Date(isoUtc);
+    if (isNaN(d.getTime())) return '';
+    const brasilia = new Date(d.getTime() - 3 * 60 * 60 * 1000);
+    const pad = n => String(n).padStart(2, '0');
+    return `${brasilia.getUTCFullYear()}-${pad(brasilia.getUTCMonth() + 1)}-${pad(brasilia.getUTCDate())}T${pad(brasilia.getUTCHours())}:${pad(brasilia.getUTCMinutes())}`;
+}
+function brasiliaLocalStrParaUtcIso(localStr) {
+    if (!localStr) return null;
+    // localStr no formato "AAAA-MM-DDTHH:MM" (ou com segundos) representando horário de Brasília
+    const semOffset = localStr.length === 16 ? localStr + ':00' : localStr;
+    return semOffset + '-03:00';
+}
 function linhaParaAposta(row) {
     return {
         id: row.id,
@@ -2253,7 +2284,7 @@ function eventoParaLinha(e, apostaId) {
         mercado: e.mercado,
         selecao: e.selecao,
         odd: e.odd,
-        data_evento: e.dataEvento || null
+        data_evento: brasiliaLocalStrParaUtcIso(e.dataEvento)
     };
 }
 function linhaParaEvento(row) {
@@ -2266,7 +2297,7 @@ function linhaParaEvento(row) {
         mercado: row.mercado,
         selecao: row.selecao,
         odd: Number(row.odd),
-        dataEvento: row.data_evento ? String(row.data_evento).slice(0, 16) : ''
+        dataEvento: utcParaBrasiliaLocalStr(row.data_evento)
     };
 }
 
@@ -3123,7 +3154,7 @@ async function addDynamicOption(field, button) {
             if (eventDiv) {
                 const merDiv = eventDiv.querySelector('.mercado');
                 const cb = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor) : null;
-                if (cb) cb.checked = true;
+                if (cb) { cb.checked = true; cb.dispatchEvent(new Event('change', { bubbles: true })); }
             }
         }, 50);
         showToast(`✅ "${r.valor}" adicionado em ${esporte}`, 'success');
@@ -3235,15 +3266,16 @@ function updateDynamicSelects(field) {
             const merDiv = eventDiv.querySelector('.mercado.option-group');
             const selEsp = eventDiv.querySelector('.esporteEvento');
             if (!merDiv || !selEsp) return;
-            const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+            const checked = lerMercadosEmOrdem(merDiv);
             const opcoes = mercadosDoEsporte(selEsp.value);
             if (opcoes.length === 0) {
                 merDiv.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);">Nenhum mercado cadastrado para ${selEsp.value}</span>`;
             } else {
                 merDiv.innerHTML = opcoes.map(v => {
                     const nome = mercadoNomeExibicao(v);
-                    return `<label><input type="checkbox" value="${nome}" ${checked.includes(nome)?'checked':''}><span>${nome}</span></label>`;
+                    return `<label><input type="checkbox" value="${nome}"><span>${nome}</span></label>`;
                 }).join('');
+                marcarMercadosNaOrdem(merDiv, checked);
             }
         });
     } else if (field === 'liga') {
@@ -3295,7 +3327,7 @@ function atualizarLigasDoEvento(selectEsporte) {
 
     const merDiv = div.querySelector('.mercado');
     if (merDiv) {
-        const checked = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+        const checked = lerMercadosEmOrdem(merDiv);
         const opcoesMercado = esporteEhOutro ? [] : mercadosDoEsporte(esporte);
         if (opcoesMercado.length === 0) {
             const msg = esporteEhOutro ? 'Nenhum mercado cadastrado (esporte digitado manualmente)' : `Nenhum mercado cadastrado para ${esporte}`;
@@ -3303,8 +3335,9 @@ function atualizarLigasDoEvento(selectEsporte) {
         } else {
             merDiv.innerHTML = opcoesMercado.map(v => {
                 const nome = mercadoNomeExibicao(v);
-                return `<label><input type="checkbox" value="${nome}" ${checked.includes(nome)?'checked':''}><span>${nome}</span></label>`;
+                return `<label><input type="checkbox" value="${nome}"><span>${nome}</span></label>`;
             }).join('');
+            marcarMercadosNaOrdem(merDiv, checked);
         }
     }
 }
@@ -3374,197 +3407,18 @@ function addEvento() {
 }
 function parseFloat2(v) { return parseFloat(v) || 0; }
 
-/* ==================== BUSCAR LIGA E DATA/HORA (IA) ====================
-   Pesquisa na web em qual liga/competição um confronto foi disputado, E a
-   data/hora do confronto, usando o nome do Evento (ex: "Time A x Time B") e,
-   se já preenchido, o Esporte do evento. Quando o Esporte ainda não está
-   definido, a busca também tenta identificá-lo a partir dos competidores e
-   preenche esse campo sozinha.
-   Nunca "chuta" liga, esporte ou data/hora sem confirmação — se a IA não
-   encontrar com confiança razoável, o campo correspondente fica como estava,
-   para preenchimento manual. NUNCA sobrescreve um valor já preenchido
-   (manualmente ou por uma busca anterior) — só entra em campos vazios.
-   Núcleo silencioso (sem toast própria), reaproveitado pela busca em lote de
-   todos os eventos da aposta (botão "Buscar Liga e Data/Hora de Todos os
-   Eventos"). */
-async function _buscarLigaCore(div) {
-    const inputEvento = div.querySelector('.evento');
-    const evento = inputEvento ? inputEvento.value.trim() : '';
-    if (!evento) return { status: 'sem-evento' };
-
-    const selEsp = div.querySelector('.esporteEvento');
-    const esporteAtual = valorEfetivoComOutro(selEsp, 'esporteEventoOutro');
-    const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
-    const campoDataEvento = div.querySelector('.dataEventoEvento');
-    const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
-
-    // Já tem os dois preenchidos — nada a buscar, evita gastar uma chamada de IA à toa.
-    if (ligaAtual && dataEventoAtual) return { status: 'ja-preenchido' };
-
-    // Data/hora em que a aposta foi registrada — ajuda a IA a achar a temporada
-    // certa do confronto (times mudam de divisão de um ano para outro) e a
-    // desambiguar qual data o confronto aconteceu.
-    const campoDataHora = document.getElementById('dataHora');
-    const dataReferencia = campoDataHora && campoDataHora.value ? campoDataHora.value : null;
-
-    let json;
-    try {
-        const resposta = await fetch('/api/buscar-liga', {
-            method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ esporte: esporteAtual || null, evento, dataReferencia, provedorPreferido: provedorLiga })
-        });
-        json = await resposta.json();
-        if (!resposta.ok) throw new Error(json.error || 'Erro ao buscar a liga.');
-    } catch (err) {
-        return { status: 'erro', mensagem: err.message };
-    }
-
-    // O esporte "confirmado" é o que a IA retornou (identificado ou apenas ecoado
-    // de volta) — se nem a IA nem o campo já tinham um esporte, não dá pra montar
-    // o catálogo de ligas certo, então trata a liga como não encontrada (a
-    // data/hora, se encontrada, é independente e ainda pode ser aplicada).
-    const esporteConfirmado = (json.esporte || esporteAtual || '').trim();
-    const ligaEncontrada = !!json.encontrado && !!json.liga && !!esporteConfirmado;
-    const dataHoraEncontrada = !!json.dataHoraEncontrada && !!json.dataHora;
-
-    if (!ligaEncontrada && !dataHoraEncontrada) {
-        return { status: 'nao-encontrado', observacao: json.observacao || '' };
-    }
-
-    let esporteFoiPreenchidoAgora = false;
-    let ligaAplicada = null;
-    let baixaConfianca = false;
-
-    if (ligaEncontrada && !ligaAtual) {
-        if (!esporteAtual && selEsp) {
-            const rEsp = buscarOuPrepararValor(defaults.esporte, esporteConfirmado);
-            selEsp.innerHTML = opcoesComOutro(defaults.esporte, '— Esporte —');
-            if (rEsp.duplicado) {
-                selEsp.value = rEsp.valor;
-                toggleCampoOutro(selEsp, 'esporteEventoOutro');
-            } else {
-                selEsp.value = OUTRO_VALOR;
-                toggleCampoOutro(selEsp, 'esporteEventoOutro');
-                const inputOutroEsp = selEsp.parentElement ? selEsp.parentElement.querySelector('.esporteEventoOutro') : null;
-                if (inputOutroEsp) inputOutroEsp.value = rEsp.valor;
-            }
-            // Recarrega as opções de Liga e Mercado deste evento para o esporte identificado agora.
-            atualizarLigasDoEvento(selEsp);
-            esporteFoiPreenchidoAgora = true;
-        }
-
-        const selLig = div.querySelector('.ligaEvento');
-        const r = buscarOuPrepararValor(ligasDoEsporte(esporteConfirmado).map(ligaNomeExibicao), json.liga);
-        selLig.innerHTML = opcoesComOutroExibicao(ligasDoEsporte(esporteConfirmado), ligaNomeExibicao, '— Liga —');
-        if (r.duplicado) {
-            selLig.value = r.valor;
-            toggleCampoOutro(selLig, 'ligaEventoOutro');
-        } else {
-            selLig.value = OUTRO_VALOR;
-            toggleCampoOutro(selLig, 'ligaEventoOutro');
-            const inputOutro = selLig.parentElement ? selLig.parentElement.querySelector('.ligaEventoOutro') : null;
-            if (inputOutro) inputOutro.value = r.valor;
-        }
-        ligaAplicada = r.valor;
-        baixaConfianca = json.confianca != null && json.confianca < LIMIAR_BAIXA_CONFIANCA;
-        if (baixaConfianca) marcarCampoBaixaConfianca(selLig);
-    }
-
-    let dataHoraAplicada = null;
-    let baixaConfiancaData = false;
-    if (dataHoraEncontrada && campoDataEvento && !dataEventoAtual) {
-        campoDataEvento.value = json.dataHora;
-        dataHoraAplicada = json.dataHora;
-        baixaConfiancaData = json.confiancaDataHora != null && json.confiancaDataHora < LIMIAR_BAIXA_CONFIANCA;
-        if (baixaConfiancaData) marcarCampoBaixaConfianca(campoDataEvento);
-    }
-
-    return {
-        status: 'encontrado',
-        liga: ligaAplicada,
-        esporte: esporteConfirmado,
-        esporteFoiPreenchidoAgora,
-        baixaConfianca,
-        dataHora: dataHoraAplicada,
-        baixaConfiancaData
-    };
-}
-
-/* Busca a liga e a data/hora de TODOS os eventos da aposta de uma vez, um por
-   vez (sequencial, com anúncio de progresso para leitor de tela). Considera
-   elegível todo evento com o nome do Evento preenchido E (Liga OU Data/Hora
-   da Partida ainda vazias) — eventos que já têm os dois campos preenchidos
-   (lidos certo pela IA ao importar o bilhete, ou já corrigidos manualmente)
-   são pulados e nunca sobrescritos por esta busca. */
-async function buscarLigaTodosEventos() {
-    const todos = Array.from(document.querySelectorAll('.event'));
-    const elegiveis = todos.filter(function (div) {
-        const inputEvento = div.querySelector('.evento');
-        const evento = inputEvento ? inputEvento.value.trim() : '';
-        const ligaAtual = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
-        const campoDataEvento = div.querySelector('.dataEventoEvento');
-        const dataEventoAtual = campoDataEvento ? campoDataEvento.value : '';
-        return !!evento && (!ligaAtual || !dataEventoAtual);
-    });
-
-    if (elegiveis.length === 0) {
-        anunciar('Nenhum evento elegível para busca: preencha o nome do Evento e deixe a Liga ou a Data/Hora da Partida vazias.');
-        showToast('ℹ️ Nenhum evento elegível — a busca só considera eventos com o nome do Evento preenchido e a Liga ou a Data/Hora da Partida ainda vazias.', 'info', 8000);
-        return;
-    }
-
-    const botao = document.getElementById('btnBuscarLigaTodos');
-    const textoOriginal = botao.innerHTML;
-    botao.disabled = true;
-
-    let encontrados = 0, naoEncontrados = 0, erros = 0;
-    for (let i = 0; i < elegiveis.length; i++) {
-        botao.innerHTML = `⏳ Buscando ${i + 1} de ${elegiveis.length}...`;
-        anunciar(`Buscando liga e data/hora do evento ${i + 1} de ${elegiveis.length}.`);
-        const r = await _buscarLigaCore(elegiveis[i]);
-        if (r.status === 'encontrado') encontrados++;
-        else if (r.status === 'erro') erros++;
-        else if (r.status !== 'ja-preenchido') naoEncontrados++;
-    }
-
-    botao.disabled = false;
-    botao.innerHTML = textoOriginal;
-
-    const pulados = todos.length - elegiveis.length;
-    const partes = [`${encontrados} evento(s) com liga e/ou data/hora encontrada(s) e preenchida(s)`];
-    if (naoEncontrados > 0) partes.push(`${naoEncontrados} não confirmado(s) com confiança suficiente`);
-    if (erros > 0) partes.push(`${erros} com erro na busca`);
-    if (pulados > 0) partes.push(`${pulados} evento(s) pulado(s) (já tinham Liga e Data/Hora preenchidas, ou o Evento estava vazio)`);
-    const resumo = 'Busca de liga e data/hora concluída: ' + partes.join(', ') + '.';
-    anunciar(resumo);
-    showToast((encontrados > 0 ? '✅ ' : 'ℹ️ ') + resumo, encontrados > 0 ? 'success' : 'info', 9000);
-}
-
-/* Versão automática da busca acima: roda sozinha, sem botão, logo depois que
-   a IA preenche o formulário por Foto/Texto (ver preencherFormularioComExtracao)
-   — para eventos com o nome do Evento preenchido e a Liga OU a Data/Hora da
-   Partida ainda vazias (comum em bilhetes da Betano, que muitas vezes não
-   trazem liga nem horário do confronto). Eventos já completos não são
-   sobrescritos. Pode ser desligada em Configurações → 🔎 Liga e Horário
-   (buscaLigaHorarioAutomaticaAtiva); o botão manual continua disponível
-   independente desta opção. Reaproveita _buscarLigaCore, que já aplica os
-   valores encontrados diretamente nos campos do formulário; ao final,
-   sincroniza esses mesmos valores de volta no objeto "dados" (a leitura
-   original do bilhete), para que o Painel de Conferência já mostre os dados
-   completos assim que for exibido. */
 /* ==================== CACHE DE PARTIDAS (Liga/Data-Hora por confronto, 48h) ====================
    Guarda, por até 48h a partir de quando foi salvo (não da data do jogo —
    evita confundir dois jogos diferentes entre os mesmos times em datas
    distintas), a Liga e a Data/Hora da Partida já conhecidas de um confronto
    (mesmo esporte + mesmos times, em qualquer ordem). Fonte pode ser o
-   próprio bilhete (liga/data já vinham escritas nele), uma anotação manual
-   digitada ao colar o texto (ver PROMPT_TEXTO no worker), ou uma busca
-   manual pelo botão "🔎 Buscar Liga/Horário" (_buscarLigaCore) — o cache
-   trata todas do mesmo jeito. Substituiu, na leitura automática pós-
-   importação, a antiga busca automática por IA na web: mais rápido, não
-   gasta chamada de IA nenhuma, e só reaproveita o que já foi confirmado
-   antes, sem arriscar inferência. */
+   próprio bilhete (liga/data já vinham escritas nele) ou uma anotação manual
+   digitada ao colar o texto (ver PROMPT_TEXTO no worker) — o cache trata as
+   duas do mesmo jeito. É a ÚNICA fonte do preenchimento automático de Liga/
+   Data-Hora (ver buscarLigaHorarioAutomatico mais abaixo): não gasta nenhuma
+   chamada de IA nem busca na web, só reaproveita o que já foi confirmado
+   antes. Quando o confronto ainda não está no cache, o campo fica vazio
+   para preenchimento manual. */
 
 // Remove acentos para a chave de cache bater independente de acentuação
 // (ex.: "Grêmio" e "Gremio" viram a mesma chave).
@@ -3605,7 +3459,7 @@ async function consultarCachePartida(esporte, evento) {
         if (error || !data) return null;
         return {
             liga: data.liga || null,
-            data_evento: data.data_evento ? String(data.data_evento).slice(0, 16) : null
+            data_evento: data.data_evento ? utcParaBrasiliaLocalStr(data.data_evento) : null
         };
     } catch (e) {
         return null;
@@ -3625,7 +3479,7 @@ async function salvarCachePartida(esporte, evento, liga, dataEvento, origem) {
             evento_chave: k.chave,
             evento_exibicao: String(evento).trim(),
             liga: liga || null,
-            data_evento: dataEvento || null,
+            data_evento: brasiliaLocalStrParaUtcIso(dataEvento),
             origem: origem || null,
             criado_em: new Date().toISOString(),
             expira_em: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
@@ -3637,9 +3491,8 @@ async function salvarCachePartida(esporte, evento, liga, dataEvento, origem) {
 
 // Percorre os eventos já preenchidos no formulário e salva no cache todo
 // confronto que já tenha Liga E Data/Hora da Partida completas — vindas do
-// próprio bilhete, de anotação manual, do cache reaproveitado agora mesmo
-// (só atualiza a validade) ou de uma busca manual pelo botão "🔎 Buscar
-// Liga/Horário". Chamado sempre, independente da preferência de
+// próprio bilhete, de anotação manual, ou do cache reaproveitado agora mesmo
+// (só atualiza a validade). Chamado sempre, independente da preferência de
 // preenchimento automático (ver CHAVE_BUSCA_LIGA_HORARIO_AUTOMATICA) — essa
 // preferência controla só a LEITURA automática do cache, não a gravação.
 async function salvarCacheDosEventosPreenchidos() {
@@ -3658,9 +3511,7 @@ async function salvarCacheDosEventosPreenchidos() {
 }
 
 // Aplica ao formulário a Liga/Data-Hora já conhecidas do MESMO confronto,
-// vindas do cache local (sem gastar nenhuma chamada de IA). Espelha o
-// formato de aplicação de campos de _buscarLigaCore (que continua existindo,
-// intocada, para a busca manual pelo botão "🔎 Buscar Liga/Horário").
+// vindas do cache local (sem gastar nenhuma chamada de IA).
 async function _aplicarCachePartida(div) {
     const inputEvento = div.querySelector('.evento');
     const evento = inputEvento ? inputEvento.value.trim() : '';
@@ -3704,13 +3555,16 @@ async function _aplicarCachePartida(div) {
     return { status: (ligaAplicada || dataAplicada) ? 'encontrado' : 'sem-novidade', liga: ligaAplicada, dataHora: dataAplicada };
 }
 
+
 /* Preenche Liga e Data/Hora da Partida, para eventos que a leitura do
-   bilhete não conseguiu preencher, reaproveitando o CACHE LOCAL de
-   confrontos recentes (ver bloco acima) — não faz mais busca por IA
-   automaticamente (isso ficou só no botão manual "🔎 Buscar Liga/Horário").
-   Considera elegível todo evento com o nome do Evento preenchido E (Liga OU
-   Data/Hora da Partida ainda vazias); eventos já completos não são
-   sobrescritos. */
+   bilhete não conseguiu preencher, usando exclusivamente o CACHE LOCAL de
+   confrontos recentes (_aplicarCachePartida, ver bloco acima) — não gasta
+   chamada de IA nem busca na web, só reaproveita o que já foi confirmado
+   antes (do próprio bilhete ou de anotação manual, dentro de 48h). Considera
+   elegível todo evento com o nome do Evento preenchido E (Liga OU Data/Hora
+   da Partida ainda vazias); eventos já completos não são sobrescritos. Se o
+   confronto ainda não estiver no cache, os campos ficam vazios para
+   preenchimento manual. */
 async function buscarLigaHorarioAutomatico(dados) {
     const divs = Array.from(document.querySelectorAll('.event'));
     const elegiveis = divs.filter(function (div) {
@@ -3723,10 +3577,19 @@ async function buscarLigaHorarioAutomatico(dados) {
     });
     if (elegiveis.length === 0) return;
 
-    let encontrados = 0;
+    try {
+
+    // Cada evento é isolado em try/catch: uma falha inesperada num evento
+    // (ex.: erro de rede pontual na consulta ao Supabase) nunca deve travar
+    // os eventos seguintes nem impedir o aviso final de aparecer.
+    let encontradosCache = 0;
     for (const div of elegiveis) {
-        const r = await _aplicarCachePartida(div);
-        if (r.status === 'encontrado') encontrados++;
+        try {
+            const r = await _aplicarCachePartida(div);
+            if (r.status === 'encontrado') encontradosCache++;
+        } catch (e) {
+            console.log('[busca-liga-automatica] cache falhou para um evento, seguindo para os próximos:', e && e.message);
+        }
     }
 
     // _aplicarCachePartida aplica os valores encontrados diretamente nos
@@ -3744,8 +3607,16 @@ async function buscarLigaHorarioAutomatico(dados) {
         if (campoDataEvento && campoDataEvento.value) dados.eventos[idx].dataEvento = campoDataEvento.value;
     });
 
-    if (encontrados > 0) {
-        anunciarExtracao(`Liga e/ou horário preenchidos automaticamente a partir de bilhetes recentes (cache) em ${encontrados} evento${encontrados > 1 ? 's' : ''}.`);
+    if (encontradosCache > 0) {
+        anunciarExtracao(`Liga e/ou horário preenchidos automaticamente em ${encontradosCache} evento${encontradosCache > 1 ? 's' : ''} a partir de bilhetes recentes (cache).`);
+    }
+
+    } catch (erroGeral) {
+        // Rede de segurança final: qualquer erro não previsto acima cai
+        // aqui — em vez de travar em silêncio total, sempre avisa que algo
+        // deu errado e sugere o preenchimento manual.
+        console.log('[busca-liga-automatica] erro inesperado na busca automática de liga/horário:', erroGeral && erroGeral.message);
+        anunciarExtracao('Não foi possível concluir o preenchimento automático de liga/horário (cache local) devido a um erro inesperado. Preencha manualmente.');
     }
 }
 
@@ -3777,7 +3648,7 @@ function coletarDadosApostaParaAnalise() {
         const liga = valorEfetivoComOutro(div.querySelector('.ligaEvento'), 'ligaEventoOutro');
         const evento = div.querySelector('.evento') ? div.querySelector('.evento').value : '';
         const merDiv = div.querySelector('.mercado');
-        const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
+        const mercado = merDiv ? lerMercadosEmOrdem(merDiv).join(', ') : '';
         const selecao = div.querySelector('.selecao') ? div.querySelector('.selecao').value : '';
         const odd = div.querySelector('.odd') ? parseFloat2(div.querySelector('.odd').value) : 0;
         if (evento || mercado || odd > 0) {
@@ -4359,11 +4230,10 @@ function reaplicarItemNoFormulario(item, valorFinal) {
                 // Reconstrói as opções mas preserva os mercados já marcados nesse
                 // evento antes de adicionar o recém-aprovado (evita desmarcar
                 // outros mercados que já estavam certos nessa mesma lista).
-                const jaMarcados = Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+                const jaMarcados = lerMercadosEmOrdem(merDiv);
+                if (!jaMarcados.includes(valorFinal)) jaMarcados.push(valorFinal);
                 merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v => `<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
-                Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).forEach(cb => {
-                    if (jaMarcados.includes(cb.value) || cb.value === valorFinal) cb.checked = true;
-                });
+                marcarMercadosNaOrdem(merDiv, jaMarcados);
                 marcarCampoComoNovo(merDiv);
             }
         }
@@ -4526,15 +4396,20 @@ async function preencherFormularioComExtracao(dados, origem) {
                 const merDiv = bloco.querySelector('.mercado');
                 merDiv.innerHTML = mercadosDoEsporte(ev.esporte).map(v=>`<label><input type="checkbox" value="${mercadoNomeExibicao(v)}"><span>${mercadoNomeExibicao(v)}</span></label>`).join('');
                 let algumPendente = false;
+                // nomesMercado já está na ordem do bilhete (garantida pelo prompt da IA) —
+                // marcarMercadosNaOrdem preserva essa ordem via data-ordem-mercado, em vez
+                // de deixar a leitura posterior cair na ordem alfabética da lista de opções.
+                const nomesResolvidos = [];
                 nomesMercado.forEach(nomeMercado => {
                     const r = buscarOuPrepararValor(mercadosExibicao, nomeMercado);
-                    const cb = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).find(c => c.value === r.valor);
-                    if (cb) {
-                        cb.checked = true;
+                    const existe = Array.from(merDiv.querySelectorAll('input[type="checkbox"]')).some(c => c.value === r.valor);
+                    if (existe) {
+                        nomesResolvidos.push(r.valor);
                     } else if (itensNovos.some(i => i.field === 'mercado' && i.valor === r.valor && i.esporte === ev.esporte)) {
                         algumPendente = true;
                     }
                 });
+                marcarMercadosNaOrdem(merDiv, nomesResolvidos);
                 if (algumPendente) marcarCampoBaixaConfianca(merDiv);
             }
 
@@ -4582,13 +4457,12 @@ async function preencherFormularioComExtracao(dados, origem) {
     // listas aparecem como chips de sugestão (não bloqueia o preenchimento).
     aplicarExtracao();
 
-    // Busca automática de Liga e Data/Hora da Partida para eventos que a
-    // leitura do bilhete não conseguiu preencher (comum em bilhetes da
-    // Betano, que muitas vezes não trazem liga nem horário do confronto).
-    // Roda ANTES do Painel de Conferência ser exibido, para que ele já
-    // mostre os dados completos. Pode ser desligada em Configurações →
-    // 🔎 Liga e Horário; o botão manual "🔎 Buscar Liga/Horário" continua
-    // disponível a qualquer momento, independente desta opção.
+    // Busca automática de Liga e Data/Hora da Partida (cache local) para
+    // eventos que a leitura do bilhete não conseguiu preencher (comum em
+    // bilhetes da Betano, que muitas vezes não trazem liga nem horário do
+    // confronto). Roda ANTES do Painel de Conferência ser exibido, para que
+    // ele já mostre os dados completos. Pode ser desligada em Configurações
+    // → 🔎 Liga e Horário.
     if (buscaLigaHorarioAutomaticaAtiva) {
         await buscarLigaHorarioAutomatico(dados);
     }
@@ -4711,249 +4585,6 @@ function fecharPainelConferencia() {
     if (overlay) overlay.classList.remove('open');
 }
 
-/* ==================== CHECAGEM DE APOSTAS (API-Football + IA) ====================
-   Um único botão/fluxo (antes eram dois: "Checar Resultados" em lote cego +
-   "Checar Estatísticas" com seletor) — acionado pelo botão "🔎 Checar Apostas"
-   na Lista (atalho Alt+C) ou pelo botão equivalente dentro do Cadastro (ao
-   editar uma aposta já salva). Sempre passa pelo seletor com checkbox: mostra
-   os eventos com a Data/Hora de cada partida (não ID/Casa) para decidir o que
-   vale a pena enviar, com as apostas cujos jogos já devem ter terminado
-   (todos os eventos 2h ou mais depois do horário registrado — ver
-   _apostaProntaParaChecar) vindo pré-marcadas por padrão.
-   O Worker (/api/checar-apostas) busca placar E estatísticas de cada partida
-   e resolve em cascata (placar local → estatística local → IA com os dados
-   brutos) — cobre praticamente todos os mercados; só ficam de fora Desarmes e
-   Tiros de Meta, que a API-Football não tem em nenhum plano. Nunca aplica
-   status sozinho — o usuário confirma cada sugestão no painel de revisão. */
-
-// Aposta "pronta para checar" = todo evento já tem Data/Hora da Partida
-// preenchida E já se passaram pelo menos 2h desde esse horário — tempo em
-// que a maioria das partidas já terminou. É só uma pré-seleção no seletor
-// (o usuário pode marcar/desmarcar manualmente); não bloqueia nada.
-function _apostaProntaParaChecar(a) {
-    const eventos = a.eventos || [];
-    if (!eventos.length) return false;
-    const DUAS_HORAS_MS = 2 * 60 * 60 * 1000;
-    const agora = Date.now();
-    return eventos.every(e => {
-        if (!e.dataEvento) return false;
-        const t = new Date(e.dataEvento).getTime();
-        return !isNaN(t) && (agora - t) >= DUAS_HORAS_MS;
-    });
-}
-
-async function checarApostas(idxs) {
-    const idxsValidos = (idxs || []).filter(idx => apostas[idx]);
-    if (!idxsValidos.length) { showToast('Nenhuma aposta selecionada.', 'error'); return; }
-
-    const eventosParaChecar = [];
-    idxsValidos.forEach(idx => {
-        (apostas[idx].eventos || []).forEach(ev => {
-            eventosParaChecar.push({
-                idAposta: idx,
-                idEvento: ev.id,
-                esporte: ev.esporte,
-                evento: ev.evento,
-                mercado: ev.mercado,
-                selecao: ev.selecao,
-                dataEvento: ev.dataEvento || null
-            });
-        });
-    });
-    if (!eventosParaChecar.length) { showToast('Nenhum evento nas apostas selecionadas.', 'error'); return; }
-
-    showToast(idxsValidos.length > 1 ? `🔎 Checando ${idxsValidos.length} apostas...` : '🔎 Checando aposta...', 'success', 4000);
-    let json;
-    try {
-        const resposta = await fetch('/api/checar-apostas', {
-            method: 'POST',
-            headers: Object.assign({ 'Content-Type': 'application/json' }, await headerAutorizacaoIA()),
-            body: JSON.stringify({ eventos: eventosParaChecar })
-        });
-        json = await resposta.json();
-        if (!resposta.ok) throw new Error(json.error || 'Erro ao checar apostas.');
-    } catch (err) {
-        showToast('❌ ' + err.message, 'error', 10000);
-        return;
-    }
-    mostrarPainelChecagemApostas(json.resultados || []);
-}
-
-// Botão dentro do Cadastro — opera sobre a aposta atualmente em edição (editIndex).
-async function checarApostaAtual() {
-    if (editIndex === null) { showToast('Abra uma aposta já salva (Editar) para checar.', 'error'); return; }
-    const btn = document.getElementById('btnCheckarApostaAtual');
-    const textoOriginal = btn ? btn.innerHTML : '';
-    if (btn) { btn.disabled = true; btn.innerHTML = '🔎 Checando...'; }
-    await checarApostas([editIndex]);
-    if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
-}
-
-// Dado o conjunto de eventos já resolvidos (encontrados e com mercado suportado)
-// de UMA aposta, decide se dá pra sugerir um status geral com segurança:
-// - só sugere se TODOS os eventos da aposta foram resolvidos (nenhum ficou de fora);
-// - se algum perdeu, a aposta inteira perde (regra padrão de combinada);
-// - se todos ganharam, ou todos anularam, sugere isso;
-// - qualquer mistura de Ganho Parcial/Perda Parcial/Anulada com Ganhou fica sem
-//   sugestão automática — recalcular a odd de uma combinada com pernas parciais/
-//   anuladas exige lógica própria, fora do escopo desta primeira versão.
-function sugerirStatusGeral(resolvidos, totalEventosAposta) {
-    if (resolvidos.length < totalEventosAposta) return null;
-    if (resolvidos.some(r => r.resultado === 'Perdeu')) return 'Perdeu';
-    if (resolvidos.every(r => r.resultado === 'Ganhou')) return 'Ganhou';
-    if (resolvidos.every(r => r.resultado === 'Anulada')) return 'Anulada';
-    return null;
-}
-
-// Lista de eventos (com Data/Hora da Partida) exibida dentro de cada item do
-// seletor — é essa informação, não ID/Casa, que ajuda a decidir se vale a
-// pena submeter a aposta à checagem (jogo já deve ter terminado ou não).
-function _listaEventosParaSeletor(a) {
-    return (a.eventos || []).map((e, i) => {
-        const h = formatarHorarioEvento(e.dataEvento);
-        const horarioHtml = h ? h : '<span style="color:var(--text-secondary);">sem Data/Hora da Partida</span>';
-        return `<div style="font-size:12.5px;margin-top:2px;">${i + 1}. ${escapeHtml(e.evento || '(evento sem nome)')} — ${horarioHtml}</div>`;
-    }).join('');
-}
-
-function abrirSeletorChecarApostas() {
-    const pendentes = apostas
-        .map((a, idx) => ({ a, idx }))
-        .filter(({ a }) => a.status === 'Aberto');
-    if (!pendentes.length) { showToast('Nenhuma aposta em aberto para checar.', 'success'); return; }
-
-    let overlay = document.getElementById('overlaySeletorApostas');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'overlaySeletorApostas';
-        overlay.className = 'modal-overlay';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-labelledby', 'seletorApostasTitulo');
-        document.body.appendChild(overlay);
-        overlay.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') overlay.classList.remove('open');
-        });
-    }
-
-    const itens = pendentes.map(({ a, idx }) => {
-        const pronta = _apostaProntaParaChecar(a);
-        return `
-        <label class="card" style="display:block;width:100%;margin-bottom:8px;padding:10px 12px;cursor:pointer;">
-            <div style="display:flex;align-items:flex-start;gap:8px;">
-                <input type="checkbox" class="chk-seletor-apostas" value="${idx}" ${pronta ? 'checked' : ''} style="margin-top:3px;flex:0 0 auto;">
-                <div style="flex:1 1 auto;">
-                    <div><strong>${escapeHtml(a.identificador)}</strong> — ${escapeHtml(a.casa)} <small>(stake ${formatarMoeda(a.stake)})</small></div>
-                    ${_listaEventosParaSeletor(a)}
-                    ${!pronta ? '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">Ainda não chegou a 2h após a partida mais recente — desmarcada por padrão, mas você pode forçar a checagem.</div>' : ''}
-                </div>
-            </div>
-        </label>`;
-    }).join('');
-
-    overlay.innerHTML = `
-        <div class="modal" tabindex="-1" style="max-width:520px;width:100%;max-height:80vh;overflow-y:auto;">
-            <div class="painel-conferencia-header">
-                <h3 id="seletorApostasTitulo">🔎 Escolha as apostas</h3>
-                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlaySeletorApostas').classList.remove('open')">✕</button>
-            </div>
-            <p style="margin:0 0 10px;font-size:13px;color:var(--text-secondary);">Já vêm marcadas as apostas cujas partidas já passaram de 2h do horário registrado — a maioria já deve ter terminado. Ajuste como quiser e envie de uma vez; jogos repetidos entre as apostas marcadas são consultados só uma vez na API-Football.</p>
-            <div class="btn-row" style="margin-bottom:10px;">
-                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-apostas').forEach(c => c.checked = true);">Marcar todas</button>
-                <button type="button" class="btn-sm btn-outline" onclick="document.querySelectorAll('.chk-seletor-apostas').forEach(c => c.checked = false);">Desmarcar todas</button>
-            </div>
-            ${itens}
-            <div class="btn-row" style="margin-top:6px;">
-                <button type="button" class="btn btn-success" onclick="enviarConsultaApostasSelecionadas()">🔎 Enviar Consulta</button>
-            </div>
-        </div>`;
-    overlay.classList.add('open');
-    overlay.querySelector('.modal').focus();
-}
-
-function enviarConsultaApostasSelecionadas() {
-    const idxs = Array.from(document.querySelectorAll('.chk-seletor-apostas:checked')).map(c => parseInt(c.value, 10));
-    if (!idxs.length) { showToast('Marque pelo menos uma aposta para enviar.', 'error'); return; }
-    document.getElementById('overlaySeletorApostas').classList.remove('open');
-    checarApostas(idxs);
-}
-
-function mostrarPainelChecagemApostas(resultados) {
-    const porAposta = new Map();
-    resultados.forEach(r => {
-        if (!porAposta.has(r.idAposta)) porAposta.set(r.idAposta, []);
-        porAposta.get(r.idAposta).push(r);
-    });
-
-    // Partidas distintas de fato consultadas na API-Football (mesmo placar =
-    // mesmo jogo) — mostra a economia de chamadas quando há jogos repetidos
-    // entre as apostas enviadas no mesmo lote.
-    const placaresDistintos = new Set(resultados.filter(r => r.encontrado && r.placar).map(r => r.placar));
-    const resumoLoteHtml = (porAposta.size > 1)
-        ? `<p style="margin:0 0 10px;font-size:12.5px;color:var(--text-secondary);">${resultados.length} evento(s) verificado(s) em ${porAposta.size} aposta(s), correspondendo a ${placaresDistintos.size} partida(s) distinta(s) consultada(s) na API-Football.</p>`
-        : '';
-
-    let overlay = document.getElementById('overlayChecagemApostas');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'overlayChecagemApostas';
-        overlay.className = 'modal-overlay';
-        overlay.setAttribute('role', 'dialog');
-        overlay.setAttribute('aria-modal', 'true');
-        overlay.setAttribute('aria-labelledby', 'checagemApostasTitulo');
-        document.body.appendChild(overlay);
-        overlay.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') overlay.classList.remove('open');
-        });
-    }
-
-    const blocos = [];
-    porAposta.forEach((resultadosEvento, idxAposta) => {
-        const a = apostas[idxAposta];
-        if (!a) return;
-        const totalEventos = (a.eventos || []).length;
-
-        const linhasEventos = resultadosEvento.map(r => {
-            if (!r.encontrado) {
-                return `<div style="font-size:12.5px;margin-top:4px;">⚠️ ${escapeHtml(r.motivo || 'Não encontrado')}</div>`;
-            }
-            if (!r.suportado) {
-                return `<div style="font-size:12.5px;margin-top:4px;">⚠️ ${escapeHtml(r.detalhe || 'Mercado não suportado')} <small>(placar: ${escapeHtml(r.placar || '')})</small></div>`;
-            }
-            const avisoHtml = r.aviso ? `<div style="font-size:12px;color:#b45309;margin-top:2px;">⚠️ ${escapeHtml(r.aviso)}</div>` : '';
-            return `<div style="font-size:12.5px;margin-top:4px;">${escapeHtml(r.detalhe || r.placar || '')} → <strong>${escapeHtml(r.resultado)}</strong></div>${avisoHtml}`;
-        }).join('');
-
-        const resolvidos = resultadosEvento.filter(r => r.encontrado && r.suportado);
-        const sugestao = sugerirStatusGeral(resolvidos, totalEventos);
-
-        blocos.push(`
-        <div class="card" style="margin-bottom:10px;padding:12px;">
-            <strong>${escapeHtml(a.identificador)}</strong> — ${escapeHtml(a.casa)} <small>(stake ${formatarMoeda(a.stake)})</small>
-            ${linhasEventos}
-            ${sugestao
-                ? `<div class="btn-row" style="margin-top:8px;">
-                       <button type="button" class="btn-sm btn-success" onclick="marcarStatusAposta(${idxAposta}, '${sugestao}'); this.closest('.card').remove();">✅ Aplicar: ${sugestao}</button>
-                       <button type="button" class="btn-sm btn-outline" onclick="this.closest('.card').remove();">Ignorar</button>
-                   </div>`
-                : `<div style="margin-top:8px;font-size:12.5px;color:var(--text-secondary);">Sem sugestão automática — revise manualmente.</div>`
-            }
-        </div>`);
-    });
-
-    overlay.innerHTML = `
-        <div class="modal" tabindex="-1" style="max-width:560px;width:100%;max-height:80vh;overflow-y:auto;">
-            <div class="painel-conferencia-header">
-                <h3 id="checagemApostasTitulo">🔎 Checagem de apostas</h3>
-                <button type="button" class="painel-conferencia-fechar" aria-label="Fechar" onclick="document.getElementById('overlayChecagemApostas').classList.remove('open')">✕</button>
-            </div>
-            ${resumoLoteHtml}
-            ${blocos.length ? blocos.join('') : '<p>Nenhum resultado encontrado para as apostas selecionadas.</p>'}
-        </div>`;
-    overlay.classList.add('open');
-    overlay.querySelector('.modal').focus();
-}
-
 
 // Regra única de cálculo de Retornado/Lucro para cada status — usada no formulário,
 // ao salvar e ao trocar o status rapidamente na tabela. Mantém todo o app consistente.
@@ -5057,7 +4688,7 @@ async function salvar() {
         const liga    = valorEfetivoComOutro(e.querySelector(".ligaEvento"), 'ligaEventoOutro');
         // mercado: checkboxes
         const merDiv  = e.querySelector(".mercado");
-        const mercado = merDiv ? Array.from(merDiv.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).join(', ') : '';
+        const mercado = merDiv ? lerMercadosEmOrdem(merDiv).join(', ') : '';
 
         const campoDataEvento = e.querySelector(".dataEventoEvento");
         listaEventos.push({
@@ -5146,6 +4777,7 @@ function editar(idx) {
     document.querySelectorAll('#rg-status input[type="radio"]').forEach(r => { r.checked = (r.value === a.status); });
     // Restaurar selects: tipster e tipo (tipster entra em modo "Outro" se o valor salvo não estiver mais na lista)
     aplicarValorComOutro(document.getElementById("tipster"), 'tipsterOutro', a.tipster);
+    atualizarOddMinimaTipster();
     document.getElementById("tipo").value = a.tipo;
     document.getElementById("identificador").value = a.identificador;
     document.getElementById("dataHora").value = (a.dataHora || "").slice(0,16);
@@ -5174,10 +4806,12 @@ function editar(idx) {
         atualizarLigasDoEvento(selEsporte);
         aplicarValorComOutro(e.querySelector(".ligaEvento"), 'ligaEventoOutro', ev.liga);
         e.querySelector(".evento").value = ev.evento;
-        // Restaurar mercados (checkboxes)
-        const mercadosEv = (ev.mercado || '').split(', ').filter(Boolean);
+        // Restaurar mercados (checkboxes), preservando a ordem original salva
+        // (data-ordem-mercado) — sem isso, salvar de novo sem tocar nos mercados
+        // reordenaria tudo alfabeticamente.
+        const mercadosEv = (ev.mercado || '').split(',').map(m => m.trim()).filter(Boolean);
         const merDiv = e.querySelector(".mercado");
-        if (merDiv) merDiv.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = mercadosEv.includes(cb.value); });
+        marcarMercadosNaOrdem(merDiv, mercadosEv);
         e.querySelector(".selecao").value = ev.selecao || '';
         e.querySelector(".odd").value = ev.odd;
         const campoDataEvento = e.querySelector(".dataEventoEvento");
@@ -5185,10 +4819,6 @@ function editar(idx) {
     });
     document.getElementById("btnSalvar").innerHTML = "✏️ Atualizar Aposta";
     document.getElementById("btnCancelarEdicao").style.display = "block";
-    // "Checar Aposta" só faz sentido numa aposta já salva (precisa do
-    // índice em "apostas" para casar a resposta do Worker com a linha certa).
-    const btnEstat = document.getElementById("btnCheckarApostaAtual");
-    if (btnEstat) btnEstat.style.display = "";
     calcular();
 
     // Mobile: ir para aba cadastro
@@ -5311,12 +4941,11 @@ function limparFormulario() {
     });
     const tipsterOutro = document.querySelector('.tipsterOutro');
     if (tipsterOutro) { tipsterOutro.style.display = 'none'; tipsterOutro.value = ''; }
+    atualizarOddMinimaTipster();
     document.getElementById("eventos").innerHTML = "";
     editIndex = null;
     document.getElementById("btnSalvar").innerHTML = "💾 Salvar Aposta";
     document.getElementById("btnCancelarEdicao").style.display = "none";
-    const btnEstatLimpar = document.getElementById("btnCheckarApostaAtual");
-    if (btnEstatLimpar) btnEstatLimpar.style.display = "none";
     addEvento();
     calcular();
 }
@@ -5493,9 +5122,9 @@ function renderResumo(dados) {
         `<div class="summary-card" style="background:linear-gradient(135deg,#7c3aed,#a78bfa)"><h3>% Acerto</h3><div class="value">${formatarDecimal(acertoF)}%</div></div>`
     ].join('');
 
-    // Painel global fixo no topo (todas as telas)
+    // Painel global fixo no topo — só nas abas Lista e Filtros (ver ABAS_COM_RESUMO_GLOBAL)
     if (globalGrid)  globalGrid.innerHTML  = html;
-    if (globalWrap)  globalWrap.style.display = 'block';
+    if (globalWrap)  globalWrap.style.display = ABAS_COM_RESUMO_GLOBAL.includes(abaAtualBanca) ? 'block' : 'none';
     aplicarEstadoResumoGlobal();
 }
 
@@ -5677,58 +5306,6 @@ function renderSaldos() {
 
 /* ==================== MANUTENÇÃO DE CÁLCULOS (Configurações) ==================== */
 
-// Recalcula retornado/lucro de cada aposta salva com a fórmula atual (calcularRetornoLucro)
-// e compara com o que está gravado. Só leitura — não altera nenhuma aposta.
-// Resultado fica inline na própria aba Configurações (região aria-live), sem modal e sem
-// roubar o foco — assim quem usa leitor de tela permanece em modo de navegação normal e
-// só desce a página lendo a lista, sem precisar de comandos especiais de tabela.
-function auditarCalculos() {
-    const TOLERANCIA = 0.01; // diferenças de arredondamento abaixo disso não contam como divergência
-    const divergencias = [];
-
-    apostas.forEach(a => {
-        const { retornado: retornadoEsperado, lucro: lucroEsperado } = calcularRetornoLucro(
-            a.status, a.stake, a.oddTotal, a.bonus, a.cashOutValor, a.valorFreebet || 0
-        );
-        const recebidoSalvo = parseFloat2(a.recebido);
-        const lucroSalvo = parseFloat2(a.lucro);
-        const diffRecebido = recebidoSalvo - retornadoEsperado;
-        const diffLucro = lucroSalvo - lucroEsperado;
-
-        if (Math.abs(diffRecebido) > TOLERANCIA || Math.abs(diffLucro) > TOLERANCIA) {
-            divergencias.push({
-                identificador: a.identificador,
-                casa: a.casa,
-                status: a.status,
-                dataHora: a.dataHora,
-                recebidoSalvo, retornadoEsperado, diffRecebido,
-                lucroSalvo, lucroEsperado, diffLucro
-            });
-        }
-    });
-
-    const resumoEl = document.getElementById('auditoriaResumo');
-    const listaEl = document.getElementById('auditoriaLista');
-
-    if (divergencias.length === 0) {
-        resumoEl.textContent = `✅ ${apostas.length} apostas conferidas — nenhuma divergência encontrada entre o valor gravado e o recalculado com a fórmula atual.`;
-        listaEl.innerHTML = '';
-        return;
-    }
-
-    const impactoTotal = divergencias.reduce((s, d) => s + d.diffLucro, 0);
-    resumoEl.textContent = `⚠️ ${divergencias.length} de ${apostas.length} apostas com divergência entre o valor gravado e o recalculado. `+
-        `Impacto líquido no Lucro: ${formatarMoeda(impactoTotal)} `+
-        `(valor gravado ${impactoTotal >= 0 ? 'acima' : 'abaixo'} do que a fórmula atual calcularia). Lista logo abaixo.`;
-
-    listaEl.innerHTML = divergencias.map(d => `
-        <li style="margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid var(--border);">
-            <strong>${d.identificador}</strong> — ${d.casa}, status ${d.status}, ${formatarData(d.dataHora)}.
-            Recebido gravado: ${formatarMoeda(d.recebidoSalvo)}. Recebido esperado: ${formatarMoeda(d.retornadoEsperado)}.
-            Diferença no lucro: <strong style="color:${Math.abs(d.diffLucro) > TOLERANCIA ? '#b91c1c' : 'inherit'}">${formatarMoeda(d.diffLucro)}</strong>.
-        </li>`).join('');
-}
-
 // Percorre todas as apostas e regrava odd total, retornado, lucro, unidades
 // e ROI com precisão decimal de até 4 casas (mesma precisão usada em
 // formatarOdd/arredondar4), eliminando ruído de ponto flutuante acumulado
@@ -5855,6 +5432,92 @@ async function excluirTransacao(idx) {
 /* ==================== CONFIGURAÇÕES (gerenciar listas) ==================== */
 const CAMPOS_CONFIG = ['casa','tipster','tipo','esporte','liga','mercado'];
 
+// ---- Odd mínima recomendada por tipster ----
+// Odd mínima = 100 ÷ taxa de acerto (%) — é a odd de equilíbrio: abaixo dela,
+// o tipster perde dinheiro no longo prazo mesmo acertando na taxa histórica;
+// acima dela, há margem de lucro. Ganho Parcial conta como acerto e Perda
+// Parcial como erro; Cash Out e Anulada não entram (não refletem se a aposta
+// bateria ou não) e Aberto obviamente também fica de fora. Só é calculada com
+// uma amostra mínima de apostas resolvidas, para não recomendar uma odd com
+// base em 1 ou 2 resultados.
+const ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS = 30;
+
+function calcularOddMinimaTipster(nomeTipster) {
+    if (!nomeTipster) return null;
+    let acertos = 0, resolvidas = 0;
+    for (const a of apostas) {
+        if (a.tipster !== nomeTipster) continue;
+        if (a.status === 'Ganhou' || a.status === 'Ganho Parcial') { acertos++; resolvidas++; }
+        else if (a.status === 'Perdeu' || a.status === 'Perda Parcial') { resolvidas++; }
+        // Cash Out, Anulada, Aberto: não entram na conta
+    }
+    if (resolvidas < ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS) return { resolvidas, acertos, taxaAcerto: null, oddMinima: null };
+    const taxaAcerto = acertos / resolvidas;
+    const oddMinima = taxaAcerto > 0 ? (1 / taxaAcerto) : null;
+    return { resolvidas, acertos, taxaAcerto, oddMinima };
+}
+
+// Atualiza o indicador de odd mínima na tela de Cadastro, conforme o tipster
+// selecionado (ou digitado, no modo "Outro"). Chamado ao trocar o tipster, ao
+// editar uma aposta existente e ao limpar o formulário.
+function atualizarOddMinimaTipster() {
+    const el = document.getElementById('tipsterOddMinima');
+    if (!el) return;
+    const sel = document.getElementById('tipster');
+    const outro = document.querySelector('.tipsterOutro');
+    let nome = sel ? sel.value : '';
+    if (nome === OUTRO_VALOR) nome = outro ? outro.value.trim() : '';
+    if (!nome || nome === OUTRO_VALOR) { el.textContent = ''; return; }
+    const stats = calcularOddMinimaTipster(nome);
+    if (!stats || stats.resolvidas < ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS) {
+        el.textContent = `Ainda sem odd mínima recomendada para ${nome} (${stats ? stats.resolvidas : 0} de ${ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS} apostas resolvidas necessárias).`;
+        return;
+    }
+    if (stats.oddMinima === null) {
+        el.textContent = `${nome}: 0% de acerto nas ${stats.resolvidas} apostas resolvidas — nenhuma odd é recomendada.`;
+        return;
+    }
+    el.textContent = `Odd mínima recomendada para ${nome}: ${stats.oddMinima.toFixed(2)} (taxa de acerto: ${(stats.taxaAcerto*100).toFixed(1)}% em ${stats.resolvidas} apostas resolvidas)`;
+}
+
+// Renderiza a tabela de Tipsters em Configurações, incluindo as colunas de
+// desempenho (Resolvidas, Taxa de Acerto, Odd Mínima Recomendada), calculadas
+// a partir do array 'apostas' já carregado — sem chamada extra ao banco.
+function renderTipsterConfig() {
+    const container = document.getElementById('chips-tipster');
+    const labelMin = document.getElementById('tipsterMinResolvidasLabel');
+    if (labelMin) labelMin.textContent = String(ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS);
+    if (!container) return;
+    const valores = defaults.tipster || [];
+    if (valores.length === 0) {
+        container.innerHTML = `<tr><td colspan="5" style="color:var(--text-secondary);">Nenhum valor cadastrado ainda</td></tr>`;
+        return;
+    }
+    container.innerHTML = valores.map((v, i) => {
+        const stats = calcularOddMinimaTipster(v);
+        const resolvidas = stats ? stats.resolvidas : 0;
+        let colTaxa, colOdd;
+        if (!stats || stats.resolvidas < ODD_MINIMA_TIPSTER_MIN_RESOLVIDAS) {
+            colTaxa = `<span style="color:var(--text-secondary);">—</span>`;
+            colOdd = `<span style="color:var(--text-secondary);">insuficiente</span>`;
+        } else {
+            colTaxa = `${(stats.taxaAcerto*100).toFixed(1)}%`;
+            colOdd = stats.oddMinima !== null ? stats.oddMinima.toFixed(2) : '—';
+        }
+        return `
+        <tr>
+            <td>${escapeHtml(v)}</td>
+            <td>${resolvidas}</td>
+            <td>${colTaxa}</td>
+            <td>${colOdd}</td>
+            <td>
+                <button type="button" class="btn-xs btn-primary" onclick="editarOpcaoConfig('tipster', ${i})" aria-label="Editar ${escapeHtml(v)}">✏️</button>
+                <button type="button" class="btn-xs btn-danger" onclick="removerOpcaoConfig('tipster', ${i})" aria-label="Remover ${escapeHtml(v)}">🗑️</button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
 // Lista as correções aprendidas em Configurações, mais recentes primeiro, com
 // botão de exclusão individual — mesmo padrão visual dos chips das outras listas.
 function renderCorrecoesIA() {
@@ -5899,17 +5562,16 @@ function renderConfiguracoes() {
     if (selProvedorBilhete) selProvedorBilhete.value = provedorBilhete;
     const selProvedorEstatisticas = document.getElementById('config-provedor-estatisticas');
     if (selProvedorEstatisticas) selProvedorEstatisticas.value = provedorEstatisticas;
-    const selProvedorLiga = document.getElementById('config-provedor-liga');
-    if (selProvedorLiga) selProvedorLiga.value = provedorLiga;
 
     renderCorrecoesIA();
     renderHistoricoAnalises();
 
     renderSeletorEsporteELista('liga', 'config-liga-esporte', ligasDoEsporte, ligaNomeExibicao, ligaCompor, ligaDecompor, LIGA_ESPORTE_INDEFINIDO, 'moverLigaParaEsporte');
     renderSeletorEsporteELista('mercado', 'config-mercado-esporte', mercadosDoEsporte, mercadoNomeExibicao, mercadoCompor, mercadoDecompor, MERCADO_ESPORTE_INDEFINIDO, 'moverMercadoParaEsporte');
+    renderTipsterConfig();
 
     CAMPOS_CONFIG.forEach(campo => {
-        if (campo === 'liga' || campo === 'mercado') return; // já tratados acima
+        if (campo === 'liga' || campo === 'mercado' || campo === 'tipster') return; // já tratados acima
         const container = document.getElementById('chips-' + campo);
         if (!container) return;
         const valores = defaults[campo] || [];
@@ -6202,37 +5864,6 @@ document.addEventListener('keydown', e => {
 function gerarRelatorio() { /* removido */ }
 
 /* ==================== EXPORTAR / IMPORTAR ==================== */
-async function limparTodosDados() {
-    if (!confirm('⚠️ Isso vai apagar TODAS as apostas, lançamentos de saldo (depósitos/retiradas) e redefinir as opções para o padrão, tanto aqui quanto na nuvem. Tem certeza?')) return;
-    apostas = [];
-    transacoes = [];
-    // Resetar defaults para o estado inicial (sem tipsters, ligas etc.)
-    Object.assign(defaults, {
-        casa: ["Betano","Betfair","Superbet"].sort((a,b)=>a.localeCompare(b)),
-        tipster: [],
-        tipo: ["Ao Vivo","Pré Live"],
-        esporte: ["Basquete","Futebol","Tênis","Vôlei"].sort((a,b)=>a.localeCompare(b)),
-        liga: [],
-        mercado: ["Cartões","Chance Dupla","Empate","Gols","Handicap","Vencedor"].sort((a,b)=>a.localeCompare(b)),
-        selecao: []
-    });
-    const { error: eDel } = await sb.from('banca_apostas').delete().not('id', 'is', null);
-    if (eDel) showToast('❌ Erro ao apagar apostas na nuvem: ' + eDel.message, 'error');
-    const { error: eDelTrans } = await sb.from('banca_transacoes').delete().not('id', 'is', null);
-    if (eDelTrans) showToast('❌ Erro ao apagar lançamentos de saldo na nuvem: ' + eDelTrans.message, 'error');
-    const { error: eDelOp } = await sb.from('banca_opcoes').delete().not('id', 'is', null);
-    if (eDelOp) showToast('❌ Erro ao apagar listas na nuvem: ' + eDelOp.message, 'error');
-    await semearOpcoesPadrao();
-    fillSelects();
-    renderRadioGroup('rg-casa', 'casa', null);
-    limparFormulario();
-    aplicarFiltros();
-    renderSaldos();
-    renderConfiguracoes();
-    irPara('cadastro', document.querySelector('.tab-btn[data-secao="cadastro"]'));
-    showToast('✅ Dados limpos. Sistema resetado.', 'success');
-}
-
 function gerarTimestamp() {
     const d = new Date();
     const pad = n => String(n).padStart(2, '0');
@@ -6247,7 +5878,6 @@ function importarConfiguracao(event) { /* removido - usar Excel */ }
 
 function exportarConfiguracao() { /* removido - usar Excel */ }
 
-function exportarTabelaGeralExcel() { exportarConjuntoDadosExcel(apostas, "Historico_Geral_Banca", true); }
 function exportarFiltrosExcel() {
     if (!apostasFiltradasAtuais.length) { showToast('⚠️ Sem dados nos filtros ativos', 'error'); return; }
     exportarConjuntoDadosExcel(apostasFiltradasAtuais, "Resultados_Filtrados", false);
@@ -6299,449 +5929,6 @@ function exportarConjuntoDadosExcel(lista, nome, incluirTransacoes) {
 
 function exportarRelatorioExcel() { /* removido */ }
 
-function importarExcelCompleto(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    event.target.value = ''; // liberar para re-selecionar mesmo arquivo
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const wb = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(ws, {defval: ''});
-
-            // Aba de Transações (depósitos/retiradas) é opcional — planilhas exportadas antes
-            // dessa funcionalidade existir não vão ter essa aba, e isso é normal.
-            const temAbaTransacoes = wb.SheetNames.includes('Transações');
-            const jsonTransacoes = temAbaTransacoes
-                ? XLSX.utils.sheet_to_json(wb.Sheets['Transações'], {defval: ''})
-                : null;
-
-            if (!json || !json.length) {
-                showToast('❌ Planilha vazia ou sem dados', 'error');
-                return;
-            }
-
-            // Normaliza Data Hora para "aaaa-mm-ddThh:mm", aceitando três formatos possíveis
-            // que o Excel pode entregar pra mesma coluna, dependendo de como a célula foi
-            // formatada: texto (o normal, vindo do próprio export), número de série do Excel
-            // (quando a célula foi formatada como data) ou objeto Date (caso cellDates esteja ativo).
-            const normalizarDataHora = function(valor) {
-                const pad = n => String(n).padStart(2, '0');
-                if (valor === '' || valor === null || valor === undefined) return '';
-                if (typeof valor === 'number') {
-                    // Número de série do Excel -> data real (epoch do Excel: 1899-12-30)
-                    const d = new Date(Math.round((valor - 25569) * 86400 * 1000));
-                    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-                }
-                if (valor instanceof Date) {
-                    return `${valor.getFullYear()}-${pad(valor.getMonth()+1)}-${pad(valor.getDate())}T${pad(valor.getHours())}:${pad(valor.getMinutes())}`;
-                }
-                const str = valor.toString().trim();
-                // Formato brasileiro dd/mm/aaaa hh:mm (o que a exportação gera agora)
-                const mBr = str.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
-                if (mBr) return `${mBr[3]}-${mBr[2]}-${mBr[1]}T${mBr[4]}:${mBr[5]}`;
-                // Formato brasileiro só com data, sem horário: dd/mm/aaaa
-                const mBrData = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-                if (mBrData) return `${mBrData[3]}-${mBrData[2]}-${mBrData[1]}T00:00`;
-                // Formato ISO "aaaa-mm-dd hh:mm" ou "aaaa-mm-ddThh:mm" (planilhas antigas/manuais)
-                return str.replace(' ', 'T').slice(0, 16);
-            };
-
-            // Normalizar valor numérico (suporta R$ 1.234,56 e 1234.56)
-            const toNum = function(v) {
-                if (v === '' || v === null || v === undefined) return 0;
-                if (typeof v === 'number') return v;
-                var s = v.toString().replace(/R\$\s*/g, '').replace(/\s/g, '');
-                // formato BR: ponto como milhar, vírgula como decimal
-                if (/\d\.\d{3}/.test(s) && s.indexOf(',') !== -1) {
-                    s = s.replace(/\./g, '').replace(',', '.');
-                } else {
-                    s = s.replace(',', '.');
-                }
-                return parseFloat(s) || 0;
-            };
-
-            // Agrupar linhas por Identificador (cada evento = 1 linha no export)
-            var mapa = {};
-            var ordem = [];
-
-            json.forEach(function(row) {
-                var id = (row['Identificador'] || row['ID'] || '').toString().trim();
-                if (!id) return;
-                if (!mapa[id]) {
-                    var stake = toNum(row['Stake'] || row['Stake Total']);
-                    var lucro = toNum(row['Lucro']);
-                    mapa[id] = {
-                        dataHora:      normalizarDataHora(row['Data Hora'] || row['Data e Hora'] || ''),
-                        casa:          (row['Casa'] || '').toString().trim(),
-                        identificador: id,
-                        tipster:       (row['Tipster'] || '').toString().trim(),
-                        tipo:          (row['Tipo'] || '').toString().trim(),
-                        status:        (row['Status'] || row['Status Geral'] || 'Aberto').toString().trim(),
-                        oddTotal:      toNum(row['ODD Total']),
-                        stake:         stake,
-                        recebido:      toNum(row['Retornado'] || row['Recebido']),
-                        lucro:         lucro,
-                        unidades:      stake > 0 ? lucro / stake : 0,
-                        roi:           stake > 0 ? (lucro / stake) * 100 : 0,
-                        bonus:         toNum(row['Bônus'] || row['Bonus'] || 0),
-                        apostaGratis:  ['sim','true','1'].includes((row['Aposta Grátis'] || row['Aposta Gratis'] || '').toString().trim().toLowerCase()),
-                        valorFreebet:  toNum(row['Valor Freebet Usado'] || row['Valor Freebet'] || 0),
-                        observacao:    (row['Observação'] || row['Observacao'] || '').toString().trim(),
-                        cashOutValor:  row['Valor Cash Out'] != null && row['Valor Cash Out'] !== '' ? toNum(row['Valor Cash Out']) : null,
-                        eventos:       []
-                    };
-                    ordem.push(id);
-                }
-                var a = mapa[id];
-                a.eventos.push({
-                    numero:  a.eventos.length + 1,
-                    esporte: (row['Esporte'] || '').toString().trim(),
-                    liga:    (row['Liga']    || '').toString().trim(),
-                    evento:  (row['Evento']  || '').toString().trim(),
-                    mercado: (row['Mercado'] || '').toString().trim(),
-                    selecao: (row['Seleção'] || row['Selecao'] || '').toString().trim(),
-                    odd:     toNum(row['ODD Evento'] || row['ODD'] || 1)
-                });
-            });
-
-            const novasApostas = ordem.map(function(id) { return mapa[id]; })
-                          .filter(function(a) { return a.eventos.length > 0; });
-
-            if (!novasApostas.length) {
-                showToast('❌ Nenhuma aposta válida encontrada', 'error');
-                return;
-            }
-
-            // Verifica se alguma Data Hora ficou fora do padrão "aaaa-mm-ddThh:mm" antes de
-            // enviar qualquer coisa para a nuvem — evita que um lote inteiro falhe no meio
-            // do caminho por causa de uma única célula de data formatada diferente das outras.
-            const padraoData = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
-            const apostasComDataInvalida = novasApostas.filter(a => !padraoData.test(a.dataHora));
-            if (apostasComDataInvalida.length > 0) {
-                const exemplos = apostasComDataInvalida.slice(0, 5)
-                    .map(a => `${a.identificador} ("${a.dataHora}")`).join(', ');
-                showToast(`❌ ${apostasComDataInvalida.length} aposta(s) com Data Hora em formato inválido — corrija e tente de novo. Exemplo(s): ${exemplos}`, 'error', 15000);
-                return;
-            }
-
-            // Transações (depósitos/retiradas) — só processa se a aba existir na planilha
-            var novasTransacoes = [];
-            // Normaliza uma data simples (sem horário) para o formato aaaa-mm-dd
-            // usado internamente — aceita tanto o formato brasileiro dd/mm/aaaa
-            // (gerado pela exportação atual) quanto o ISO aaaa-mm-dd (planilhas antigas).
-            const normalizarDataSimples = function(valor) {
-                if (valor === '' || valor === null || valor === undefined) return '';
-                if (typeof valor === 'number') {
-                    const d = new Date(Math.round((valor - 25569) * 86400 * 1000));
-                    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-                }
-                const str = valor.toString().trim();
-                const mBr = str.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-                if (mBr) return `${mBr[3]}-${mBr[2]}-${mBr[1]}`;
-                return str.slice(0, 10);
-            };
-
-            if (jsonTransacoes) {
-                novasTransacoes = jsonTransacoes.map(function(row) {
-                    return {
-                        casa: (row['Casa'] || '').toString().trim(),
-                        tipo: (row['Tipo'] || '').toString().trim(),
-                        valor: toNum(row['Valor']),
-                        data: normalizarDataSimples(row['Data']),
-                        observacao: (row['Observação'] || row['Observacao'] || '').toString().trim()
-                    };
-                }).filter(function(t) { return t.casa && t.valor > 0 && (t.tipo === 'Depósito' || t.tipo === 'Retirada'); });
-            }
-
-            // Mesclar opções únicas nos defaults sem sobrescrever (ignorando maiúsculas/minúsculas e espaços extras)
-            //
-            // IMPORTANTE — otimização de performance:
-            // A versão anterior fazia, para cada evento da planilha, um
-            // `ci.liga.filter(...)` e um `ci.mercado.filter(...)` percorrendo
-            // a lista acumulada inteira, mais um `.find()` dentro de
-            // buscarOuPrepararValor. Com listas de centenas de ligas/mercados
-            // distintos e milhares de eventos (comum em planilhas grandes),
-            // isso se torna uma operação quadrática (ou peor, já que mercado
-            // ainda tem um split por vírgula) — na prática, milhões de
-            // comparações de string, travando o navegador por minutos sem
-            // gerar nenhum erro. A versão abaixo usa Maps indexados por
-            // esporte + chave normalizada, tornando cada verificação de
-            // duplicado uma operação O(1) em vez de O(n).
-            var ci = {
-                casa:    defaults.casa.slice(),
-                tipster: defaults.tipster.slice(),
-                tipo:    defaults.tipo.slice(),
-                esporte: defaults.esporte.slice(),
-                liga:    defaults.liga.slice(),
-                mercado: defaults.mercado.slice()
-            };
-
-            // Maps simples (sem esporte) para casa/tipster/tipo/esporte
-            function construirMapaSimples(lista) {
-                var m = new Map();
-                lista.forEach(function(v) { m.set(chaveNormalizada(v), v); });
-                return m;
-            }
-            var mapaCasa    = construirMapaSimples(ci.casa);
-            var mapaTipster = construirMapaSimples(ci.tipster);
-            var mapaTipo    = construirMapaSimples(ci.tipo);
-            var mapaEsporte = construirMapaSimples(ci.esporte);
-
-            // Rastreia SÓ os itens realmente novos (para gravar de forma incremental e segura
-            // no banco depois — nunca apagando e reconstruindo a lista inteira, o que já causou
-            // perda de ligas/mercados adicionados por outra aba/sessão enquanto esta ficou aberta
-            // com uma cópia desatualizada em memória).
-            var itensNovosImportacao = { casa: [], tipster: [], tipo: [], esporte: [], liga: [], mercado: [] };
-
-            function addComMapa(lista, mapa, valor, campoRastreio) {
-                if (!valor) return;
-                var v = String(valor).trim().replace(/\s+/g, ' ');
-                if (!v) return;
-                var chave = chaveNormalizada(v);
-                if (mapa.has(chave)) return; // já existe, não duplica
-                lista.push(v);
-                mapa.set(chave, v);
-                if (campoRastreio) itensNovosImportacao[campoRastreio].push(v);
-            }
-
-            // Maps de liga/mercado: chave composta "esporte||nomeNormalizado" -> valor já composto
-            var mapaLiga = new Map();
-            ci.liga.forEach(function(v) {
-                var d = ligaDecompor(v);
-                mapaLiga.set(d.esporte + '||' + chaveNormalizada(d.nome), v);
-            });
-            var mapaMercado = new Map();
-            ci.mercado.forEach(function(v) {
-                var d = mercadoDecompor(v);
-                mapaMercado.set(d.esporte + '||' + chaveNormalizada(d.nome), v);
-            });
-
-            novasApostas.forEach(function(a) {
-                addComMapa(ci.casa, mapaCasa, a.casa, 'casa');
-                addComMapa(ci.tipster, mapaTipster, a.tipster, 'tipster');
-                addComMapa(ci.tipo, mapaTipo, a.tipo, 'tipo');
-                (a.eventos || []).forEach(function(ev) {
-                    addComMapa(ci.esporte, mapaEsporte, ev.esporte, 'esporte');
-
-                    if (ev.liga && ev.esporte) {
-                        var nomeLiga = String(ev.liga).trim().replace(/\s+/g, ' ');
-                        if (nomeLiga) {
-                            var chaveLiga = ev.esporte + '||' + chaveNormalizada(nomeLiga);
-                            if (!mapaLiga.has(chaveLiga)) {
-                                var composto = ligaCompor(ev.esporte, nomeLiga);
-                                ci.liga.push(composto);
-                                mapaLiga.set(chaveLiga, composto);
-                                itensNovosImportacao.liga.push(composto);
-                            }
-                        }
-                    }
-
-                    if (ev.mercado && ev.esporte) {
-                        ev.mercado.split(',').forEach(function(m) {
-                            var nome = m.trim();
-                            if (!nome) return;
-                            var chaveMercado = ev.esporte + '||' + chaveNormalizada(nome);
-                            if (!mapaMercado.has(chaveMercado)) {
-                                var compostoM = mercadoCompor(ev.esporte, nome);
-                                ci.mercado.push(compostoM);
-                                mapaMercado.set(chaveMercado, compostoM);
-                                itensNovosImportacao.mercado.push(compostoM);
-                            }
-                        });
-                    }
-                });
-            });
-            Object.keys(ci).forEach(function(k) {
-                defaults[k] = ci[k].filter(Boolean).sort(function(a,b){ return a.localeCompare(b); });
-            });
-
-            // ── IMPORTAÇÃO ADITIVA COM ATUALIZAÇÃO (UPSERT) ──
-            // Cada aposta da planilha é comparada com as que já existem na
-            // nuvem usando o campo Identificador (único por aposta):
-            //   • Identificador NOVO  -> insere a aposta e seus eventos
-            //   • Identificador JÁ EXISTE -> atualiza a aposta (odd, unidades,
-            //     ROI, lucro etc.) com os valores da planilha e recria os
-            //     eventos, já que as odds individuais também podem ter mudado.
-            // Isso permite reimportar uma planilha corrigida (ex.: após um
-            // ajuste na fórmula de cálculo de odd/unidades/ROI) sem que as
-            // apostas existentes sejam ignoradas como duplicadas — e sem
-            // apagar todo o histórico, como era no modelo antigo.
-            const apostasPorIdentificador = {};
-            apostas.forEach(a => { apostasPorIdentificador[a.identificador] = a; });
-
-            const apostasNovas = [];
-            const apostasParaAtualizar = [];
-            novasApostas.forEach(a => {
-                const existente = apostasPorIdentificador[a.identificador];
-                if (existente) {
-                    a.id = existente.id; // reaproveita o id já existente na nuvem
-                    apostasParaAtualizar.push(a);
-                } else {
-                    apostasNovas.push(a);
-                }
-            });
-
-            if (apostasNovas.length === 0 && apostasParaAtualizar.length === 0 && (!jsonTransacoes || novasTransacoes.length === 0)) {
-                showToast(`ℹ️ Nenhuma aposta encontrada na planilha.`, 'info', 8000);
-                return;
-            }
-
-            showToast('⏳ Enviando para a nuvem, pode levar um instante...', 'info', 10000);
-
-            // Insere apenas as apostas novas (cabeçalho) em lotes e recupera os ids gerados
-            const linhasApostas = apostasNovas.map(apostaParaLinha);
-            const resApostas = linhasApostas.length > 0
-                ? await inserirEmLotes('banca_apostas', linhasApostas, true)
-                : { error: null, inseridas: [] };
-            if (resApostas.error) {
-                showToast(`❌ Erro ao importar apostas (${resApostas.inseridas.length} de ${linhasApostas.length} enviadas antes do erro): ` + resApostas.error.message, 'error', 10000);
-                return;
-            }
-
-            const porIdentificador = {};
-            apostasNovas.forEach(a => { porIdentificador[a.identificador] = a; });
-            resApostas.inseridas.forEach(row => {
-                const a = porIdentificador[row.identificador];
-                if (a) a.id = row.id;
-            });
-
-            // Insere os eventos das apostas novas, em lotes
-            const linhasEventos = [];
-            apostasNovas.forEach(a => (a.eventos || []).forEach(ev => {
-                if (a.id) linhasEventos.push(eventoParaLinha(ev, a.id));
-            }));
-            if (linhasEventos.length > 0) {
-                const resEventos = await inserirEmLotes('banca_eventos', linhasEventos, false);
-                if (resEventos.error) {
-                    showToast(`❌ Erro ao importar eventos (parte ficou sem enviar): ` + resEventos.error.message + ' — reimporte a planilha depois de resolver.', 'error', 12000);
-                    return;
-                }
-            }
-
-            // Confere se cada aposta nova recebeu seu id de fato (rede de segurança)
-            const apostasSemId = apostasNovas.filter(a => !a.id).length;
-            if (apostasSemId > 0) {
-                showToast(`⚠️ ${apostasSemId} aposta(s) não retornaram id após a inserção — reimporte a planilha para garantir consistência.`, 'error', 12000);
-            }
-
-            // Atualiza as apostas cujo Identificador já existia.
-            //
-            // IMPORTANTE — por que isso mudou:
-            // A versão anterior fazia isso uma aposta por vez, em sequência
-            // (await dentro de um for), com 2-3 chamadas de rede por aposta
-            // (UPDATE + DELETE eventos + INSERT eventos). Com uma reimportação
-            // de uma base grande — por exemplo, ao reimportar uma planilha
-            // corrigida onde a MAIORIA das apostas já existia — isso significa
-            // milhares de chamadas sequenciais, cada uma esperando a anterior
-            // terminar. Com ~150ms de latência típica por chamada, 1835
-            // apostas existentes podiam levar 10+ minutos só nesta etapa,
-            // dando a impressão de travamento (mesmo progredindo de verdade).
-            //
-            // Agora as atualizações rodam em grupos paralelos (concorrência
-            // controlada), e o toast é atualizado periodicamente para mostrar
-            // o progresso real — assim nunca mais parece travado.
-            const CONCORRENCIA_ATUALIZACAO = 8;
-            let falhasAtualizacao = 0;
-            let processadas = 0;
-
-            async function atualizarUmaAposta(a) {
-                const linha = apostaParaLinha(a);
-                const { error: errUpd } = await sb.from('banca_apostas').update(linha).eq('id', a.id);
-                if (errUpd) { falhasAtualizacao++; return; }
-
-                // Recria os eventos: remove os antigos e insere os novos da planilha,
-                // já que as odds individuais por evento também podem ter sido corrigidas.
-                await sb.from('banca_eventos').delete().eq('aposta_id', a.id);
-                const linhasEv = (a.eventos || []).map(ev => eventoParaLinha(ev, a.id));
-                if (linhasEv.length > 0) {
-                    const resEv = await inserirEmLotes('banca_eventos', linhasEv, false);
-                    if (resEv.error) falhasAtualizacao++;
-                }
-            }
-
-            for (let i = 0; i < apostasParaAtualizar.length; i += CONCORRENCIA_ATUALIZACAO) {
-                const grupo = apostasParaAtualizar.slice(i, i + CONCORRENCIA_ATUALIZACAO);
-                await Promise.all(grupo.map(atualizarUmaAposta));
-                processadas += grupo.length;
-                if (apostasParaAtualizar.length > CONCORRENCIA_ATUALIZACAO) {
-                    showToast(`⏳ Atualizando apostas existentes... ${processadas}/${apostasParaAtualizar.length}`, 'info', 6000);
-                }
-            }
-            if (falhasAtualizacao > 0) {
-                showToast(`⚠️ ${falhasAtualizacao} aposta(s) existente(s) não foram atualizadas corretamente — reimporte a planilha para tentar novamente.`, 'error', 12000);
-            }
-
-            // Transações: também aditivo. Compara por assinatura (casa+tipo+valor+data+observação)
-            // contra as transações já carregadas, e envia só as que ainda não existem.
-            let transacoesNovas = [];
-            let transacoesJaExistiam = 0;
-            if (jsonTransacoes) {
-                const assinaturaTransacao = t =>
-                    [t.casa, t.tipo, Number(t.valor).toFixed(2), t.data, (t.observacao || '').trim().toLowerCase()].join('|');
-                const assinaturasExistentes = new Set(transacoes.map(assinaturaTransacao));
-                transacoesNovas = novasTransacoes.filter(t => !assinaturasExistentes.has(assinaturaTransacao(t)));
-                transacoesJaExistiam = novasTransacoes.length - transacoesNovas.length;
-
-                if (transacoesNovas.length > 0) {
-                    const linhasTransacoes = transacoesNovas.map(transacaoParaLinha);
-                    const resTrans = await inserirEmLotes('banca_transacoes', linhasTransacoes, false);
-                    if (resTrans.error) {
-                        showToast('❌ Erro ao importar transações: ' + resTrans.error.message, 'error', 10000);
-                    } else {
-                        transacoes = transacoes.concat(transacoesNovas);
-                    }
-                }
-            }
-
-            // Grava no banco APENAS os itens realmente novos, um de cada vez — nunca apaga
-            // e reconstrói a lista inteira (isso já causou perda de ligas/mercados que existiam
-            // no banco mas não estavam na cópia em memória desta aba no momento da importação).
-            const gravacoesImportacao = [];
-            Object.keys(itensNovosImportacao).forEach(campo => {
-                itensNovosImportacao[campo].forEach(valor => {
-                    gravacoesImportacao.push(adicionarOpcaoDB(campo, valor));
-                });
-            });
-            await Promise.all(gravacoesImportacao);
-
-            // Atualiza o array local: substitui as apostas atualizadas pela
-            // versão nova (com os mesmos ids) e concatena as recém-inseridas.
-            apostasParaAtualizar.forEach(a => {
-                const idx = apostas.findIndex(x => x.id === a.id);
-                if (idx !== -1) apostas[idx] = a;
-            });
-            apostas = apostas.concat(apostasNovas);
-            fillSelects();
-            renderRadioGroup('rg-casa', 'casa', null);
-            ordenarApostasPorData();
-            aplicarFiltros();
-            renderSaldos();
-            renderConfiguracoes();
-
-            const partesAposta = [];
-            if (apostasNovas.length > 0) partesAposta.push(`${apostasNovas.length} nova(s)`);
-            if (apostasParaAtualizar.length > 0) partesAposta.push(`${apostasParaAtualizar.length} atualizada(s)`);
-            const avisoApostas = partesAposta.length > 0
-                ? partesAposta.join(', ') + ' aposta(s)'
-                : 'Nenhuma aposta nova ou alterada';
-            const avisoTrans = jsonTransacoes
-                ? (transacoesJaExistiam > 0
-                    ? `, ${transacoesNovas.length} lançamento(s) de saldo novo(s) (${transacoesJaExistiam} já existia(m))`
-                    : `, ${transacoesNovas.length} lançamento(s) de saldo`)
-                : '';
-            showToast('✅ ' + avisoApostas + avisoTrans + ' e enviados para a nuvem!', 'success', 8000);
-
-        } catch(err) {
-            showToast('❌ Erro ao importar: ' + err.message, 'error');
-            console.error('importarExcelCompleto erro:', err);
-        }
-    };
-    reader.readAsArrayBuffer(file);
-}
-
 /* ==================== SINCRONIZAÇÃO ==================== */
 function comprimirDados() { /* removido */ }
 
@@ -6758,6 +5945,5 @@ function criarDadosDemonstrativos() {
     // Sem dados de demonstração — sistema inicia limpo
 }
 </script>
-<input type="file" id="importExcelFile" style="display:none" onchange="importarExcelCompleto(event)" accept=".xlsx,.xls">
 </body>
 </html>
